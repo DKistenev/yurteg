@@ -11,13 +11,18 @@ class Config:
     supported_extensions: tuple[str, ...] = (".pdf", ".docx")
     max_file_size_mb: int = 50
 
-    # AI
-    model_dev: str = "claude-3-5-haiku-latest"
-    model_prod: str = "claude-sonnet-4-20250514"
+    # AI — провайдеры и модели
+    # Основной: ZAI Coding Plan Pro (GLM-5)
+    ai_base_url: str = "https://api.z.ai/api/coding/paas/v4"
+    model_dev: str = "glm-5"
+    model_prod: str = "glm-5"
+    # Запасной: OpenRouter (бесплатные модели)
+    ai_fallback_base_url: str = "https://openrouter.ai/api/v1"
+    model_fallback: str = "google/gemma-3-27b-it:free"
     use_prod_model: bool = False
     ai_max_retries: int = 3
     ai_temperature: float = 0
-    ai_max_tokens: int = 2000
+    ai_max_tokens: int = 4000  # Увеличено: thinking-модели используют больше токенов
 
     # Валидация
     confidence_high: float = 0.8
