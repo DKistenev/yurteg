@@ -30,18 +30,7 @@ PATTERNS: dict[str, re.Pattern] = {
     "EMAIL": re.compile(
         r'[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
     ),
-    "ПАСПОРТ": re.compile(
-        # Вариант 1: с ключевым словом (паспорт, серия, серия/номер)
-        # Вариант 2: без ключевого слова — формат XX XX XXXXXX (с пробелом/дефисом)
-        r'(?:'
-        r'(?:паспорт|серия)\s*\d{2}\s?\d{2}\s*(?:номер|№|н\.?)?\s*\d{6}'
-        r'|'
-        r'(?<!\d)\d{2}\s\d{2}\s+(?:номер|№|н\.?)\s*\d{6}'
-        r'|'
-        r'(?<!\d)\d{2}\s\d{2}\s+\d{6}(?!\d)'
-        r')',
-        re.IGNORECASE,
-    ),
+    # ПАСПОРТ обрабатывается отдельно через контекстный поиск (см. _extract_passport_matches)
     "СНИЛС": re.compile(
         r'\d{3}[\s\-]\d{3}[\s\-]\d{3}\s?\d{2}'
     ),
@@ -75,6 +64,10 @@ def anonymize(text: str) -> AnonymizedText:
     # Regex — все паттерны
     regex_matches = _extract_regex_matches(text)
     matches.extend(regex_matches)
+
+    # Паспорт — контекстный поиск (отдельно от общих regex)
+    passport_matches = _extract_passport_matches(text)
+    matches.extend(passport_matches)
 
     # Шаг 2: Убрать перекрытия (приоритет: более длинные совпадения)
     matches = _remove_overlaps(matches)
@@ -128,6 +121,85 @@ def _extract_ner_entities(text: str) -> list[tuple[int, int, str, str]]:
             entities.append((span.start, span.stop, "ФИО", span.text))
 
     return entities
+
+
+def _extract_passport_matches(text: str) -> list[tuple[int, int, str, str]]:
+    """
+    Извлекает паспортные данные через контекстный поиск.
+
+    Проблема: паспорт — это просто цифры (например, 4515 123456),
+    которые легко спутать с другими числами. Поэтому вместо глобального
+    regex ищем числовые паттерны ТОЛЬКО рядом с контекстными словами.
+
+    Алгоритм:
+    1. Находим все контекстные слова (паспорт, серия, выдан и т.д.)
+    2. В окрестности ±200 символов от каждого слова ищем числовой паттерн
+    3. Паттерн: 2-4 цифры (серия) + разделитель + 6 цифр (номер)
+       Также: просто 10 цифр подряд (серия+номер слитно)
+    """
+    # Контекстные слова, указывающие на паспортные данные
+    context_pattern = re.compile(
+        r'(?:паспорт(?:ные\s+данные)?|серия\s+(?:и\s+)?(?:номер|№|н\.?)'
+        r'|документ[,\s]+удостоверяющ\w+\s+личность'
+        r'|выдан\w*\s+(?:\d|отдел|управлен|[А-ЯЁ])'
+        r'|удостоверение\s+личности)',
+        re.IGNORECASE,
+    )
+
+    # Числовые паттерны паспорта (ищем только в контексте)
+    number_patterns = [
+        # серия 4515 номер 123456 / серия 4515 № 123456
+        re.compile(
+            r'(?:серия\s*)?(\d{2}\s?\d{2})\s*(?:номер|№|н\.?)?\s*(\d{6})',
+            re.IGNORECASE,
+        ),
+        # 4515 123456 (4 цифры + пробел + 6 цифр)
+        re.compile(r'(\d{4})\s+(\d{6})'),
+        # 45 15 123456 (2+2+6 через пробелы)
+        re.compile(r'(\d{2}\s\d{2})\s+(\d{6})'),
+        # 4515123456 (10 цифр подряд, но не часть более длинного числа)
+        re.compile(r'(?<!\d)(\d{4})(\d{6})(?!\d)'),
+    ]
+
+    matches: list[tuple[int, int, str, str]] = []
+    found_ranges: list[tuple[int, int]] = []  # чтобы не дублировать
+
+    # Шаг 1: Найти все контекстные слова
+    for ctx_match in context_pattern.finditer(text):
+        # Окрестность ±200 символов от контекстного слова
+        search_start = max(0, ctx_match.start() - 200)
+        search_end = min(len(text), ctx_match.end() + 200)
+        search_region = text[search_start:search_end]
+
+        # Шаг 2: В окрестности искать числовые паттерны
+        for num_pat in number_patterns:
+            for num_match in num_pat.finditer(search_region):
+                # Пересчитать позиции в исходном тексте
+                abs_start = search_start + num_match.start()
+                abs_end = search_start + num_match.end()
+
+                # Проверка: не дублируем ли уже найденный диапазон
+                already_found = False
+                for fs, fe in found_ranges:
+                    if abs_start < fe and abs_end > fs:
+                        already_found = True
+                        break
+
+                if not already_found:
+                    # Проверка: не является ли это ИНН, ОГРН, КПП и т.д.
+                    # Смотрим 20 символов перед найденным числом
+                    prefix_start = max(0, abs_start - 20)
+                    prefix = text[prefix_start:abs_start].lower().strip()
+                    skip_prefixes = ("инн", "огрн", "кпп", "бик", "р/с", "к/с",
+                                     "расчётный", "расчетный", "корр")
+                    if any(prefix.endswith(p) for p in skip_prefixes):
+                        continue
+
+                    original = text[abs_start:abs_end]
+                    matches.append((abs_start, abs_end, "ПАСПОРТ", original))
+                    found_ranges.append((abs_start, abs_end))
+
+    return matches
 
 
 def _extract_regex_matches(text: str) -> list[tuple[int, int, str, str]]:
