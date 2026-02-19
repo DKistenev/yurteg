@@ -215,6 +215,19 @@ def _validate_l2(metadata: ContractMetadata, config: Config) -> list[str]:
                 f"L2: слишком длинный предмет договора ({len(metadata.subject)} символов)"
             )
 
+    # ИНН в сторонах — проверка контрольной суммы
+    for party in metadata.parties:
+        inn_matches = re.findall(r'ИНН\s*(\d{10,12})', party, re.IGNORECASE)
+        for inn in inn_matches:
+            if not _validate_inn(inn):
+                warnings.append(f"L2: невалидный ИНН {inn} (ошибка контрольной суммы)")
+
+    # Стороны совпадают — подозрительно
+    if len(metadata.parties) >= 2:
+        normalized = [re.sub(r'\s+', ' ', p.lower().strip()) for p in metadata.parties]
+        if len(set(normalized)) < len(normalized):
+            warnings.append("L2: стороны договора совпадают")
+
     return warnings
 
 
@@ -266,3 +279,35 @@ def _fuzzy_match(text: str, candidates: list[str]) -> tuple[str, float]:
         if score > best[1]:
             best = (candidate, score)
     return best
+
+
+def _validate_inn(inn: str) -> bool:
+    """
+    Проверяет ИНН по контрольной сумме.
+
+    ИНН юрлица (10 цифр): проверяется 10-я цифра.
+    ИНН физлица (12 цифр): проверяются 11-я и 12-я цифры.
+
+    Алгоритм: каждая цифра умножается на свой коэффициент,
+    сумма делится на 11, остаток — контрольная цифра.
+    """
+    if not inn.isdigit():
+        return False
+
+    digits = [int(d) for d in inn]
+
+    if len(inn) == 10:
+        # ИНН юрлица: проверяем 10-ю цифру
+        weights = [2, 4, 10, 3, 5, 9, 4, 6, 8]
+        checksum = sum(d * w for d, w in zip(digits, weights)) % 11 % 10
+        return checksum == digits[9]
+
+    elif len(inn) == 12:
+        # ИНН физлица: проверяем 11-ю и 12-ю цифры
+        weights_11 = [7, 2, 4, 10, 3, 5, 9, 4, 6, 8]
+        weights_12 = [3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]
+        check_11 = sum(d * w for d, w in zip(digits, weights_11)) % 11 % 10
+        check_12 = sum(d * w for d, w in zip(digits, weights_12)) % 11 % 10
+        return check_11 == digits[10] and check_12 == digits[11]
+
+    return False
