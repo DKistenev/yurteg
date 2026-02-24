@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from config import Config
-from modules.ai_extractor import extract_metadata, verify_api_key
+from modules.ai_extractor import extract_metadata, verify_api_key, verify_metadata
 from modules.anonymizer import anonymize
 from modules.database import Database
 from modules.extractor import extract_text
@@ -200,6 +200,54 @@ class Controller:
                     # Валидация L1–L3
                     validation = validate_metadata(metadata, self.config)
                     result.validation = validation
+
+                    # AI-верификация L5 (selective: только для проблемных)
+                    if (
+                        self.config.validation_mode == "selective"
+                        and validation.status in ("warning", "unreliable")
+                    ) or self.config.validation_mode == "full":
+                        logger.info("L5 верификация: %s", result.file_info.filename)
+                        v5 = verify_metadata(
+                            anonymized.text, metadata, self.config,
+                        )
+                        if v5.get("correct", True):
+                            validation.warnings.append(
+                                "L5: AI подтвердил корректность данных"
+                            )
+                        else:
+                            # AI нашёл проблемы — пробуем применить исправления
+                            applied = 0
+                            for corr in v5.get("corrections") or []:
+                                field = corr.get("field", "")
+                                suggested = corr.get("suggested")
+                                if field and suggested and hasattr(metadata, field):
+                                    old_val = getattr(metadata, field)
+                                    setattr(metadata, field, suggested)
+                                    validation.warnings.append(
+                                        f"L5: AI исправил {field}: "
+                                        f"«{old_val}» → «{suggested}»"
+                                    )
+                                    applied += 1
+                            if applied > 0:
+                                # Пересчитать валидацию после исправлений
+                                l5_warnings = [
+                                    w for w in validation.warnings
+                                    if w.startswith("L5:")
+                                ]
+                                validation = validate_metadata(
+                                    metadata, self.config,
+                                )
+                                validation.warnings.extend(l5_warnings)
+                                result.validation = validation
+                            else:
+                                # AI сказал «неправильно», но не предложил
+                                # конкретных исправлений
+                                reasoning = v5.get("reasoning", "")
+                                validation.warnings.append(
+                                    f"L5: AI считает данные неточными"
+                                    + (f" ({reasoning[:120]})"
+                                       if reasoning else "")
+                                )
 
                     # Организация файла
                     organized_path = organize_file(result, output_dir, grouping)

@@ -344,6 +344,10 @@ def verify_metadata(
             metadata_json=json.dumps(metadata_dict, ensure_ascii=False, indent=2),
         )
 
+        extra = {}
+        if config.ai_disable_thinking:
+            extra["extra_body"] = {"thinking": {"type": "disabled"}}
+
         response = client.chat.completions.create(
             model=config.active_model,
             temperature=0,
@@ -352,6 +356,7 @@ def verify_metadata(
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
+            **extra,
         )
 
         raw_text = response.choices[0].message.content
