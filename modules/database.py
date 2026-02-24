@@ -6,6 +6,7 @@
 import json
 import logging
 import sqlite3
+import threading
 from pathlib import Path
 
 from modules.models import ProcessingResult
@@ -56,11 +57,21 @@ class Database:
     def __init__(self, db_path: Path) -> None:
         """Создаёт/открывает БД. Автоматически создаёт таблицы если их нет."""
         self.db_path = db_path
+        self._lock = threading.Lock()
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.conn = sqlite3.connect(str(db_path))
+        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
+
+        # Миграция v0.3: пометки юриста
+        for col, default in (("review_status", "'not_reviewed'"), ("lawyer_comment", "''")):
+            try:
+                self.conn.execute(f"ALTER TABLE contracts ADD COLUMN {col} TEXT DEFAULT {default}")
+                self.conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Колонка уже существует
+
         logger.info("БД открыта: %s", db_path)
 
     def is_processed(self, file_hash: str) -> bool:
@@ -72,7 +83,7 @@ class Database:
         return cursor.fetchone() is not None
 
     def save_result(self, result: ProcessingResult) -> None:
-        """Сохраняет результат обработки. Upsert по file_hash."""
+        """Сохраняет результат обработки. Upsert по file_hash. Thread-safe."""
         m = result.metadata
         v = result.validation
 
@@ -89,8 +100,8 @@ class Database:
             m.date_start if m else None,
             m.date_end if m else None,
             m.amount if m else None,
-            json.dumps(m.special_conditions, ensure_ascii=False) if m else None,
-            json.dumps(m.parties, ensure_ascii=False) if m else None,
+            json.dumps(m.special_conditions or [], ensure_ascii=False) if m else None,
+            json.dumps(m.parties or [], ensure_ascii=False) if m else None,
             m.confidence if m else None,
             v.status if v else None,
             json.dumps(v.warnings, ensure_ascii=False) if v else None,
@@ -99,19 +110,20 @@ class Database:
             result.model_used,
         )
 
-        self.conn.execute(
-            """
-            INSERT OR REPLACE INTO contracts
-            (original_path, filename, file_hash, status, error_message,
-             contract_type, counterparty, subject, date_signed, date_start, date_end,
-             amount, special_conditions, parties, confidence,
-             validation_status, validation_warnings, validation_score,
-             organized_path, model_used)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            data,
-        )
-        self.conn.commit()
+        with self._lock:
+            self.conn.execute(
+                """
+                INSERT OR REPLACE INTO contracts
+                (original_path, filename, file_hash, status, error_message,
+                 contract_type, counterparty, subject, date_signed, date_start, date_end,
+                 amount, special_conditions, parties, confidence,
+                 validation_status, validation_warnings, validation_score,
+                 organized_path, model_used)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                data,
+            )
+            self.conn.commit()
         logger.debug("Сохранён: %s (статус=%s)", result.file_info.filename, result.status)
 
     def get_all_results(self) -> list[dict]:
@@ -123,15 +135,39 @@ class Database:
         results = []
         for row in rows:
             d = dict(row)
-            # Десериализация JSON-полей
+            # Десериализация JSON-полей (null → [], строка → [строка])
             for field in ("special_conditions", "parties", "validation_warnings"):
-                if d.get(field):
+                raw = d.get(field)
+                if raw:
                     try:
-                        d[field] = json.loads(d[field])
+                        parsed = json.loads(raw)
+                        d[field] = parsed if isinstance(parsed, list) else []
                     except (json.JSONDecodeError, TypeError):
                         d[field] = []
+                else:
+                    d[field] = []
+            # Гарантируем наличие полей v0.3
+            d.setdefault("review_status", "not_reviewed")
+            d.setdefault("lawyer_comment", "")
             results.append(d)
         return results
+
+    def clear_all(self) -> None:
+        """Удаляет все записи. Используется при принудительной переобработке."""
+        with self._lock:
+            self.conn.execute("DELETE FROM contracts")
+            self.conn.commit()
+        logger.info("БД очищена для переобработки")
+
+    def update_review(self, file_hash: str, review_status: str, comment: str) -> None:
+        """Обновляет пометку юриста для файла."""
+        with self._lock:
+            self.conn.execute(
+                "UPDATE contracts SET review_status=?, lawyer_comment=? WHERE file_hash=?",
+                (review_status, comment, file_hash),
+            )
+            self.conn.commit()
+        logger.debug("Пометка обновлена: %s → %s", file_hash[:8], review_status)
 
     def get_stats(self) -> dict:
         """Статистика: {total, done, error, pending}."""

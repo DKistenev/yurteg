@@ -5,9 +5,9 @@
 перемещаются и не удаляются из исходной папки.
 
 Три режима группировки:
-- "type": Договоры/{тип}/{файл}
-- "counterparty": Договоры/{контрагент}/{файл}
-- "both": Договоры/{тип}/{контрагент}/{файл}
+- "type": Документы/{тип}/{файл}
+- "counterparty": Документы/{контрагент}/{файл}
+- "both": Документы/{тип}/{контрагент}/{файл}
 """
 import logging
 import re
@@ -59,9 +59,9 @@ def organize_file(
     Копирует файл в структурированную папку.
 
     grouping:
-    - "type": Договоры/{тип}/{файл}
-    - "counterparty": Договоры/{контрагент}/{файл}
-    - "both": Договоры/{тип}/{контрагент}/{файл}
+    - "type": Документы/{тип}/{файл}
+    - "counterparty": Документы/{контрагент}/{файл}
+    - "both": Документы/{тип}/{контрагент}/{файл}
 
     Возвращает путь к скопированному файлу.
     """
@@ -72,11 +72,11 @@ def organize_file(
 
     # Строим путь в зависимости от режима группировки
     if grouping == "type":
-        target_dir = output_dir / "Договоры" / type_dir
+        target_dir = output_dir / "Документы" / type_dir
     elif grouping == "counterparty":
-        target_dir = output_dir / "Договоры" / party_dir
+        target_dir = output_dir / "Документы" / party_dir
     else:  # "both"
-        target_dir = output_dir / "Договоры" / type_dir / party_dir
+        target_dir = output_dir / "Документы" / type_dir / party_dir
 
     target_dir.mkdir(parents=True, exist_ok=True)
 

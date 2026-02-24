@@ -5,3 +5,5 @@ __pycache__/
 .DS_Store
 yurteg.db
 ЮрТэг_Результат/
+.env
+.streamlit/secrets.toml

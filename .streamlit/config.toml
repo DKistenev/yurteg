@@ -1,0 +1,19 @@
+[theme]
+base = "light"
+primaryColor = "#4F46E5"
+backgroundColor = "#FAFBFC"
+secondaryBackgroundColor = "#F1F5F9"
+textColor = "#1E293B"
+baseRadius = "lg"
+showWidgetBorder = false
+
+[theme.sidebar]
+backgroundColor = "#1E293B"
+textColor = "#F1F5F9"
+primaryColor = "#818CF8"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

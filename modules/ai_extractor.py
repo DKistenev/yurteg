@@ -1,8 +1,8 @@
-"""Модуль AI-извлечения метаданных из договоров.
+"""Модуль AI-извлечения метаданных из юридических документов.
 
 Отправляет анонимизированный текст в LLM, получает структурированные
 метаданные в JSON. Поддерживает два провайдера:
-- ZAI (GLM-5) — основной, платный
+- ZAI (GLM-4.7) — основной, платный
 - OpenRouter — запасной, бесплатные модели
 """
 import json
@@ -21,38 +21,56 @@ logger = logging.getLogger(__name__)
 
 # --- Промпты ---
 
-SYSTEM_PROMPT = """Ты - опытный юрист-аналитик. Твоя задача - извлечь структурированные метаданные из текста договора.
+SYSTEM_PROMPT = """Ты — опытный юрист-аналитик. Извлеки структурированные метаданные из юридического документа.
 
-ВАЖНО:
-- Текст может быть частично анонимизирован (содержать маски вида [ФИО_1], [ТЕЛЕФОН_1] и т.д.). Это нормально, используй маски как есть.
-- Отвечай СТРОГО в формате JSON. Никакого текста до или после JSON.
-- Если информация отсутствует в тексте - ставь null.
-- Поле confidence - твоя уверенность в правильности извлечения (0.0-1.0).
-- НЕ оборачивай JSON в ```json``` или другие блоки кода. Просто чистый JSON."""
+ПРАВИЛА:
+1. Текст может содержать маски анонимизации ([ФИО_1], [ТЕЛЕФОН_1] и т.д.) — используй их как есть.
+2. Отвечай СТРОГО чистым JSON. Без текста до/после, без обёрток ```json```.
+3. Отсутствующую информацию ставь null (не пустую строку "").
+4. Списки всегда массивы: parties=[], special_conditions=[]. Никогда не null и не строка.
+5. confidence — число от 0.0 до 1.0 (не строка).
+6. Сумму пиши с пробелами-разделителями и валютой: "1 500 000 руб.", "25 000 EUR".
+7. Даты строго YYYY-MM-DD."""
 
-USER_PROMPT_TEMPLATE = """Извлеки метаданные из следующего текста договора.
+USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста юридического документа.
 
-Известные типы договоров (используй один из них если подходит):
-{contract_types}
+Известные типы документов (используй подходящий из списка или определи свой):
+{document_types}
 
-Верни JSON со следующими полями:
-- contract_type (string): тип договора (например: "Договор поставки", "Договор аренды")
-- counterparty (string): наименование основного контрагента (организация или маска [ФИО_N] если физлицо)
-- subject (string): предмет договора - краткое описание в 1-2 предложения
-- date_signed (string|null): дата подписания в формате YYYY-MM-DD
-- date_start (string|null): дата начала действия в формате YYYY-MM-DD
-- date_end (string|null): дата окончания действия в формате YYYY-MM-DD
-- amount (string|null): сумма договора с валютой (например: "1 500 000 руб.")
-- special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии)
-- parties (array of strings): все стороны договора
-- confidence (float): уверенность в правильности извлечения от 0.0 до 1.0
+Верни JSON с полями:
+- document_type (string): тип документа. Примеры: "Договор поставки", "Счёт на оплату", "Акт выполненных работ", "Коммерческое предложение"
+- counterparty (string): основной контрагент (организация или маска [ФИО_N])
+- subject (string): предмет документа — 1-2 предложения
+- date_signed (string|null): дата подписания, YYYY-MM-DD
+- date_start (string|null): дата начала действия, YYYY-MM-DD
+- date_end (string|null): дата окончания, YYYY-MM-DD
+- amount (string|null): сумма с валютой, пробелы-разделители (пример: "1 500 000 руб.")
+- special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии). Пустой массив [] если нет
+- parties (array of strings): все стороны документа. Пустой массив [] если не определены
+- confidence (float): уверенность 0.0–1.0
 
-Текст договора:
+Пример ответа:
+{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "[ФИО_1]"], "confidence": 0.92}}
+
+Текст документа:
 {text}"""
 
-VERIFY_PROMPT = """Проверь, соответствуют ли эти метаданные тексту договора.
+FALLBACK_PROMPT_TEMPLATE = """Текст документа не удалось обработать полностью. Извлеки базовую информацию.
 
-Начало текста договора:
+Определи:
+- document_type (string): тип документа
+- counterparty (string): контрагент
+- subject (string): предмет (кратко)
+- confidence (float): уверенность 0.0-1.0
+
+Верни ТОЛЬКО JSON с этими 4 полями.
+
+Текст (первые 3000 символов):
+{text}"""
+
+VERIFY_PROMPT = """Проверь, соответствуют ли эти метаданные тексту документа.
+
+Начало текста документа:
 {text_preview}
 
 Извлечённые метаданные:
@@ -60,10 +78,43 @@ VERIFY_PROMPT = """Проверь, соответствуют ли эти мет
 
 Верни JSON:
 - correct (bool): true если метаданные в целом верны
-- corrections (array): список исправлений, каждое - объект с полями "field", "current", "suggested"
+- corrections (array): список исправлений, каждое — объект с полями "field", "current", "suggested"
 - reasoning (string): краткое пояснение
 
 Отвечай СТРОГО в формате JSON, без обёрток."""
+
+
+def _merge_system_into_user(messages: list[dict]) -> list[dict]:
+    """Вклеивает system-сообщения в начало первого user-сообщения.
+
+    Нужно для моделей, не поддерживающих role='system'
+    (gemma, некоторые бесплатные модели на OpenRouter).
+    """
+    system_parts: list[str] = []
+    other: list[dict] = []
+    for msg in messages:
+        if msg["role"] == "system":
+            system_parts.append(msg["content"])
+        else:
+            other.append(msg)
+
+    if not system_parts or not other:
+        return messages
+
+    # Вклеиваем system prompt как инструкцию в начало user-сообщения
+    prefix = "\n\n".join(system_parts)
+    merged = []
+    injected = False
+    for msg in other:
+        if msg["role"] == "user" and not injected:
+            merged.append({
+                "role": "user",
+                "content": f"[Инструкция]\n{prefix}\n\n[Задание]\n{msg['content']}",
+            })
+            injected = True
+        else:
+            merged.append(msg)
+    return merged
 
 
 def _create_client(config: Config, use_fallback: bool = False) -> OpenAI:
@@ -123,19 +174,19 @@ def extract_metadata(anonymized_text: str, config: Config) -> ContractMetadata:
     1. Основная модель (ZAI GLM-5) — до ai_max_retries попыток
     2. Fallback (OpenRouter, бесплатная) — если основная недоступна
 
-    Текст обрезается до 80K символов (~20K токенов).
+    Текст обрезается до 30K символов (~7.5K токенов).
 
     Raises:
         RuntimeError: если все попытки исчерпаны
     """
-    # Обрезать текст если слишком длинный
-    text = anonymized_text[:80_000]
+    # Обрезать текст если слишком длинный (30K достаточно для 95% документов)
+    text = anonymized_text[:30_000]
 
     # Формируем список типов для промпта
-    types_str = ", ".join(f'"{t}"' for t in config.contract_types)
+    types_str = ", ".join(f'"{t}"' for t in config.document_types_hints)
 
     user_prompt = USER_PROMPT_TEMPLATE.format(
-        contract_types=types_str,
+        document_types=types_str,
         text=text,
     )
 
@@ -145,15 +196,30 @@ def extract_metadata(anonymized_text: str, config: Config) -> ContractMetadata:
     ]
 
     # Этап 1: Основная модель
-    last_error = _try_model(config, messages, config.active_model, use_fallback=False)
-    if isinstance(last_error, ContractMetadata):
-        return last_error  # Успех
+    result = _try_model(config, messages, config.active_model, use_fallback=False)
+    if isinstance(result, ContractMetadata):
+        # Проверка: если все ключевые поля пустые — пробуем упрощённый промпт
+        if not result.contract_type and not result.counterparty and not result.subject:
+            logger.info("Все ключевые поля пустые, пробую упрощённый промпт...")
+            fallback_msgs = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": FALLBACK_PROMPT_TEMPLATE.format(text=text[:3000])},
+            ]
+            fb = _try_model(config, fallback_msgs, config.active_model, use_fallback=False)
+            if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
+                return fb
+        return result
 
-    # Этап 2: Fallback (OpenRouter)
+    last_error = result
+
+    # Этап 2: Fallback модель (OpenRouter)
     if config.model_fallback and os.environ.get("OPENROUTER_API_KEY"):
         logger.info("Основная модель недоступна, пробую fallback: %s", config.model_fallback)
+        # Некоторые бесплатные модели не поддерживают system role —
+        # вклеиваем system prompt в начало user-сообщения для надёжности
+        fallback_messages = _merge_system_into_user(messages)
         fallback_result = _try_model(
-            config, messages, config.model_fallback, use_fallback=True
+            config, fallback_messages, config.model_fallback, use_fallback=True
         )
         if isinstance(fallback_result, ContractMetadata):
             return fallback_result
@@ -189,11 +255,17 @@ def _try_model(
                 model, attempt + 1, config.ai_max_retries,
             )
 
+            # Отключаем thinking mode для ZAI (5-7x ускорение)
+            extra = {}
+            if config.ai_disable_thinking and not use_fallback:
+                extra["extra_body"] = {"thinking": {"type": "disabled"}}
+
             response = client.chat.completions.create(
                 model=model,
                 temperature=config.ai_temperature,
                 max_tokens=config.ai_max_tokens,
                 messages=messages,
+                **extra,
             )
 
             raw_text = response.choices[0].message.content
@@ -218,7 +290,7 @@ def _try_model(
                 attempt + 1, config.ai_max_retries, model, e,
             )
             if attempt < config.ai_max_retries - 1:
-                time.sleep(2 ** attempt)
+                time.sleep(1)
 
         except RateLimitError as e:
             last_error = e
@@ -226,7 +298,7 @@ def _try_model(
                 "Попытка %d/%d (%s): лимит запросов - %s",
                 attempt + 1, config.ai_max_retries, model, e,
             )
-            time.sleep(min(2 ** (attempt + 2), 30))
+            time.sleep(min(2 ** (attempt + 1), 10))
 
         except (APIError, APITimeoutError) as e:
             last_error = e
@@ -313,10 +385,20 @@ def verify_api_key(config: Config) -> bool:
     """
     try:
         client = _create_client(config)
+        # Определить модель по тому же ключу, что использует _create_client
+        active_key = (
+            os.environ.get("ZHIPU_API_KEY", "")
+            or os.environ.get("ZAI_API_KEY", "")
+            or os.environ.get("OPENROUTER_API_KEY", "")
+        )
+        if active_key.startswith("sk-or-"):
+            model = config.model_fallback
+        else:
+            model = config.active_model
         response = client.chat.completions.create(
-            model=config.active_model,
-            max_tokens=20,
-            messages=[{"role": "user", "content": "Ответь одним словом: работает"}],
+            model=model,
+            max_tokens=50,
+            messages=[{"role": "user", "content": "Ответь: ok"}],
         )
         # Успех если получили ответ (даже пустой — главное нет ошибки)
         return True
@@ -364,15 +446,43 @@ def _parse_json_response(raw: str) -> dict:
 
 def _json_to_metadata(data: dict) -> ContractMetadata:
     """Конвертирует dict в ContractMetadata с безопасным доступом."""
+    # Безопасное извлечение списковых полей: null → [], строка → [строка]
+    raw_conditions = data.get("special_conditions")
+    if raw_conditions is None:
+        special_conditions = []
+    elif isinstance(raw_conditions, str):
+        special_conditions = [raw_conditions]
+    elif isinstance(raw_conditions, list):
+        special_conditions = raw_conditions
+    else:
+        special_conditions = []
+
+    raw_parties = data.get("parties")
+    if raw_parties is None:
+        parties = []
+    elif isinstance(raw_parties, list):
+        parties = [str(p) for p in raw_parties if p is not None]
+    else:
+        parties = []
+
+    # Безопасное извлечение confidence: null, строка, невалидное → 0.0
+    raw_conf = data.get("confidence")
+    try:
+        confidence = float(raw_conf) if raw_conf is not None else 0.0
+        if not (0.0 <= confidence <= 1.0):
+            confidence = max(0.0, min(1.0, confidence))
+    except (ValueError, TypeError):
+        confidence = 0.0
+
     return ContractMetadata(
-        contract_type=data.get("contract_type"),
+        contract_type=data.get("document_type") or data.get("contract_type"),
         counterparty=data.get("counterparty"),
         subject=data.get("subject"),
         date_signed=data.get("date_signed"),
         date_start=data.get("date_start"),
         date_end=data.get("date_end"),
         amount=data.get("amount"),
-        special_conditions=data.get("special_conditions", []),
-        parties=data.get("parties", []),
-        confidence=float(data.get("confidence", 0.0)),
+        special_conditions=special_conditions,
+        parties=parties,
+        confidence=confidence,
     )
