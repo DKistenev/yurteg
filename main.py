@@ -725,9 +725,11 @@ if not st.session_state.get("tg_queue_fetched") and _tg_server and _tg_chat_id a
         st.info(f"Получено {len(_tg_files)} файлов из Telegram. Обработка...")
         # Обработать файлы через существующий пайплайн
         _tg_config = Config()
+        _tg_collected: list = []
         _tg_stats = pipeline_service.process_archive(
             source_dir=_tg_dest,
             config=_tg_config,
+            on_file_done=lambda r: _tg_collected.append(r),
         )
         _tg_done = _tg_stats.get("done", 0)
         _tg_errors = _tg_stats.get("errors", 0)
@@ -741,6 +743,12 @@ if not st.session_state.get("tg_queue_fetched") and _tg_server and _tg_chat_id a
             f"Telegram: обработано {_tg_done} файлов"
             + (f", ошибок: {_tg_errors}" if _tg_errors else "")
         )
+        # Автопривязка для Telegram-файлов (PROF-01)
+        _tg_clients = client_manager.list_clients()
+        if _tg_collected and set(_tg_clients) != {ClientManager.DEFAULT_CLIENT}:
+            from controller import auto_bind_results
+            _tg_bind = auto_bind_results(_tg_collected, client_manager)
+            st.session_state["auto_bind_summary"] = _tg_bind
     st.session_state["tg_queue_fetched"] = True
 
 
@@ -924,6 +932,7 @@ if st.button("Начать обработку", type="primary", disabled=not can
     log_placeholder = st.empty()
     log_lines: list[str] = []
     _start_time = time.time()
+    _collected_results: list = []  # накапливаем для auto_bind_results (PROF-01)
 
     def on_progress(current: int, total: int, message: str) -> None:
         if total > 0:
@@ -940,6 +949,7 @@ if st.button("Начать обработку", type="primary", disabled=not can
             progress_bar.progress(0, text=message)
 
     def on_file_done(result) -> None:
+        _collected_results.append(result)
         if result.status == "done":
             v = result.validation
             if v and v.status == "warning":
@@ -1020,6 +1030,36 @@ if st.button("Начать обработку", type="primary", disabled=not can
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # --- Автопривязка к клиентам (PROF-01) ---
+    _all_clients = client_manager.list_clients()
+    _has_extra_clients = set(_all_clients) != {ClientManager.DEFAULT_CLIENT}
+    if _collected_results and _has_extra_clients:
+        from controller import auto_bind_results
+        _bind_summary = auto_bind_results(_collected_results, client_manager)
+        st.session_state["auto_bind_summary"] = _bind_summary
+
+        if _bind_summary["bindings"] or _bind_summary["unmatched"]:
+            st.subheader("Привязка к клиентам")
+
+            for _cl_name, _cl_files in _bind_summary["bindings"].items():
+                st.success(f"{len(_cl_files)} док → {_cl_name}")
+                for _f in _cl_files:
+                    st.caption(f"  {_f}")
+
+            if _bind_summary["unmatched"]:
+                st.warning(f"{len(_bind_summary['unmatched'])} док → не определено")
+                for _f in _bind_summary["unmatched"]:
+                    _col1, _col2 = st.columns([3, 1])
+                    _col1.caption(f"  {_f}")
+                    _assign = _col2.selectbox(
+                        "Клиент",
+                        ["---"] + client_manager.list_clients() + ["+ Новый клиент"],
+                        key=f"assign_{_f}",
+                        label_visibility="collapsed",
+                    )
+    else:
+        st.session_state.pop("auto_bind_summary", None)
 
     # Сохранить для таблицы
     st.session_state["output_dir"] = stats["output_dir"]
