@@ -43,6 +43,20 @@ from services.lifecycle_service import (
     get_computed_status_sql, set_manual_status, clear_manual_status,
     get_attention_required, MANUAL_STATUSES, STATUS_LABELS,
 )
+from services.version_service import (
+    get_version_group, diff_versions, generate_redline_docx,
+)
+from services.payment_service import get_calendar_events
+from services.review_service import (
+    add_template, list_templates, match_template,
+    review_against_template, mark_contract_as_template,
+)
+
+try:
+    from streamlit_calendar import calendar as st_calendar
+    _HAS_CALENDAR = True
+except ImportError:
+    _HAS_CALENDAR = False
 
 # Загрузить API-ключи из .env (десктоп; в облаке уже в os.environ)
 load_dotenv()
@@ -968,8 +982,8 @@ if st.session_state.get("show_results"):
                             unsafe_allow_html=True,
                         )
 
-            tab_summary, tab_registry, tab_details = st.tabs(
-                ["Сводка", "Реестр", "Детали"]
+            tab_summary, tab_registry, tab_details, tab_calendar, tab_templates = st.tabs(
+                ["Сводка", "Реестр", "Детали", "Платёжный календарь", "Шаблоны"]
             )
 
             # ── Таб: Сводка ─────────────────────────────────────
@@ -1292,7 +1306,40 @@ if st.session_state.get("show_results"):
                 selected_file = st.selectbox("Выберите файл", filenames, help="Выберите файл для просмотра подробной информации")
                 if selected_file:
                     r = df[df["filename"] == selected_file].iloc[0]
+                    selected_contract_id = int(r.get("id", 0)) if r.get("id") else None
 
+                    tab_main, tab_versions, tab_payments, tab_review = st.tabs(
+                        ["Основное", "Версии", "Платежи", "Ревью"]
+                    )
+
+                    with tab_main:
+                     # content placeholder — actual variables defined below
+                     pass
+
+                    with tab_payments:
+                        if selected_contract_id is not None:
+                            with Database(db_path) as _db_pay:
+                                all_pay_events = get_calendar_events(_db_pay)
+                            contract_payments = [
+                                e for e in all_pay_events
+                                if e["extendedProps"].get("contract_id") == selected_contract_id
+                            ]
+                            if not contract_payments:
+                                st.info("Платёжные данные для этого договора отсутствуют")
+                            else:
+                                st.markdown(f"**Платежей:** {len(contract_payments)}")
+                                for p in contract_payments:
+                                    direction_label = "Расход" if p["extendedProps"]["direction"] == "expense" else "Доход"
+                                    amount_str = f"{p['extendedProps']['amount']:,.0f} ₽".replace(",", " ")
+                                    color = p["backgroundColor"]
+                                    st.markdown(
+                                        f'<span style="color:{color}">●</span> {p["start"]} — {direction_label} {amount_str}',
+                                        unsafe_allow_html=True,
+                                    )
+                        else:
+                            st.info("Не удалось определить ID договора")
+
+                    # shared variables for all tabs
                     # Статус — бейдж (тёмная тема)
                     _det_badge = {
                         "ok": ("Все в порядке", "rgba(52,211,153,0.15)", "#34D399"),
@@ -1496,6 +1543,68 @@ if st.session_state.get("show_results"):
                             st.rerun()
                         else:
                             st.error("Не удалось найти хеш файла")
+
+            # ── Таб: Платёжный календарь ─────────────────────────
+            with tab_calendar:
+                st.header("Платёжный календарь")
+                if not _HAS_CALENDAR:
+                    st.warning(
+                        "Зависимость streamlit-calendar не установлена. "
+                        "Запустите: pip install streamlit-calendar==1.4.0"
+                    )
+                else:
+                    with Database(db_path) as _db_cal:
+                        cal_events = get_calendar_events(_db_cal)
+                    if not cal_events:
+                        st.info(
+                            "Платёжные данные отсутствуют. "
+                            "Загрузите договоры с указанными суммами и сроками."
+                        )
+                    else:
+                        expense_total = sum(
+                            e["extendedProps"]["amount"]
+                            for e in cal_events
+                            if e["extendedProps"].get("direction") == "expense"
+                        )
+                        income_total = sum(
+                            e["extendedProps"]["amount"]
+                            for e in cal_events
+                            if e["extendedProps"].get("direction") == "income"
+                        )
+                        col_e, col_i = st.columns(2)
+                        with col_e:
+                            st.metric("Расходы (всего)", f"{expense_total:,.0f} ₽".replace(",", " "))
+                        with col_i:
+                            st.metric("Доходы (всего)", f"{income_total:,.0f} ₽".replace(",", " "))
+
+                        calendar_options = {
+                            "initialView": "dayGridMonth",
+                            "headerToolbar": {
+                                "left": "prev,next today",
+                                "center": "title",
+                                "right": "dayGridMonth,timeGridWeek",
+                            },
+                            "locale": "ru",
+                            "height": 600,
+                        }
+                        clicked = st_calendar(
+                            events=cal_events,
+                            options=calendar_options,
+                            key="payment_calendar",
+                        )
+
+                        if clicked and clicked.get("eventClick"):
+                            event_data = clicked["eventClick"]["event"]
+                            props = event_data.get("extendedProps", {})
+                            direction_label = "Расход" if props.get("direction") == "expense" else "Доход"
+                            amount_str = f"{props.get('amount', 0):,.0f} ₽".replace(",", " ")
+                            with st.expander("Детали платежа", expanded=True):
+                                st.markdown(f"**{event_data.get('title', '—')}**")
+                                st.markdown(f"**Тип:** {direction_label}")
+                                st.markdown(f"**Сумма:** {amount_str}")
+                                st.markdown(f"**Контрагент:** {props.get('counterparty', '—')}")
+                                st.markdown(f"**Тип договора:** {props.get('contract_type', '—')}")
+                                st.markdown(f"**ID договора:** {props.get('contract_id', '—')}")
 
         else:
             st.info("Нет обработанных файлов.")
