@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-02-PLAN.md (providers/ package)
-last_updated: "2026-03-19T21:25:40.520Z"
+stopped_at: Completed 01-04-PLAN.md (date normalization)
+last_updated: "2026-03-19T21:30:02.937Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -47,6 +47,7 @@ Plan: 1 of 4 complete — ready for 01-02
 
 *Updated after each plan completion*
 | Phase 01-infrastructure P01 | 2 | 2 tasks | 2 files |
+| Phase 01-infrastructure P04 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure]: Backup trigger: only when DB is non-empty AND schema_migrations absent — avoids duplicate backups
 - [Phase 01-infrastructure]: extra_body thinking:disabled изолирован только в ZAIProvider — не утекает в OpenRouter
 - [Phase 01-infrastructure]: OllamaProvider — stub с NotImplementedError, реализация в Вехе 3
+- [Phase 01-infrastructure]: _RU_MONTHS + _translate_ru_months() для перевода русских месяцев перед dateutil — dateutil не парсит русский нативно
+- [Phase 01-infrastructure]: Year-only guard: isdigit() + len<=4 перед dateutil — parse('2025') возвращает today's month/day
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:25:40.518Z
-Stopped at: Completed 01-02-PLAN.md (providers/ package)
+Last session: 2026-03-19T21:30:02.935Z
+Stopped at: Completed 01-04-PLAN.md (date normalization)
 Resume file: None

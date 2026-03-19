@@ -99,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Инфраструктура | 2/4 | In Progress|  |
+| 1. Инфраструктура | 3/4 | In Progress|  |
 | 2. Жизненный цикл документа | 0/5 | Not started | - |
 | 3. Интеграции и мультидоступ | 0/5 | Not started | - |
 | 4. On-Premise и безопасность | 0/3 | Not started | - |
