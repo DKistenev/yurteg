@@ -39,6 +39,7 @@ from modules.ai_extractor import verify_api_key
 from modules.anonymizer import ENTITY_TYPES
 from modules.reporter import generate_report
 from services import pipeline_service
+from services.client_manager import ClientManager
 from services.lifecycle_service import (
     get_computed_status_sql, set_manual_status, clear_manual_status,
     get_attention_required, MANUAL_STATUSES, STATUS_LABELS,
@@ -555,7 +556,29 @@ _ANON_HELP = {
     "СЧЁТ": "Расчётные, корреспондентские и лицевые счета (20 цифр).",
 }
 
+# ── Мультиклиентский режим ───────────────────────────────────────
+client_manager = ClientManager()
+
 with st.sidebar:
+    # --- Клиент ---
+    st.markdown("### Клиент")
+    _clients = client_manager.list_clients()
+    _selected_client = st.sidebar.selectbox(
+        "Активный реестр",
+        _clients,
+        index=0,
+        key="active_client",
+        label_visibility="collapsed",
+    )
+
+    with st.sidebar.expander("Управление клиентами", expanded=False):
+        _new_name = st.text_input("Название нового клиента", key="new_client_name")
+        if st.button("Создать", key="create_client_btn") and _new_name:
+            client_manager.add_client(_new_name)
+            st.rerun()
+
+    st.markdown("---")
+
     st.markdown(
         '<div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#475569;margin-bottom:4px;">Настройки</div>',
         unsafe_allow_html=True,
@@ -952,7 +975,7 @@ if st.session_state.get("show_results"):
 
     from modules.database import Database
 
-    db_path = output_dir / "yurteg.db"
+    db_path = client_manager.get_db_path(_selected_client)
     if db_path.exists():
         with Database(db_path) as db:
             all_results = db.get_all_results()
