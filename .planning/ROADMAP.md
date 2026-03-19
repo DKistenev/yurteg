@@ -12,7 +12,7 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Инфраструктура** - Безопасные миграции, мультипровайдер AI, сервис-слой
+- [x] **Phase 1: Инфраструктура** - Безопасные миграции, мультипровайдер AI, сервис-слой (completed 2026-03-19)
 - [ ] **Phase 2: Жизненный цикл документа** - Статусы, трекинг сроков, версионирование
 - [ ] **Phase 3: Интеграции и мультидоступ** - Telegram, Google Drive, мультиклиентский режим
 - [ ] **Phase 4: On-Premise и безопасность** - Docker-упаковка, аудит-лог, hardening
@@ -99,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Инфраструктура | 3/4 | In Progress|  |
+| 1. Инфраструктура | 4/4 | Complete   | 2026-03-19 |
 | 2. Жизненный цикл документа | 0/5 | Not started | - |
 | 3. Интеграции и мультидоступ | 0/5 | Not started | - |
 | 4. On-Premise и безопасность | 0/3 | Not started | - |

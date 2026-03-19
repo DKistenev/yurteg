@@ -64,6 +64,8 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure]: Backup trigger: only when DB is non-empty AND schema_migrations absent — avoids duplicate backups
 - [Phase 01-infrastructure]: extra_body thinking:disabled изолирован только в ZAIProvider — не утекает в OpenRouter
 - [Phase 01-infrastructure]: OllamaProvider — stub с NotImplementedError, реализация в Вехе 3
+- [Phase 01-infrastructure]: services/ не импортирует streamlit — Telegram-бот и CLI вызывают pipeline_service без UI (FUND-02)
+- [Phase 01-infrastructure]: extract_metadata() принимает provider/fallback_provider с None-дефолтами — обратная совместимость до Phase 2
 - [Phase 01-infrastructure]: _RU_MONTHS + _translate_ru_months() для перевода русских месяцев перед dateutil — dateutil не парсит русский нативно
 - [Phase 01-infrastructure]: Year-only guard: isdigit() + len<=4 перед dateutil — parse('2025') возвращает today's month/day
 
@@ -78,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:30:02.935Z
-Stopped at: Completed 01-04-PLAN.md (date normalization)
+Last session: 2026-03-20T00:05:00Z
+Stopped at: Completed 01-03-PLAN.md (service layer)
 Resume file: None
