@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-document-lifecycle-02-07-PLAN.md
-last_updated: "2026-03-19T22:38:05.812Z"
+stopped_at: "Checkpoint: 02-04 tasks done, awaiting human-verify for versions tab UI"
+last_updated: "2026-03-19T22:41:10.450Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -55,6 +55,7 @@ Plan: 2 of 8
 | Phase 02-document-lifecycle P05 | 5 | 2 tasks | 5 files |
 | Phase 02-document-lifecycle P06 | 10 | 2 tasks | 2 files |
 | Phase 02-document-lifecycle P07 | 4 | 2 tasks | 2 files |
+| Phase 02-document-lifecycle P04 | 10 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,8 @@ Recent decisions affecting current work:
 - [Phase 02-document-lifecycle]: review_service использует db.conn (публичный), не db._conn — последовательно с lifecycle_service и version_service
 - [Phase 02-document-lifecycle]: Вкладка Шаблоны добавлена как 5-й top-level таб рядом с Сводка/Реестр/Детали/Платёжный календарь
 - [Phase 02-document-lifecycle]: review_against_template использует subject поля контракта как текст документа — полного текста в БД нет
+- [Phase 02-document-lifecycle]: Карточка документа структурирована в 4 вкладки — tab_main содержит карточку + замечания + пометки юриста
+- [Phase 02-document-lifecycle]: generate_redline_docx использует subject договора как текст — полный текст не хранится в contracts
 
 ### Pending Todos
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:38:05.810Z
-Stopped at: Completed 02-document-lifecycle-02-07-PLAN.md
+Last session: 2026-03-19T22:41:10.447Z
+Stopped at: Checkpoint: 02-04 tasks done, awaiting human-verify for versions tab UI
 Resume file: None
