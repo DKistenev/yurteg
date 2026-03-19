@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-08-PLAN.md (Auto-binding of documents to clients by counterparty + summary UI)
-last_updated: "2026-03-19T23:53:55.891Z"
+stopped_at: Completed 03-06-PLAN.md (Test finalization — all xfail stubs replaced with real assertions)
+last_updated: "2026-03-19T23:57:43.652Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -65,6 +65,7 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P04 | 5min | 2 tasks | 4 files |
 | Phase 03-integrations-multitenancy P03 | 8min | 2 tasks | 3 files |
 | Phase 03-integrations-multitenancy P08 | 5min | 2 tasks | 2 files |
+| Phase 03-integrations-multitenancy P06 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,8 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: notify_processed() graceful degradation: /api/notify not yet in bot_server, logs warning and returns False
 - [Phase 03-integrations-multitenancy]: Auto-process uses pipeline_service.process_archive() module function (not PipelineService class) — returns dict with done/errors/total
 - [Phase 03-integrations-multitenancy]: auto_bind_results checks result.status == 'done' (ProcessingResult has no .success attr); move_record_to_client uses raw db.conn SQL (Database has no get/delete by id methods)
+- [Phase 03-integrations-multitenancy]: test_telegram_bot.py rewired to use ServerDatabase directly — server.queue_service/binding_service stubs obsolete
+- [Phase 03-integrations-multitenancy]: test_switch_client uses get_db() path comparison — ClientManager has no switch_client/active_db_path API
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:53:55.888Z
-Stopped at: Completed 03-08-PLAN.md (Auto-binding of documents to clients by counterparty + summary UI)
+Last session: 2026-03-19T23:57:43.650Z
+Stopped at: Completed 03-06-PLAN.md (Test finalization — all xfail stubs replaced with real assertions)
 Resume file: None
