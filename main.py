@@ -1312,87 +1312,61 @@ if st.session_state.get("show_results"):
                         ["Основное", "Версии", "Платежи", "Ревью"]
                     )
 
+                    # ── Вкладка: Основное ────────────────────────────
                     with tab_main:
-                     # content placeholder — actual variables defined below
-                     pass
+                        # Статус — бейдж (тёмная тема)
+                        _det_badge = {
+                            "ok": ("Все в порядке", "rgba(52,211,153,0.15)", "#34D399"),
+                            "warning": ("Есть замечания", "rgba(251,191,36,0.15)", "#FBBF24"),
+                            "unreliable": ("Ненадёжно", "rgba(248,113,113,0.15)", "#F87171"),
+                            "error": ("Ошибка", "rgba(248,113,113,0.15)", "#F87171"),
+                        }
+                        vs = r.get("validation_status", "")
+                        b_label, b_bg, b_fg = _det_badge.get(vs, (str(vs), "rgba(255,255,255,0.05)", "#94A3B8"))
 
-                    with tab_payments:
-                        if selected_contract_id is not None:
-                            with Database(db_path) as _db_pay:
-                                all_pay_events = get_calendar_events(_db_pay)
-                            contract_payments = [
-                                e for e in all_pay_events
-                                if e["extendedProps"].get("contract_id") == selected_contract_id
-                            ]
-                            if not contract_payments:
-                                st.info("Платёжные данные для этого договора отсутствуют")
-                            else:
-                                st.markdown(f"**Платежей:** {len(contract_payments)}")
-                                for p in contract_payments:
-                                    direction_label = "Расход" if p["extendedProps"]["direction"] == "expense" else "Доход"
-                                    amount_str = f"{p['extendedProps']['amount']:,.0f} ₽".replace(",", " ")
-                                    color = p["backgroundColor"]
-                                    st.markdown(
-                                        f'<span style="color:{color}">●</span> {p["start"]} — {direction_label} {amount_str}',
-                                        unsafe_allow_html=True,
-                                    )
+                        conf = r.get("confidence")
+                        conf_str = f"{float(conf):.0%}" if conf and conf == conf else "—"
+                        conf_color = "#34D399" if conf and float(conf) >= 0.8 else "#FBBF24" if conf and float(conf) >= 0.5 else "#F87171"
+
+                        # Форматирование дат
+                        def _fmt_date(val):
+                            if not val or str(val) == "None" or str(val) == "nan":
+                                return "—"
+                            s = str(val)
+                            if "-" in s:
+                                p = s.split("-")
+                                if len(p) == 3:
+                                    return f"{p[2]}.{p[1]}.{p[0]}"
+                            return s
+
+                        # Форматирование сторон
+                        _parties_raw = r.get("parties", "—") or "—"
+                        if isinstance(_parties_raw, list):
+                            _parties_str = ", ".join(str(p) for p in _parties_raw)
+                        elif isinstance(_parties_raw, str) and _parties_raw.startswith("["):
+                            import ast
+                            try:
+                                _pl = ast.literal_eval(_parties_raw)
+                                _parties_str = ", ".join(str(p) for p in _pl) if isinstance(_pl, list) else _parties_raw
+                            except Exception:
+                                _parties_str = _parties_raw
                         else:
-                            st.info("Не удалось определить ID договора")
+                            _parties_str = str(_parties_raw)
 
-                    # shared variables for all tabs
-                    # Статус — бейдж (тёмная тема)
-                    _det_badge = {
-                        "ok": ("Все в порядке", "rgba(52,211,153,0.15)", "#34D399"),
-                        "warning": ("Есть замечания", "rgba(251,191,36,0.15)", "#FBBF24"),
-                        "unreliable": ("Ненадёжно", "rgba(248,113,113,0.15)", "#F87171"),
-                        "error": ("Ошибка", "rgba(248,113,113,0.15)", "#F87171"),
-                    }
-                    vs = r.get("validation_status", "")
-                    b_label, b_bg, b_fg = _det_badge.get(vs, (str(vs), "rgba(255,255,255,0.05)", "#94A3B8"))
+                        # Карточка в стиле реестра
+                        import html as _html
+                        _e = _html.escape
+                        _fname = _e(r.get('filename', '—'))
+                        _ctype = _e(r.get('contract_type', '—') or '—')
+                        _dsign = _fmt_date(r.get('date_signed'))
+                        _cparty = _e(r.get('counterparty', '—') or '—')
+                        _dstart = _fmt_date(r.get('date_start'))
+                        _dend = _fmt_date(r.get('date_end'))
+                        _subj = _e(r.get('subject', '—') or '—')
+                        _amt = _e(str(r.get('amount', '—') or '—'))
+                        _pty = _e(_parties_str)
 
-                    conf = r.get("confidence")
-                    conf_str = f"{float(conf):.0%}" if conf and conf == conf else "—"
-                    conf_color = "#34D399" if conf and float(conf) >= 0.8 else "#FBBF24" if conf and float(conf) >= 0.5 else "#F87171"
-
-                    # Форматирование дат
-                    def _fmt_date(val):
-                        if not val or str(val) == "None" or str(val) == "nan":
-                            return "—"
-                        s = str(val)
-                        if "-" in s:
-                            p = s.split("-")
-                            if len(p) == 3:
-                                return f"{p[2]}.{p[1]}.{p[0]}"
-                        return s
-
-                    # Форматирование сторон
-                    _parties_raw = r.get("parties", "—") or "—"
-                    if isinstance(_parties_raw, list):
-                        _parties_str = ", ".join(str(p) for p in _parties_raw)
-                    elif isinstance(_parties_raw, str) and _parties_raw.startswith("["):
-                        import ast
-                        try:
-                            _pl = ast.literal_eval(_parties_raw)
-                            _parties_str = ", ".join(str(p) for p in _pl) if isinstance(_pl, list) else _parties_raw
-                        except Exception:
-                            _parties_str = _parties_raw
-                    else:
-                        _parties_str = str(_parties_raw)
-
-                    # Карточка в стиле реестра
-                    import html as _html
-                    _e = _html.escape  # экранирование спецсимволов
-                    _fname = _e(r.get('filename', '—'))
-                    _ctype = _e(r.get('contract_type', '—') or '—')
-                    _dsign = _fmt_date(r.get('date_signed'))
-                    _cparty = _e(r.get('counterparty', '—') or '—')
-                    _dstart = _fmt_date(r.get('date_start'))
-                    _dend = _fmt_date(r.get('date_end'))
-                    _subj = _e(r.get('subject', '—') or '—')
-                    _amt = _e(str(r.get('amount', '—') or '—'))
-                    _pty = _e(_parties_str)
-
-                    card_html = f"""
+                        card_html = f"""
 <div class="lg-panel yt-animate" style="margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:10px;">
@@ -1432,119 +1406,231 @@ if st.session_state.get("show_results"):
     <div style="font-size:0.88rem;font-weight:500;color:var(--text-secondary);line-height:1.5;">{_subj}</div>
   </div>
 </div>"""
-                    st.markdown(card_html, unsafe_allow_html=True)
+                        st.markdown(card_html, unsafe_allow_html=True)
 
-                    # Замечания валидации — понятные пояснения
-                    warnings = r.get("validation_warnings")
-                    if warnings:
-                        st.markdown(
-                            '<div class="yt-section-label">Замечания</div>',
-                            unsafe_allow_html=True,
+                        # Замечания валидации
+                        _warnings = r.get("validation_warnings")
+                        if _warnings:
+                            st.markdown(
+                                '<div class="yt-section-label">Замечания</div>',
+                                unsafe_allow_html=True,
+                            )
+                            _items = (
+                                _warnings.split("; ")
+                                if isinstance(_warnings, str)
+                                else (_warnings if isinstance(_warnings, list) else [])
+                            )
+                            for _w in _items:
+                                _w_str = str(_w).strip()
+                                if not _w_str:
+                                    continue
+                                _wtitle, _wicon, _wcolor, _wbg, _wborder, _wtip = _classify_warning(_w_str)
+                                _detail = _w_str.split(": ", 1)[1] if ": " in _w_str else _w_str
+                                st.markdown(f"""
+                                <div style="background:rgba(255,255,255,0.03); border-left:3px solid {_wborder}; border-radius:10px; padding:12px 16px; margin-bottom:8px; backdrop-filter:blur(8px);">
+                                    <div style="font-weight:600; color:{_wborder}; font-size:0.88em;">{_wicon} {_wtitle}</div>
+                                    <div style="color:#94A3B8; font-size:0.83em; margin-top:3px;">{_detail}</div>
+                                    <div style="color:#64748B; font-size:0.76em; margin-top:5px; font-style:italic;">💡 {_wtip}</div>
+                                </div>""", unsafe_allow_html=True)
+
+                        # Особые условия
+                        _special = r.get("special_conditions")
+                        if _special:
+                            with st.expander("Особые условия", expanded=False):
+                                if isinstance(_special, str):
+                                    st.info(_special)
+                                elif isinstance(_special, list):
+                                    for _s in _special:
+                                        st.info(str(_s))
+
+                        # ── Кнопки навигации к файлу ──
+                        import platform
+                        import subprocess as _sp
+                        if platform.system() == "Darwin" and not _CLOUD_MODE:
+                            _col_nav1, _col_nav2 = st.columns(2)
+                            _orig_path = r.get("original_path", "")
+                            _org_path = r.get("organized_path", "")
+                            with _col_nav1:
+                                if _orig_path and Path(str(_orig_path)).exists():
+                                    if st.button("Показать оригинал в Finder",
+                                                 key=f"finder_orig_{selected_file}"):
+                                        _sp.Popen(["open", "-R", str(_orig_path)])
+                                else:
+                                    st.button("Оригинал не найден",
+                                              disabled=True,
+                                              key=f"finder_orig_{selected_file}")
+                            with _col_nav2:
+                                if _org_path and Path(str(_org_path)).exists():
+                                    if st.button("Показать копию в Finder",
+                                                 key=f"finder_copy_{selected_file}"):
+                                        _sp.Popen(["open", "-R", str(_org_path)])
+                                else:
+                                    st.button("Копия не найдена",
+                                              disabled=True,
+                                              key=f"finder_copy_{selected_file}")
+
+                        # ── Пометки юриста ──
+                        st.markdown("---")
+                        st.markdown("**Пометки юриста**")
+                        _review_options = {
+                            "Не проверен": "not_reviewed",
+                            "Проверен": "reviewed",
+                            "Требует внимания": "attention_needed",
+                        }
+                        _review_reverse = {v: k for k, v in _review_options.items()}
+                        _current_review = r.get("review_status", "not_reviewed")
+                        _current_label = _review_reverse.get(_current_review, "Не проверен")
+                        _review_keys = list(_review_options.keys())
+
+                        new_review = st.radio(
+                            "Статус проверки",
+                            _review_keys,
+                            index=_review_keys.index(_current_label),
+                            horizontal=True,
+                            key=f"review_{selected_file}",
                         )
-                        items = (
-                            warnings.split("; ")
-                            if isinstance(warnings, str)
-                            else (warnings if isinstance(warnings, list) else [])
+                        lawyer_comment = st.text_area(
+                            "Комментарий",
+                            value=r.get("lawyer_comment", "") or "",
+                            key=f"comment_{selected_file}",
+                            height=80,
+                            placeholder="Заметки по документу...",
                         )
-                        for w in items:
-                            w_str = str(w).strip()
-                            if not w_str:
-                                continue
-                            title, icon, color, bg, border, tip = _classify_warning(w_str)
-                            detail_text = w_str.split(": ", 1)[1] if ": " in w_str else w_str
-                            warn_html = f"""
-                            <div style="background:rgba(255,255,255,0.03); border-left:3px solid {border}; border-radius:10px; padding:12px 16px; margin-bottom:8px; border:1px solid rgba(6,182,212,0.08); border-left:3px solid {border}; backdrop-filter:blur(8px);">
-                                <div style="font-weight:600; color:{border}; font-size:0.88em;">{icon} {title}</div>
-                                <div style="color:#94A3B8; font-size:0.83em; margin-top:3px;">{detail_text}</div>
-                                <div style="color:#64748B; font-size:0.76em; margin-top:5px; font-style:italic;">💡 {tip}</div>
-                            </div>
-                            """
-                            st.markdown(warn_html, unsafe_allow_html=True)
-
-                    # Особые условия
-                    special = r.get("special_conditions")
-                    if special:
-                        with st.expander("Особые условия", expanded=False):
-                            if isinstance(special, str):
-                                st.info(special)
-                            elif isinstance(special, list):
-                                for s in special:
-                                    st.info(str(s))
-
-                    # ── Кнопки навигации к файлу ──
-                    import platform
-                    import subprocess as _sp
-                    if platform.system() == "Darwin" and not _CLOUD_MODE:
-                        col_nav1, col_nav2 = st.columns(2)
-                        _orig_path = r.get("original_path", "")
-                        _org_path = r.get("organized_path", "")
-                        with col_nav1:
-                            if _orig_path and Path(str(_orig_path)).exists():
-                                if st.button("Показать оригинал в Finder",
-                                             key=f"finder_orig_{selected_file}"):
-                                    _sp.Popen(["open", "-R", str(_orig_path)])
+                        if st.button("Сохранить пометку",
+                                     key=f"save_review_{selected_file}"):
+                            from modules.database import Database as _DB
+                            _file_hash = r.get("file_hash", "")
+                            if _file_hash:
+                                with _DB(db_path) as _db_w:
+                                    _db_w.update_review(
+                                        _file_hash,
+                                        _review_options[new_review],
+                                        lawyer_comment,
+                                    )
+                                st.success("Пометка сохранена!")
+                                st.rerun()
                             else:
-                                st.button("Оригинал не найден",
-                                          disabled=True,
-                                          key=f"finder_orig_{selected_file}")
-                        with col_nav2:
-                            if _org_path and Path(str(_org_path)).exists():
-                                if st.button("Показать копию в Finder",
-                                             key=f"finder_copy_{selected_file}"):
-                                    _sp.Popen(["open", "-R", str(_org_path)])
-                            else:
-                                st.button("Копия не найдена",
-                                          disabled=True,
-                                          key=f"finder_copy_{selected_file}")
+                                st.error("Не удалось найти хеш файла")
 
-                    # ── Пометки юриста ──
-                    st.markdown("---")
-                    st.markdown("**Пометки юриста**")
-
-                    _review_options = {
-                        "Не проверен": "not_reviewed",
-                        "Проверен": "reviewed",
-                        "Требует внимания": "attention_needed",
-                    }
-                    _review_reverse = {v: k for k, v in _review_options.items()}
-                    _current_review = r.get("review_status", "not_reviewed")
-                    _current_label = _review_reverse.get(
-                        _current_review, "Не проверен"
-                    )
-                    _review_keys = list(_review_options.keys())
-
-                    new_review = st.radio(
-                        "Статус проверки",
-                        _review_keys,
-                        index=_review_keys.index(_current_label),
-                        horizontal=True,
-                        key=f"review_{selected_file}",
-                    )
-                    lawyer_comment = st.text_area(
-                        "Комментарий",
-                        value=r.get("lawyer_comment", "") or "",
-                        key=f"comment_{selected_file}",
-                        height=80,
-                        placeholder="Заметки по документу...",
-                    )
-
-                    if st.button("Сохранить пометку",
-                                 key=f"save_review_{selected_file}"):
-                        from modules.database import Database as _DB
-                        _file_hash = r.get("file_hash", "")
-                        if _file_hash:
-                            with _DB(db_path) as _db_w:
-                                _db_w.update_review(
-                                    _file_hash,
-                                    _review_options[new_review],
-                                    lawyer_comment,
-                                )
-                            st.success("Пометка сохранена!")
-                            st.rerun()
+                    # ── Вкладка: Версии ──────────────────────────────
+                    with tab_versions:
+                        if selected_contract_id is None:
+                            st.info("Не удалось определить ID документа")
                         else:
-                            st.error("Не удалось найти хеш файла")
+                            with Database(db_path) as _db_ver:
+                                versions = get_version_group(_db_ver, selected_contract_id)
+                            if not versions:
+                                st.info("Версии не найдены")
+                            else:
+                                st.markdown(f"**Всего версий:** {len(versions)}")
+                                for v in versions:
+                                    _v_icon = "📋" if v.version_number == len(versions) else "📄"
+                                    _v_method = "авто" if v.link_method == "auto_embedding" else "вручную"
+                                    st.markdown(
+                                        f"{_v_icon} **v{v.version_number}** · {v.created_at or '—'} "
+                                        f"· связан {_v_method}"
+                                    )
+                                if len(versions) >= 2:
+                                    st.markdown("---")
+                                    st.subheader("Сравнение версий")
+                                    version_options = {f"v{v.version_number}": v.contract_id for v in versions}
+                                    v_keys = list(version_options.keys())
+                                    _col_v1, _col_v2 = st.columns(2)
+                                    with _col_v1:
+                                        v_old_label = st.selectbox("Старая версия", v_keys[:-1], key="diff_old")
+                                    with _col_v2:
+                                        v_new_label = st.selectbox("Новая версия", v_keys[1:], key="diff_new")
 
-                    # ── Вкладка «Ревью» (внутри карточки документа) ─
+                                    if st.button("Сравнить", key="diff_btn"):
+                                        _old_cid = version_options[v_old_label]
+                                        _new_cid = version_options[v_new_label]
+
+                                        def _load_meta(cid):
+                                            with Database(db_path) as _db_m:
+                                                _mrow = _db_m.conn.execute(
+                                                    "SELECT contract_type, counterparty, subject, "
+                                                    "date_signed, date_start, date_end, amount "
+                                                    "FROM contracts WHERE id=?", (cid,)
+                                                ).fetchone()
+                                            if _mrow:
+                                                from modules.models import ContractMetadata
+                                                return ContractMetadata(
+                                                    contract_type=_mrow[0], counterparty=_mrow[1],
+                                                    subject=_mrow[2], date_signed=_mrow[3],
+                                                    date_start=_mrow[4], date_end=_mrow[5],
+                                                    amount=_mrow[6],
+                                                )
+                                            from modules.models import ContractMetadata
+                                            return ContractMetadata()
+
+                                        diffs = diff_versions(_load_meta(_old_cid), _load_meta(_new_cid))
+                                        changed = [d for d in diffs if d["changed"]]
+                                        if not changed:
+                                            st.success("Ключевые поля идентичны")
+                                        else:
+                                            for d in changed:
+                                                st.markdown(
+                                                    f"**{d['field']}:** "
+                                                    f"~~{d['old']}~~ → **{d['new']}**"
+                                                )
+
+                                    st.markdown("---")
+                                    st.subheader("Скачать редлайн")
+                                    _col_rl1, _col_rl2 = st.columns(2)
+                                    with _col_rl1:
+                                        rl_old = st.selectbox("Старая (редлайн)", v_keys[:-1], key="rl_old")
+                                    with _col_rl2:
+                                        rl_new = st.selectbox("Новая (редлайн)", v_keys[1:], key="rl_new")
+
+                                    if st.button("Сгенерировать редлайн", key="rl_btn"):
+                                        with Database(db_path) as _db_rl:
+                                            _rl_old_row = _db_rl.conn.execute(
+                                                "SELECT subject, contract_type FROM contracts WHERE id=?",
+                                                (version_options[rl_old],)
+                                            ).fetchone()
+                                            _rl_new_row = _db_rl.conn.execute(
+                                                "SELECT subject, contract_type FROM contracts WHERE id=?",
+                                                (version_options[rl_new],)
+                                            ).fetchone()
+                                        _old_txt = (_rl_old_row[0] or "") if _rl_old_row else ""
+                                        _new_txt = (_rl_new_row[0] or "") if _rl_new_row else ""
+                                        _ctype_rl = (_rl_old_row[1] or "Договор") if _rl_old_row else "Договор"
+                                        docx_bytes = generate_redline_docx(
+                                            _old_txt, _new_txt,
+                                            f"Редлайн: {_ctype_rl} ({rl_old} → {rl_new})"
+                                        )
+                                        st.download_button(
+                                            "Скачать .docx",
+                                            data=docx_bytes,
+                                            file_name=f"redline_{rl_old}_vs_{rl_new}.docx",
+                                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                            key="rl_download",
+                                        )
+
+                    with tab_payments:
+                        if selected_contract_id is not None:
+                            with Database(db_path) as _db_pay:
+                                all_pay_events = get_calendar_events(_db_pay)
+                            contract_payments = [
+                                e for e in all_pay_events
+                                if e["extendedProps"].get("contract_id") == selected_contract_id
+                            ]
+                            if not contract_payments:
+                                st.info("Платёжные данные для этого договора отсутствуют")
+                            else:
+                                st.markdown(f"**Платежей:** {len(contract_payments)}")
+                                for p in contract_payments:
+                                    direction_label = "Расход" if p["extendedProps"]["direction"] == "expense" else "Доход"
+                                    amount_str = f"{p['extendedProps']['amount']:,.0f} ₽".replace(",", " ")
+                                    color = p["backgroundColor"]
+                                    st.markdown(
+                                        f'<span style="color:{color}">●</span> {p["start"]} — {direction_label} {amount_str}',
+                                        unsafe_allow_html=True,
+                                    )
+                        else:
+                            st.info("Не удалось определить ID договора")
+
+                    # ── Вкладка: Ревью ───────────────────────────────
                     with tab_review:
                         _doc_type = r.get("contract_type")
                         _doc_subject = r.get("subject") or ""
