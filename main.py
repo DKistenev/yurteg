@@ -39,6 +39,10 @@ from modules.ai_extractor import verify_api_key
 from modules.anonymizer import ENTITY_TYPES
 from modules.reporter import generate_report
 from services import pipeline_service
+from services.lifecycle_service import (
+    get_computed_status_sql, set_manual_status, clear_manual_status,
+    get_attention_required, MANUAL_STATUSES, STATUS_LABELS,
+)
 
 # Загрузить API-ключи из .env (десктоп; в облаке уже в os.environ)
 load_dotenv()
@@ -580,6 +584,16 @@ with st.sidebar:
             "проблемный файл (дополнительный API-запрос).",
         )
 
+        st.markdown("---")
+        warning_days = st.selectbox(
+            "Предупреждать о сроках за",
+            options=[30, 60, 90],
+            index=0,
+            format_func=lambda d: f"{d} дней",
+            key="warning_days_threshold",
+        )
+        st.session_state["warning_days_threshold"] = warning_days
+
     with tab_anon:
         st.caption("Выберите, какие персональные данные маскировать "
                    "перед отправкой текста в AI-модель.")
@@ -931,6 +945,28 @@ if st.session_state.get("show_results"):
 
         if all_results:
             df = pd.DataFrame(all_results)
+
+            # ── Панель «требует внимания» ────────────────────────
+            _warning_days = st.session_state.get("warning_days_threshold", 30)
+            with Database(db_path) as _db_alert:
+                alerts = get_attention_required(_db_alert, _warning_days)
+            if alerts:
+                with st.expander(f"⚠ Требует внимания — {len(alerts)} договор(ов)", expanded=True):
+                    for alert in alerts:
+                        icon, label, color = STATUS_LABELS.get(
+                            alert.computed_status, ("?", alert.computed_status, "#9ca3af")
+                        )
+                        days_text = (
+                            f"истёк {abs(alert.days_until_expiry)} дн. назад"
+                            if alert.days_until_expiry < 0
+                            else f"истекает через {alert.days_until_expiry} дн."
+                        )
+                        st.markdown(
+                            f'<span style="color:{color}">{icon}</span> '
+                            f'**{alert.filename}** — {alert.counterparty or "нет контрагента"} '
+                            f'· {days_text}',
+                            unsafe_allow_html=True,
+                        )
 
             tab_summary, tab_registry, tab_details = st.tabs(
                 ["Сводка", "Реестр", "Детали"]
