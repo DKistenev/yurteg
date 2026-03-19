@@ -133,6 +133,14 @@ class ServerDatabase:
             )
             self._conn.commit()
 
+    def get_all_bindings(self) -> list[dict]:
+        """Return all confirmed bindings (used by scheduler to iterate users)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT chat_id, bound_at FROM bindings"
+            ).fetchall()
+            return [dict(r) for r in rows]
+
     # ------------------------------------------------------------------
     # Pending bindings (one-time codes)
     # ------------------------------------------------------------------
