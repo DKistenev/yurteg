@@ -1544,6 +1544,210 @@ if st.session_state.get("show_results"):
                         else:
                             st.error("Не удалось найти хеш файла")
 
+                    # ── Вкладка «Ревью» (внутри карточки документа) ─
+                    with tab_review:
+                        _doc_type = r.get("contract_type")
+                        _doc_subject = r.get("subject") or ""
+                        if not _doc_subject:
+                            st.info(
+                                "Текст договора недоступен для ревью "
+                                "(нет поля Subject в метаданных)"
+                            )
+                        else:
+                            with Database(db_path) as _db_rev:
+                                _auto_match = match_template(_db_rev, _doc_subject, _doc_type)
+                                _all_templates = list_templates(_db_rev)
+
+                            if not _all_templates:
+                                st.warning(
+                                    "Библиотека шаблонов пуста. "
+                                    "Добавьте шаблоны во вкладке «Шаблоны»."
+                                )
+                            else:
+                                _tmpl_names = {t.name: t for t in _all_templates}
+                                _default_idx = 0
+                                if _auto_match:
+                                    st.success(
+                                        f"Автоматически подобран шаблон: **{_auto_match.name}**"
+                                    )
+                                    if _auto_match.name in _tmpl_names:
+                                        _default_idx = list(_tmpl_names.keys()).index(
+                                            _auto_match.name
+                                        )
+
+                                _selected_tmpl_name = st.selectbox(
+                                    "Шаблон для сравнения",
+                                    list(_tmpl_names.keys()),
+                                    index=_default_idx,
+                                    key=f"review_template_select_{selected_file}",
+                                )
+                                _selected_tmpl = _tmpl_names[_selected_tmpl_name]
+
+                                if st.button(
+                                    "Запустить ревью",
+                                    key=f"run_review_btn_{selected_file}",
+                                ):
+                                    _deviations = review_against_template(
+                                        _selected_tmpl.content_text or "",
+                                        _doc_subject,
+                                    )
+                                    st.session_state[f"_rev_deviations_{selected_file}"] = _deviations
+
+                                _deviations = st.session_state.get(
+                                    f"_rev_deviations_{selected_file}"
+                                )
+                                if _deviations is not None:
+                                    if not _deviations:
+                                        st.success("Отступлений от шаблона не найдено")
+                                    else:
+                                        st.markdown(
+                                            f"**Найдено отступлений: {len(_deviations)}**"
+                                        )
+                                        for _dev in _deviations:
+                                            _type_label = {
+                                                "added":   "Добавлено в договоре",
+                                                "removed": "Отсутствует в договоре",
+                                                "changed": "Изменено",
+                                            }.get(_dev["type"], _dev["type"])
+                                            _tmpl_part = (
+                                                f'<span style="text-decoration:line-through;'
+                                                f'color:#6b7280">{_dev["template_text"]}</span><br>'
+                                                if _dev["template_text"]
+                                                else ""
+                                            )
+                                            _doc_part = (
+                                                _dev["document_text"]
+                                                if _dev["document_text"]
+                                                else ""
+                                            )
+                                            st.markdown(
+                                                f'<div style="background:{_dev["color"]};'
+                                                f'padding:8px;border-radius:4px;margin:4px 0;'
+                                                f'color:#1a1a1a;">'
+                                                f"<b>{_type_label}</b><br>"
+                                                f"{_tmpl_part}{_doc_part}</div>",
+                                                unsafe_allow_html=True,
+                                            )
+
+                                        # Кнопка редлайна
+                                        st.markdown("---")
+                                        from services.version_service import generate_redline_docx as _gen_redline
+                                        _docx_bytes = _gen_redline(
+                                            _selected_tmpl.content_text or "",
+                                            _doc_subject,
+                                            title=f"Ревью: {_selected_tmpl_name}",
+                                        )
+                                        st.download_button(
+                                            "Скачать редлайн .docx",
+                                            data=_docx_bytes,
+                                            file_name=f"review_{selected_file}.docx",
+                                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                            key=f"review_download_{selected_file}",
+                                        )
+
+            # ── Таб: Шаблоны (библиотека эталонов) ──────────────
+            with tab_templates:
+                st.markdown(
+                    '<div class="yt-section-label">Библиотека шаблонов</div>',
+                    unsafe_allow_html=True,
+                )
+
+                # Способ 1: загрузить файл
+                st.subheader("Загрузить новый шаблон")
+                col_t1, col_t2 = st.columns(2)
+                with col_t1:
+                    tmpl_type = st.text_input(
+                        "Тип договора",
+                        placeholder="NDA, Поставка, Аренда...",
+                        key="tmpl_type_input",
+                    )
+                    tmpl_name = st.text_input(
+                        "Название шаблона",
+                        placeholder="Стандартное NDA v1",
+                        key="tmpl_name_input",
+                    )
+                with col_t2:
+                    tmpl_file = st.file_uploader(
+                        "Файл шаблона (PDF или DOCX)",
+                        type=["pdf", "docx"],
+                        key="tmpl_file_uploader",
+                    )
+
+                if st.button("Добавить шаблон", key="add_template_btn"):
+                    if not tmpl_type or not tmpl_name:
+                        st.error("Укажите тип договора и название шаблона")
+                    elif tmpl_file is None:
+                        st.error("Загрузите файл шаблона")
+                    else:
+                        import tempfile as _tempfile
+                        from modules.extractor import Extractor
+                        from modules.models import FileInfo as _FileInfo
+
+                        with _tempfile.NamedTemporaryFile(
+                            suffix=Path(tmpl_file.name).suffix, delete=False
+                        ) as _tmp:
+                            _tmp.write(tmpl_file.read())
+                            _tmp_path = Path(_tmp.name)
+                        try:
+                            _extractor = Extractor()
+                            _fi = _FileInfo(
+                                path=_tmp_path,
+                                filename=tmpl_file.name,
+                                extension=_tmp_path.suffix,
+                                size_bytes=_tmp_path.stat().st_size,
+                                file_hash="",
+                            )
+                            _extracted = _extractor.extract(_fi)
+                            _content = _extracted.text or tmpl_file.name
+                            with Database(db_path) as _db_tmpl:
+                                add_template(_db_tmpl, tmpl_type, tmpl_name, _content, tmpl_file.name)
+                            st.success(f"Шаблон «{tmpl_name}» добавлен")
+                        except Exception as _e:
+                            st.error(f"Ошибка при обработке файла: {_e}")
+                        finally:
+                            _tmp_path.unlink(missing_ok=True)
+
+                # Способ 2: отметить из реестра
+                st.markdown("---")
+                st.subheader("Сделать документ из реестра эталоном")
+                with Database(db_path) as _db_reg_tmpl:
+                    _all_reg_docs = _db_reg_tmpl.conn.execute(
+                        "SELECT id, filename, contract_type FROM contracts WHERE status='done' ORDER BY filename"
+                    ).fetchall()
+                if _all_reg_docs:
+                    _doc_tmpl_options = {f"{_r[1]} ({_r[2] or 'без типа'})": _r[0] for _r in _all_reg_docs}
+                    _selected_for_template = st.selectbox(
+                        "Выбрать документ",
+                        list(_doc_tmpl_options.keys()),
+                        key="tmpl_from_registry",
+                    )
+                    _tmpl_name_from_reg = st.text_input(
+                        "Название эталона (необязательно)",
+                        key="tmpl_name_reg",
+                    )
+                    if st.button("Сделать эталоном", key="make_template_btn"):
+                        _cid = _doc_tmpl_options[_selected_for_template]
+                        with Database(db_path) as _db_mark:
+                            mark_contract_as_template(
+                                _db_mark, _cid,
+                                _tmpl_name_from_reg or None,
+                            )
+                        st.success("Документ добавлен как шаблон-эталон")
+                        st.rerun()
+                else:
+                    st.info("Нет обработанных документов для создания эталона")
+
+                # Текущая библиотека
+                st.markdown("---")
+                st.subheader("Текущие шаблоны")
+                with Database(db_path) as _db_list_tmpl:
+                    _templates_list = list_templates(_db_list_tmpl)
+                if not _templates_list:
+                    st.info("Библиотека шаблонов пуста — загрузите первый шаблон выше")
+                else:
+                    for _t in _templates_list:
+                        st.markdown(f"**{_t.contract_type}** — {_t.name}")
+
             # ── Таб: Платёжный календарь ─────────────────────────
             with tab_calendar:
                 st.header("Платёжный календарь")
