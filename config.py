@@ -28,6 +28,7 @@ class Config:
     active_provider: str = "zai"          # "zai" | "openrouter" | "ollama"
     fallback_provider: str = "openrouter"  # автофallback при недоступности active_provider
     max_workers: int = 5  # потоков для параллельных AI-запросов
+    warning_days_threshold: int = 30  # порог предупреждения о сроках (дней)
 
     # Валидация
     confidence_high: float = 0.8
