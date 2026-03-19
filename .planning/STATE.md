@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-19T17:45:14.845Z"
-last_activity: 2026-03-19 — Roadmap создан, фазы определены
+status: unknown
+stopped_at: Completed 01-02-PLAN.md (providers/ package)
+last_updated: "2026-03-19T21:25:40.520Z"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 2
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 1 — Инфраструктура
+**Current focus:** Phase 01 — infrastructure
 
 ## Current Position
 
-Phase: 1 of 4 (Инфраструктура)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-03-19 — Roadmap создан, фазы определены
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (infrastructure) — EXECUTING
+Plan: 1 of 4 complete — ready for 01-02
 
 ## Performance Metrics
 
@@ -52,6 +46,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-infrastructure P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +59,10 @@ Recent decisions affecting current work:
 - [Roadmap]: FastAPI отложен — сервис-слой достаточен для Milestone 1
 - [Roadmap]: Напоминания канал решён — in-app (Phase 3) + Telegram (Phase 3)
 - [Research]: LOCAL_ONLY enforcement через httpx transport — требует spike в Phase 4
+- [Phase 01-infrastructure]: Indexes extracted from _SCHEMA into _INDEXES list — prevents OperationalError when upgrading minimal v0.4 schema
+- [Phase 01-infrastructure]: Backup trigger: only when DB is non-empty AND schema_migrations absent — avoids duplicate backups
+- [Phase 01-infrastructure]: extra_body thinking:disabled изолирован только в ZAIProvider — не утекает в OpenRouter
+- [Phase 01-infrastructure]: OllamaProvider — stub с NotImplementedError, реализация в Вехе 3
 
 ### Pending Todos
 
@@ -76,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:45:14.835Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-infrastructure/01-CONTEXT.md
+Last session: 2026-03-19T21:25:40.518Z
+Stopped at: Completed 01-02-PLAN.md (providers/ package)
+Resume file: None
