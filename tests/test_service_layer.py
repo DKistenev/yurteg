@@ -18,11 +18,14 @@ def test_no_streamlit_import():
 
     import services.pipeline_service as ps
 
-    # Получаем исходный код — ищем 'streamlit' в тексте
+    # Получаем исходный код — ищем реальный импорт streamlit (не комментарий)
     import inspect as _inspect
     source = _inspect.getsource(ps)
-    assert "streamlit" not in source, (
-        "Найден 'streamlit' в исходном коде services/pipeline_service.py. "
+    # Проверяем наличие строки вида "import streamlit" (не в комментарии)
+    import re as _re
+    has_import = bool(_re.search(r'^\s*(import streamlit|from streamlit)', source, _re.MULTILINE))
+    assert not has_import, (
+        "Найден 'import streamlit' в исходном коде services/pipeline_service.py. "
         "Этот файл должен работать без Streamlit."
     )
 

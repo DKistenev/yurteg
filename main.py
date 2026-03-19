@@ -38,6 +38,7 @@ from controller import Controller
 from modules.ai_extractor import verify_api_key
 from modules.anonymizer import ENTITY_TYPES
 from modules.reporter import generate_report
+from services import pipeline_service
 
 # Загрузить API-ключи из .env (десктоп; в облаке уже в os.environ)
 load_dotenv()
@@ -55,151 +56,352 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* Шрифт и общий стиль */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    /* ═══════════════════════════════════════════════════════════
+       ЮрТэг — Liquid Glass Design System
+       ═══════════════════════════════════════════════════════════ */
+
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+        --glass-bg-1: rgba(255,255,255,0.03);
+        --glass-bg-2: rgba(255,255,255,0.06);
+        --glass-bg-3: rgba(255,255,255,0.10);
+        --glass-border: rgba(255,255,255,0.08);
+        --glass-border-hi: rgba(255,255,255,0.15);
+        --glass-blur-1: blur(20px);
+        --glass-blur-2: blur(32px);
+        --accent: #06B6D4;
+        --accent-soft: rgba(6,182,212,0.15);
+        --accent-glow: rgba(6,182,212,0.25);
+        --surface: #0B1120;
+        --surface-raised: #111827;
+        --text-primary: #F1F5F9;
+        --text-secondary: #94A3B8;
+        --text-muted: #475569;
+        --success: #34D399;
+        --warning: #FBBF24;
+        --error: #F87171;
+        --radius-sm: 10px;
+        --radius-md: 16px;
+        --radius-lg: 24px;
+    }
 
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Убрать лишние отступы сверху */
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 1rem;
+    /* ── Фон: mesh-gradient с мягкими пятнами ─────────────────── */
+    .stApp {
+        background:
+            radial-gradient(ellipse 600px 600px at 15% 20%, rgba(6,182,212,0.07) 0%, transparent 70%),
+            radial-gradient(ellipse 500px 500px at 85% 60%, rgba(99,102,241,0.05) 0%, transparent 70%),
+            radial-gradient(ellipse 400px 400px at 50% 90%, rgba(168,85,247,0.04) 0%, transparent 70%),
+            #080C14;
     }
 
-    /* Заголовок */
+    .block-container { padding-top: 0.75rem; padding-bottom: 1rem; }
+
+    /* Скрыть Streamlit branding */
+    #MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; height: 0; }
+
+    /* ── Типография ───────────────────────────────────────────── */
     h1 {
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-weight: 700;
-        letter-spacing: -0.02em;
+        color: var(--text-primary) !important;
+        -webkit-text-fill-color: var(--text-primary);
+        font-weight: 800; letter-spacing: -0.03em;
+        font-size: 1.8rem !important;
     }
 
-    /* Sidebar стиль */
+    /* ── Liquid Glass Panel (универсальный) ────────────────────── */
+    .lg-panel {
+        background: var(--glass-bg-1);
+        backdrop-filter: var(--glass-blur-1);
+        -webkit-backdrop-filter: var(--glass-blur-1);
+        border: 0.5px solid var(--glass-border);
+        border-top: 0.5px solid var(--glass-border-hi);
+        border-radius: var(--radius-md);
+        box-shadow:
+            0 8px 32px rgba(0,0,0,0.25),
+            inset 0 1px 0 rgba(255,255,255,0.06),
+            inset 0 -1px 0 rgba(0,0,0,0.1);
+        padding: 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .lg-panel::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1) 30%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.1) 70%, transparent);
+    }
+    .lg-panel-elevated {
+        background: var(--glass-bg-2);
+        backdrop-filter: var(--glass-blur-2);
+        -webkit-backdrop-filter: var(--glass-blur-2);
+        border-top: 0.5px solid rgba(255,255,255,0.2);
+        box-shadow:
+            0 12px 48px rgba(0,0,0,0.35),
+            inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    /* ── Header кастомный ─────────────────────────────────────── */
+    .yt-hero {
+        display: flex; align-items: center; gap: 14px;
+        padding: 1rem 0 0.75rem 0;
+    }
+    .yt-hero-logo {
+        width: 44px; height: 44px; border-radius: 12px;
+        background: linear-gradient(135deg, #0891B2, #06B6D4);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 18px; color: #080C14;
+        box-shadow: 0 4px 16px var(--accent-glow);
+        flex-shrink: 0;
+    }
+    .yt-hero-text h1 {
+        margin: 0 !important; padding: 0 !important;
+        font-size: 1.65rem !important; line-height: 1.1;
+    }
+    .yt-hero-text p {
+        color: var(--text-muted); font-size: 0.85rem;
+        margin: 2px 0 0 0; font-weight: 500;
+        letter-spacing: 0.03em;
+    }
+    .yt-hero-divider {
+        height: 1px; margin: 0 0 1rem 0;
+        background: linear-gradient(90deg, var(--accent-soft), transparent 80%);
+    }
+
+    /* ── Stat cards (заменяют st.metric) ──────────────────────── */
+    .yt-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 1rem 0; }
+    .yt-stat {
+        background: var(--glass-bg-1);
+        backdrop-filter: var(--glass-blur-1);
+        -webkit-backdrop-filter: var(--glass-blur-1);
+        border: 0.5px solid var(--glass-border);
+        border-top: 0.5px solid var(--glass-border-hi);
+        border-radius: var(--radius-md);
+        padding: 16px 18px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        position: relative; overflow: hidden;
+    }
+    .yt-stat::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 50%, transparent);
+    }
+    .yt-stat:hover {
+        border-color: var(--glass-border-hi);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    .yt-stat .label {
+        color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+    }
+    .yt-stat .value {
+        color: var(--text-primary); font-size: 1.75rem; font-weight: 800;
+        line-height: 1; letter-spacing: -0.02em;
+    }
+    .yt-stat .sub {
+        color: var(--text-muted); font-size: 0.72rem; margin-top: 4px;
+    }
+    .yt-stat.accent .value { color: var(--accent); }
+    .yt-stat.success .value { color: var(--success); }
+    .yt-stat.warning .value { color: var(--warning); }
+    .yt-stat.error .value { color: var(--error); }
+
+    /* Indicator dot on stat cards */
+    .yt-stat .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        display: inline-block; margin-right: 6px;
+        vertical-align: middle; position: relative; top: -1px;
+    }
+
+    /* ── CSS-only radial gauge ────────────────────────────────── */
+    .yt-gauge-wrap {
+        display: flex; gap: 16px; margin: 1rem 0;
+    }
+    .yt-gauge-card {
+        flex: 1;
+        background: var(--glass-bg-1);
+        backdrop-filter: var(--glass-blur-1);
+        -webkit-backdrop-filter: var(--glass-blur-1);
+        border: 0.5px solid var(--glass-border);
+        border-top: 0.5px solid var(--glass-border-hi);
+        border-radius: var(--radius-md);
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+        text-align: center;
+        position: relative; overflow: hidden;
+    }
+    .yt-gauge-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08) 50%, transparent);
+    }
+    .yt-gauge-card .title {
+        font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 16px;
+    }
+    .yt-gauge {
+        width: 120px; height: 120px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto;
+        position: relative;
+    }
+    .yt-gauge .ring {
+        position: absolute; inset: 0; border-radius: 50%;
+    }
+    .yt-gauge .pct {
+        font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em;
+        position: relative; z-index: 1;
+    }
+    .yt-gauge .sub-text {
+        font-size: 0.72rem; color: var(--text-muted); margin-top: 10px;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────── */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+        background: linear-gradient(180deg, #060D1B 0%, #030712 100%);
+        border-right: 0.5px solid var(--glass-border);
     }
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3,
     [data-testid="stSidebar"] label,
     [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span {
-        color: #E2E8F0 !important;
-    }
+    [data-testid="stSidebar"] span { color: #CBD5E1 !important; }
 
-    /* Tooltip в sidebar — тёмный текст на светлом фоне */
+    /* Tooltip — тёмный текст */
     [data-testid="stSidebar"] [data-testid="stTooltipContent"],
     [data-testid="stSidebar"] [data-testid="stTooltipContent"] p,
     [data-testid="stSidebar"] [data-testid="stTooltipContent"] span,
     [data-testid="stSidebar"] div[data-baseweb="tooltip"] span,
     [data-testid="stSidebar"] div[data-baseweb="tooltip"] p,
-    div[role="tooltip"] span,
-    div[role="tooltip"] p,
+    div[role="tooltip"] span, div[role="tooltip"] p,
     div[data-baseweb="tooltip"] div span,
-    div[data-baseweb="tooltip"] div p {
-        color: #1E293B !important;
-    }
+    div[data-baseweb="tooltip"] div p { color: #1E293B !important; }
 
-    /* Кнопка запуска — градиент */
+    /* ── Кнопки ───────────────────────────────────────────────── */
     div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-        border: none;
-        color: white;
-        font-weight: 600;
-        font-size: 1.05rem;
-        padding: 0.65rem 2rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        background: linear-gradient(135deg, #0891B2 0%, #06B6D4 50%, #22D3EE 100%);
+        border: none; color: #080C14; font-weight: 700; font-size: 1rem;
+        padding: 0.6rem 1.8rem; border-radius: var(--radius-sm);
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 4px 20px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2);
     }
     div.stButton > button[kind="primary"]:hover {
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+        box-shadow: 0 8px 30px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+        transform: translateY(-2px);
+    }
+    div.stDownloadButton > button {
+        background: var(--glass-bg-2); border: 0.5px solid var(--glass-border);
+        color: var(--success); font-weight: 600; border-radius: var(--radius-sm);
+        backdrop-filter: var(--glass-blur-1); -webkit-backdrop-filter: var(--glass-blur-1);
+        box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+    div.stDownloadButton > button:hover {
+        border-color: rgba(52,211,153,0.3);
+        box-shadow: 0 4px 20px rgba(52,211,153,0.15);
         transform: translateY(-1px);
     }
 
-    /* Карточки метрик */
+    /* ── Стеклянные метрики (fallback если где-то остались) ────── */
     div[data-testid="stMetric"] {
-        background: white;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 16px 20px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-        transition: box-shadow 0.2s;
+        background: var(--glass-bg-1);
+        border: 0.5px solid var(--glass-border);
+        border-radius: var(--radius-md); padding: 16px 20px;
+        backdrop-filter: var(--glass-blur-1); -webkit-backdrop-filter: var(--glass-blur-1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
-    div[data-testid="stMetric"]:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    div[data-testid="stMetric"] label {
-        color: #64748B !important;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1E293B;
-    }
+    div[data-testid="stMetric"] label { color: var(--text-muted) !important; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] { font-size: 1.75rem; font-weight: 800; color: var(--text-primary) !important; }
 
-    /* Лог обработки */
+    /* ── Лог обработки ────────────────────────────────────────── */
     .processing-log {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 16px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.85rem;
-        line-height: 1.6;
-        max-height: 300px;
-        overflow-y: auto;
+        background: var(--glass-bg-1);
+        border: 0.5px solid var(--glass-border); border-radius: var(--radius-md);
+        padding: 16px; font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8rem; line-height: 1.7;
+        max-height: 300px; overflow-y: auto;
+        backdrop-filter: var(--glass-blur-1); -webkit-backdrop-filter: var(--glass-blur-1);
     }
+    .processing-log::-webkit-scrollbar { width: 5px; }
+    .processing-log::-webkit-scrollbar-track { background: transparent; }
+    .processing-log::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.2); border-radius: 3px; }
 
-    /* Dataframe стиль */
+    /* ── Dataframe ────────────────────────────────────────────── */
     div[data-testid="stDataFrame"] {
-        border-radius: 12px;
-        overflow: hidden;
+        border-radius: var(--radius-md); overflow: hidden;
+        border: 0.5px solid var(--glass-border);
     }
 
-    /* Скрыть Streamlit branding */
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
-
-    /* Алерты */
+    /* ── Алерты ───────────────────────────────────────────────── */
     div[data-testid="stAlert"] {
-        border-radius: 10px;
+        border-radius: var(--radius-sm);
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     }
 
-    /* Разделитель */
-    hr {
-        border-color: #E2E8F0;
-        margin: 1.5rem 0;
+    /* ── Разделитель ──────────────────────────────────────────── */
+    hr { border-color: var(--glass-border); margin: 1.25rem 0; }
+
+    /* ── Табы ─────────────────────────────────────────────────── */
+    div[data-testid="stTabs"] button[data-baseweb="tab"] {
+        color: var(--text-secondary); font-weight: 500; font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+    div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+        color: var(--accent); font-weight: 700;
     }
 
-    /* Download button */
-    div.stDownloadButton > button {
-        background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-        border: none;
-        color: white;
-        font-weight: 600;
-        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+    /* ── Expander ─────────────────────────────────────────────── */
+    details[data-testid="stExpander"] {
+        background: var(--glass-bg-1);
+        border: 0.5px solid var(--glass-border); border-radius: var(--radius-sm);
     }
-    div.stDownloadButton > button:hover {
-        box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+
+    /* ── Form controls ────────────────────────────────────────── */
+    div[data-baseweb="select"] > div {
+        border-color: var(--glass-border) !important;
+        background: var(--glass-bg-1) !important;
+        border-radius: var(--radius-sm) !important;
     }
+    div[data-baseweb="select"] > div:hover { border-color: var(--glass-border-hi) !important; }
+
+    /* ── Progress bar ─────────────────────────────────────────── */
+    div[data-testid="stProgress"] > div > div > div {
+        background: linear-gradient(90deg, #0891B2, var(--accent));
+        border-radius: 4px;
+    }
+
+    /* ── Section header ───────────────────────────────────────── */
+    .yt-section-label {
+        font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.12em; color: var(--text-muted);
+        margin-bottom: 12px; padding-left: 2px;
+    }
+
+    /* ── Animation: fade-in ───────────────────────────────────── */
+    @keyframes yt-fadein {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .yt-animate { animation: yt-fadein 0.4s ease-out forwards; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Заголовок ───────────────────────────────────────────────────
-
-st.title("ЮрТэг")
-st.markdown(
-    '<p style="color: #64748B; margin-top: -10px; font-size: 1.1rem;">'
-    "Автоматическая обработка архива документов</p>",
-    unsafe_allow_html=True,
-)
+# ── Кастомный Header ──────────────────────────────────────────────
+st.markdown("""
+<div class="yt-hero yt-animate">
+    <div class="yt-hero-logo">ЮТ</div>
+    <div class="yt-hero-text">
+        <h1>ЮрТэг</h1>
+        <p>Автоматическая обработка архива документов</p>
+    </div>
+</div>
+<div class="yt-hero-divider"></div>
+""", unsafe_allow_html=True)
 
 # ── Классификация замечаний для вкладки «Детали» ────────────────
 
@@ -337,7 +539,7 @@ _ANON_HELP = {
 
 with st.sidebar:
     st.markdown(
-        '<h2 style="margin-bottom: 0.2rem;">⚙️ Настройки</h2>',
+        '<div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#475569;margin-bottom:4px;">Настройки</div>',
         unsafe_allow_html=True,
     )
 
@@ -419,8 +621,9 @@ with st.sidebar:
             )
 
     st.markdown(
-        '<p style="color: #94A3B8; font-size: 0.75rem; text-align: center;">'
-        "ЮрТэг v0.4</p>",
+        '<div style="text-align:center;padding:6px 0;">'
+        '<span style="color:#334155;font-size:0.65rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;">'
+        "ЮрТэг v0.4</span></div>",
         unsafe_allow_html=True,
     )
 
@@ -626,11 +829,11 @@ if st.button("Начать обработку", type="primary", disabled=not can
         if result.status == "done":
             v = result.validation
             if v and v.status == "warning":
-                icon, color = "⚠️", "#F59E0B"
+                icon, color = "⚠️", "#FBBF24"
             elif v and v.status in ("unreliable", "error"):
-                icon, color = "🔶", "#EF4444"
+                icon, color = "🔶", "#F87171"
             else:
-                icon, color = "✅", "#10B981"
+                icon, color = "✅", "#34D399"
             meta = ""
             if result.metadata:
                 parts = []
@@ -639,14 +842,14 @@ if st.button("Начать обработку", type="primary", disabled=not can
                 if result.metadata.counterparty:
                     parts.append(result.metadata.counterparty)
                 if parts:
-                    meta = " — " + ", ".join(parts)
+                    meta = f' <span style="color:#64748B">— {", ".join(parts)}</span>'
             log_lines.append(
-                f'<div style="padding:2px 0;color:{color}">'
+                f'<div style="padding:3px 0;color:{color}">'
                 f"{icon} {result.file_info.filename}{meta}</div>"
             )
         else:
             log_lines.append(
-                f'<div style="padding:2px 0;color:#EF4444">'
+                f'<div style="padding:3px 0;color:#F87171">'
                 f"❌ {result.file_info.filename} — "
                 f"{result.error_message}</div>"
             )
@@ -662,10 +865,10 @@ if st.button("Начать обработку", type="primary", disabled=not can
     if _CLOUD_MODE:
         _cloud_output = Path(tempfile.mkdtemp(prefix="yurteg_out_"))
 
-    controller = Controller(config)
     try:
-        stats = controller.process_archive(
+        stats = pipeline_service.process_archive(
             source_dir=source_dir,
+            config=config,
             grouping=grouping,
             force_reprocess=force_reprocess,
             on_progress=on_progress,
@@ -679,25 +882,30 @@ if st.button("Начать обработку", type="primary", disabled=not can
     _total_time = time.time() - _start_time
     progress_bar.progress(1.0, text="Готово!")
 
-    # Success-banner
-    st.divider()
-    if stats["errors"] == 0:
-        avg_conf = ""
-        st.success(
-            f"Обработано **{stats['done']}** файлов за **{_total_time:.1f}** сек. "
-            f"Ошибок: **0**. Средняя скорость: ~{_total_time / max(stats['done'], 1):.1f} сек/файл."
-        )
-    else:
-        st.warning(
-            f"Обработано **{stats['done']}** файлов за **{_total_time:.1f}** сек. "
-            f"Проблемы: **{stats['errors']}**. Проверьте вкладку Реестр."
-        )
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Обработано", stats["done"])
-    col2.metric("Ошибки", stats["errors"])
-    col3.metric("Пропущено", stats["skipped"])
-    col4.metric("Время", f"{_total_time:.1f}с", f"~{_total_time / max(stats['done'], 1):.1f} с/файл")
+    # Success-banner — кастомные stat-cards
+    _avg_speed = _total_time / max(stats['done'], 1)
+    _err_cls = "error" if stats["errors"] > 0 else "success"
+    st.markdown(f"""
+    <div class="yt-stats yt-animate">
+        <div class="yt-stat success">
+            <div class="label"><span class="dot" style="background:var(--success)"></span>Обработано</div>
+            <div class="value">{stats['done']}</div>
+        </div>
+        <div class="yt-stat {_err_cls}">
+            <div class="label"><span class="dot" style="background:var(--{_err_cls})"></span>Ошибки</div>
+            <div class="value">{stats['errors']}</div>
+        </div>
+        <div class="yt-stat">
+            <div class="label"><span class="dot" style="background:var(--text-muted)"></span>Пропущено</div>
+            <div class="value">{stats['skipped']}</div>
+        </div>
+        <div class="yt-stat accent">
+            <div class="label"><span class="dot" style="background:var(--accent)"></span>Время</div>
+            <div class="value">{_total_time:.1f}<span style="font-size:0.5em;font-weight:500;color:var(--text-muted)"> сек</span></div>
+            <div class="sub">~{_avg_speed:.1f} сек/файл</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # Сохранить для таблицы
     st.session_state["output_dir"] = stats["output_dir"]
@@ -730,69 +938,54 @@ if st.session_state.get("show_results"):
 
             # ── Таб: Сводка ─────────────────────────────────────
             with tab_summary:
-                # Ряд 1: Типы договоров — на всю ширину
-                st.markdown("**Типы документов**", help="Распределение обработанных файлов по типам документов")
-                type_counts = df["contract_type"].dropna().value_counts().reset_index()
-                type_counts.columns = ["Тип", "Количество"]
-                if not type_counts.empty:
-                    pie = (
-                        alt.Chart(type_counts)
-                        .mark_arc(innerRadius=50, stroke="#fff", strokeWidth=2)
-                        .encode(
-                            theta=alt.Theta("Количество:Q"),
-                            color=alt.Color(
-                                "Тип:N",
-                                scale=alt.Scale(scheme="tableau20"),
-                                legend=alt.Legend(orient="right", columns=1),
-                            ),
-                            tooltip=["Тип:N", "Количество:Q"],
-                        )
-                        .properties(height=280)
-                    )
-                    st.altair_chart(pie, use_container_width=True)
-                else:
-                    st.info("Нет данных о типах")
+                # Подсчёты для gauge
+                total_validated = len(df[df["validation_status"].notna()])
+                ok_count = len(df[df["validation_status"] == "ok"])
+                quality_pct = int(round(ok_count / max(total_validated, 1) * 100))
+                q_color = "#34D399" if quality_pct >= 80 else "#FBBF24" if quality_pct >= 50 else "#F87171"
 
-                # Ряд 2: два gauge рядом
-                gauge_l, gauge_r = st.columns(2)
+                avg_pct = 0
+                g_color = "#475569"
+                if "confidence" in df.columns:
+                    conf_values = df["confidence"].dropna()
+                    if not conf_values.empty:
+                        avg_conf = float(conf_values.mean())
+                        avg_pct = int(round(avg_conf * 100))
+                        g_color = "#34D399" if avg_conf >= 0.8 else "#FBBF24" if avg_conf >= 0.5 else "#F87171"
 
-                with gauge_l:
-                    st.markdown("**Качество данных**", help="Доля файлов без замечаний. Проверка: структура полей, логика дат и сумм, уверенность AI, перекрёстная проверка")
-                    total_validated = len(df[df["validation_status"].notna()])
-                    ok_count = len(df[df["validation_status"] == "ok"])
-                    quality_pct = int(round(ok_count / max(total_validated, 1) * 100))
-                    q_color = "#10B981" if quality_pct >= 80 else "#F59E0B" if quality_pct >= 50 else "#EF4444"
+                # Типы документов — stat-badges
+                type_counts = df["contract_type"].dropna().value_counts()
+                _type_colors = ["#06B6D4", "#8B5CF6", "#F59E0B", "#10B981", "#EC4899", "#3B82F6", "#EF4444", "#14B8A6"]
+                _type_badges = ""
+                for i, (t, c) in enumerate(type_counts.items()):
+                    _tc = _type_colors[i % len(_type_colors)]
+                    _type_badges += f'<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:20px;padding:6px 14px 6px 10px;font-size:0.82rem;color:#CBD5E1;"><span style="width:8px;height:8px;border-radius:50%;background:{_tc};flex-shrink:0;"></span>{t} <b style="color:{_tc}">{c}</b></span> '
 
-                    q_data = pd.DataFrame([{"seg": "fill", "v": quality_pct}, {"seg": "bg", "v": 100 - quality_pct}])
-                    q_arc = (
-                        alt.Chart(q_data)
-                        .mark_arc(innerRadius=55, outerRadius=80, stroke="#fff", strokeWidth=2)
-                        .encode(theta=alt.Theta("v:Q", stack=True), color=alt.Color("seg:N", scale=alt.Scale(domain=["fill", "bg"], range=[q_color, "#E2E8F0"]), legend=None), tooltip=alt.value(None))
-                        .properties(width=200, height=200)
-                    )
-                    q_text = alt.Chart(pd.DataFrame([{"t": f"{quality_pct}%"}])).mark_text(fontSize=32, fontWeight="bold", color=q_color).encode(text="t:N", tooltip=alt.value(None))
-                    q_sub = alt.Chart(pd.DataFrame([{"t": f"{ok_count} из {total_validated}"}])).mark_text(fontSize=12, dy=22, color="#94A3B8").encode(text="t:N", tooltip=alt.value(None))
-                    st.altair_chart(q_arc + q_text + q_sub, use_container_width=True)
-
-                with gauge_r:
-                    if "confidence" in df.columns:
-                        conf_values = df["confidence"].dropna()
-                        if not conf_values.empty:
-                            avg_conf = float(conf_values.mean())
-                            avg_pct = int(round(avg_conf * 100))
-                            st.markdown("**Уверенность AI**", help="Средняя уверенность AI в правильности данных. 80%+ — отлично, 50-80% — стоит проверить, ниже 50% — ненадёжно")
-                            g_color = "#10B981" if avg_conf >= 0.8 else "#F59E0B" if avg_conf >= 0.5 else "#EF4444"
-
-                            g_data = pd.DataFrame([{"seg": "fill", "v": avg_pct}, {"seg": "bg", "v": 100 - avg_pct}])
-                            g_arc = (
-                                alt.Chart(g_data)
-                                .mark_arc(innerRadius=55, outerRadius=80, stroke="#fff", strokeWidth=2)
-                                .encode(theta=alt.Theta("v:Q", stack=True), color=alt.Color("seg:N", scale=alt.Scale(domain=["fill", "bg"], range=[g_color, "#E2E8F0"]), legend=None), tooltip=alt.value(None))
-                                .properties(width=200, height=200)
-                            )
-                            g_text = alt.Chart(pd.DataFrame([{"t": f"{avg_pct}%"}])).mark_text(fontSize=32, fontWeight="bold", color=g_color).encode(text="t:N", tooltip=alt.value(None))
-                            g_sub = alt.Chart(pd.DataFrame([{"t": "из 100"}])).mark_text(fontSize=12, dy=22, color="#94A3B8").encode(text="t:N", tooltip=alt.value(None))
-                            st.altair_chart(g_arc + g_text + g_sub, use_container_width=True)
+                # CSS-only gauge + type badges — всё в одном HTML-блоке
+                st.markdown(f"""
+                <div class="yt-section-label">Сводка обработки</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">
+                    {_type_badges}
+                </div>
+                <div class="yt-gauge-wrap yt-animate">
+                    <div class="yt-gauge-card">
+                        <div class="title">Качество данных</div>
+                        <div class="yt-gauge">
+                            <div class="ring" style="background:conic-gradient({q_color} 0% {quality_pct}%, rgba(255,255,255,0.06) {quality_pct}% 100%); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)); mask:radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)); border-radius:50%;"></div>
+                            <div class="pct" style="color:{q_color}">{quality_pct}%</div>
+                        </div>
+                        <div class="sub-text">{ok_count} из {total_validated} без замечаний</div>
+                    </div>
+                    <div class="yt-gauge-card">
+                        <div class="title">Уверенность AI</div>
+                        <div class="yt-gauge">
+                            <div class="ring" style="background:conic-gradient({g_color} 0% {avg_pct}%, rgba(255,255,255,0.06) {avg_pct}% 100%); -webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)); mask:radial-gradient(farthest-side, transparent calc(100% - 8px), #000 calc(100% - 7px)); border-radius:50%;"></div>
+                            <div class="pct" style="color:{g_color}">{avg_pct}%</div>
+                        </div>
+                        <div class="sub-text">средняя уверенность</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
 
             # ── Таб: Реестр ─────────────────────────────────────
@@ -1000,19 +1193,19 @@ if st.session_state.get("show_results"):
                 if selected_file:
                     r = df[df["filename"] == selected_file].iloc[0]
 
-                    # Статус — бейдж
+                    # Статус — бейдж (тёмная тема)
                     _det_badge = {
-                        "ok": ("Все в порядке", "#dcfce7", "#166534"),
-                        "warning": ("Есть замечания", "#fef9c3", "#854d0e"),
-                        "unreliable": ("Ненадёжно", "#fee2e2", "#991b1b"),
-                        "error": ("Ошибка", "#fee2e2", "#991b1b"),
+                        "ok": ("Все в порядке", "rgba(52,211,153,0.15)", "#34D399"),
+                        "warning": ("Есть замечания", "rgba(251,191,36,0.15)", "#FBBF24"),
+                        "unreliable": ("Ненадёжно", "rgba(248,113,113,0.15)", "#F87171"),
+                        "error": ("Ошибка", "rgba(248,113,113,0.15)", "#F87171"),
                     }
                     vs = r.get("validation_status", "")
-                    b_label, b_bg, b_fg = _det_badge.get(vs, (str(vs), "#f3f4f6", "#374151"))
+                    b_label, b_bg, b_fg = _det_badge.get(vs, (str(vs), "rgba(255,255,255,0.05)", "#94A3B8"))
 
                     conf = r.get("confidence")
                     conf_str = f"{float(conf):.0%}" if conf and conf == conf else "—"
-                    conf_color = "#166534" if conf and float(conf) >= 0.8 else "#854d0e" if conf and float(conf) >= 0.5 else "#991b1b"
+                    conf_color = "#34D399" if conf and float(conf) >= 0.8 else "#FBBF24" if conf and float(conf) >= 0.5 else "#F87171"
 
                     # Форматирование дат
                     def _fmt_date(val):
@@ -1052,31 +1245,45 @@ if st.session_state.get("show_results"):
                     _amt = _e(str(r.get('amount', '—') or '—'))
                     _pty = _e(_parties_str)
 
-                    card_html = f"""<style>
-.yt-detail {{ border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; margin-bottom:16px; }}
-.yt-detail-header {{ background:linear-gradient(135deg,#4F46E5,#7C3AED); color:#fff; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; }}
-.yt-detail-header .name {{ font-weight:700; font-size:1.05em; }}
-.yt-detail-header .badge {{ background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:12px; font-size:0.8em; font-weight:500; margin-left:10px; }}
-.yt-detail-header .ai {{ font-weight:700; font-size:1.1em; }}
-.yt-detail-body {{ padding:16px 18px; background:#fafbfc; }}
-.yt-detail-body table {{ width:100%; font-size:0.9rem; border-collapse:collapse; }}
-.yt-detail-body td {{ padding:8px 4px; vertical-align:middle; }}
-.yt-detail-body .label {{ color:#6b7280; width:130px; font-size:0.82em; text-transform:uppercase; letter-spacing:0.03em; text-align:center; }}
-.yt-detail-body .val {{ font-weight:500; text-align:center; }}
-</style>
-<div class="yt-detail">
-<div class="yt-detail-header">
-<div><span class="name">{_fname}</span><span class="badge">{b_label}</span></div>
-<span class="ai">AI: {conf_str}</span>
-</div>
-<div class="yt-detail-body">
-<table>
-<tr><td class="label">Тип документа</td><td class="val">{_ctype}</td><td class="label">Дата подписания</td><td class="val">{_dsign}</td></tr>
-<tr><td class="label">Контрагент</td><td class="val">{_cparty}</td><td class="label">Срок действия</td><td class="val">{_dstart} — {_dend}</td></tr>
-<tr><td class="label">Предмет</td><td colspan="3" class="val">{_subj}</td></tr>
-<tr><td class="label">Сумма</td><td class="val">{_amt}</td><td class="label">Стороны</td><td class="val">{_pty}</td></tr>
-</table>
-</div>
+                    card_html = f"""
+<div class="lg-panel yt-animate" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-weight:700;font-size:1.05em;color:var(--text-primary);">{_fname}</span>
+      <span style="background:{b_bg};color:{b_fg};padding:3px 10px;border-radius:16px;font-size:0.75em;font-weight:600;">{b_label}</span>
+    </div>
+    <span style="font-weight:700;font-size:1.05em;color:{conf_color};">AI {conf_str}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Тип документа</div>
+      <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">{_ctype}</div>
+    </div>
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Контрагент</div>
+      <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">{_cparty}</div>
+    </div>
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Дата подписания</div>
+      <div style="font-size:0.9rem;font-weight:600;color:var(--text-primary);">{_dsign}</div>
+    </div>
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Сумма</div>
+      <div style="font-size:0.9rem;font-weight:600;color:var(--accent);">{_amt}</div>
+    </div>
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Срок действия</div>
+      <div style="font-size:0.9rem;font-weight:500;color:var(--text-secondary);">{_dstart} — {_dend}</div>
+    </div>
+    <div style="background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Стороны</div>
+      <div style="font-size:0.85rem;font-weight:500;color:var(--text-secondary);">{_pty}</div>
+    </div>
+  </div>
+  <div style="margin-top:12px;background:var(--glass-bg-1);border:0.5px solid var(--glass-border);border-radius:var(--radius-sm);padding:12px 14px;">
+    <div style="font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:4px;">Предмет</div>
+    <div style="font-size:0.88rem;font-weight:500;color:var(--text-secondary);line-height:1.5;">{_subj}</div>
+  </div>
 </div>"""
                     st.markdown(card_html, unsafe_allow_html=True)
 
@@ -1084,10 +1291,8 @@ if st.session_state.get("show_results"):
                     warnings = r.get("validation_warnings")
                     if warnings:
                         st.markdown(
-                            "**Замечания**",
-                            help="Автоматические проверки качества. "
-                            "L1 — пустые поля, L2 — логика данных, "
-                            "L3 — уверенность AI, L4 — кросс-файловые.",
+                            '<div class="yt-section-label">Замечания</div>',
+                            unsafe_allow_html=True,
                         )
                         items = (
                             warnings.split("; ")
@@ -1101,10 +1306,10 @@ if st.session_state.get("show_results"):
                             title, icon, color, bg, border, tip = _classify_warning(w_str)
                             detail_text = w_str.split(": ", 1)[1] if ": " in w_str else w_str
                             warn_html = f"""
-                            <div style="background:{bg}; border-left:4px solid {border}; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
-                                <div style="font-weight:600; color:{color}; font-size:0.9em;">{icon} {title}</div>
-                                <div style="color:{color}; font-size:0.85em; margin-top:2px;">{detail_text}</div>
-                                <div style="color:{color}; font-size:0.78em; margin-top:4px; font-style:italic; opacity:0.85;">💡 {tip}</div>
+                            <div style="background:rgba(255,255,255,0.03); border-left:3px solid {border}; border-radius:10px; padding:12px 16px; margin-bottom:8px; border:1px solid rgba(6,182,212,0.08); border-left:3px solid {border}; backdrop-filter:blur(8px);">
+                                <div style="font-weight:600; color:{border}; font-size:0.88em;">{icon} {title}</div>
+                                <div style="color:#94A3B8; font-size:0.83em; margin-top:3px;">{detail_text}</div>
+                                <div style="color:#64748B; font-size:0.76em; margin-top:5px; font-style:italic;">💡 {tip}</div>
                             </div>
                             """
                             st.markdown(warn_html, unsafe_allow_html=True)
