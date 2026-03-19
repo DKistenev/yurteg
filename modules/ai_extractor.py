@@ -10,12 +10,17 @@ import logging
 import os
 import re
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from openai import OpenAI, APIError, APITimeoutError, RateLimitError
+from dateutil import parser as dateutil_parser
+from dateutil.parser import ParserError
 
 from config import Config
 from modules.models import ContractMetadata
+
+if TYPE_CHECKING:
+    from providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +35,24 @@ SYSTEM_PROMPT = """Ты — опытный юрист-аналитик. Извл
 4. Списки всегда массивы: parties=[], special_conditions=[]. Никогда не null и не строка.
 5. confidence — число от 0.0 до 1.0 (не строка).
 6. Сумму пиши с пробелами-разделителями и валютой: "1 500 000 руб.", "25 000 EUR".
-7. Даты строго YYYY-MM-DD."""
+7. Даты строго YYYY-MM-DD.
+8. ШАБЛОНЫ: если в тексте есть пустые поля (_____, __________, «_____»), пробелы вместо ФИО/названий, или пометки вроде «(наименование)», «(ФИО)» — это шаблон документа. В таком случае: is_template=true, counterparty=null, parties=[]. Уверенность (confidence) оценивай по качеству извлечения типа и предмета, НЕ снижай из-за того что это шаблон.
+9. ФИО пиши СТРОГО в именительном падеже: "Иванов Иван Иванович", НЕ "Иванова Ивана Ивановича". Если в тексте "в лице Петровой Марии Сергеевны" — пиши "Петрова Мария Сергеевна". Организации — как в тексте.
+10. document_type: одинаковые документы ВСЕГДА называй одинаково. Правила именования:
+    - Договоры: "Договор {чего}" — "Договор поставки", "Договор аренды", "Договор подряда", "Договор оказания услуг"
+    - Соглашения: "Соглашение о {чём}" — "Соглашение о конфиденциальности", "Соглашение о расторжении"
+    - ПД (различай!): "Политика обработки ПД", "Положение об обработке ПД", "Согласие на обработку ПД", "Приказ о назначении ответственного за ПД" — это РАЗНЫЕ документы
+    - Корпоративные: "Решение единственного участника", "Протокол общего собрания", "Устав"
+    - Кадровые/приказы: "Приказ о {чём}" — "Приказ о приёме на работу"
+    - Акты: "Акт {чего}" — "Акт выполненных работ", "Акт сверки"
+    Предпочитай типы из предложенного списка. Если не подходит ни один — создай краткое название в том же стиле.
+11. КОНТРАГЕНТ (counterparty) — это ДРУГАЯ сторона договора, а не наша. Наши стороны (НЕ ставь их в counterparty):
+    - Фокина Дарья Владимировна / ИП Фокина / Диджитал Черч / Digital Church
+    - Файзулина Анастасия Николаевна / ИП Файзулина
+    - ООО «БУП» / БУП
+    Если договор между ИП Фокина и ООО «Газпром» → counterparty = "ООО «Газпром»", НЕ "ИП Фокина".
+    В parties перечисляй ВСЕ стороны (включая наших).
+12. Формат ИП: ВСЕГДА пиши "ИП Фамилия Имя Отчество". НЕ "Индивидуальный предприниматель Фамилия...", НЕ "индивидуальный предприниматель", НЕ "И.П.". Примеры: "ИП Фокина Дарья Владимировна", "ИП Кучма Андрей Владимирович"."""
 
 USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста юридического документа.
 
@@ -48,9 +70,10 @@ USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста 
 - special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии). Пустой массив [] если нет
 - parties (array of strings): все стороны документа. Пустой массив [] если не определены
 - confidence (float): уверенность 0.0–1.0
+- is_template (bool): true если документ — шаблон/бланк с пустыми полями
 
 Пример ответа:
-{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "[ФИО_1]"], "confidence": 0.92}}
+{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "[ФИО_1]"], "confidence": 0.92, "is_template": false}}
 
 Текст документа:
 {text}"""
@@ -82,6 +105,79 @@ VERIFY_PROMPT = """Проверь, соответствуют ли эти мет
 - reasoning (string): краткое пояснение
 
 Отвечай СТРОГО в формате JSON, без обёрток."""
+
+
+# Таблица замены русских названий месяцев на английские для dateutil
+_RU_MONTHS: dict[str, str] = {
+    "января": "January", "январь": "January",
+    "февраля": "February", "февраль": "February",
+    "марта": "March", "март": "March",
+    "апреля": "April", "апрель": "April",
+    "мая": "May", "май": "May",
+    "июня": "June", "июнь": "June",
+    "июля": "July", "июль": "July",
+    "августа": "August", "август": "August",
+    "сентября": "September", "сентябрь": "September",
+    "октября": "October", "октябрь": "October",
+    "ноября": "November", "ноябрь": "November",
+    "декабря": "December", "декабрь": "December",
+}
+
+
+def _translate_ru_months(text: str) -> str:
+    """Заменяет русские названия месяцев на английские для dateutil."""
+    for ru, en in _RU_MONTHS.items():
+        text = re.sub(ru, en, text, flags=re.IGNORECASE)
+    return text
+
+
+def _normalize_date(raw: str | None) -> str | None:
+    """Нормализует строку с датой в формат YYYY-MM-DD (ISO 8601).
+
+    Возвращает None если строка непарсируема, год-only, или None на входе.
+    Логирует оригинальное значение при неудаче.
+
+    Примеры:
+        "31 декабря 2025 г." → "2025-12-31"
+        "31.12.2025"         → "2025-12-31"
+        "31.12.25"           → "2025-12-31"
+        "January 1, 2025"    → "2025-01-01"
+        "2025-12-31"         → "2025-12-31"  (fast path)
+        "бессрочный"         → None
+        "2025"               → None  (year-only: dateutil даёт misleading результат)
+        None                 → None
+    """
+    if not raw:
+        return None
+    raw = raw.strip()
+    if not raw or raw.lower() in ("null", "none", ""):
+        return None
+
+    # Fast path: уже ISO 8601
+    if len(raw) == 10 and raw[4] == "-" and raw[7] == "-":
+        return raw
+
+    # Защита от year-only строк: dateutil.parse("2025") → datetime(2025, today.month, today.day)
+    # что создаёт ложную дату. Любая валидная дата содержит день и месяц.
+    if len(raw) <= 4 and raw.isdigit():
+        logger.warning("Отклонена year-only строка даты: %r", raw)
+        return None
+
+    # Перевод русских месяцев и очистка суффиксов для dateutil
+    translated = _translate_ru_months(raw)
+    translated = re.sub(r"\s*(г\.?|года)\s*$", "", translated).strip()
+
+    try:
+        dt = dateutil_parser.parse(translated, dayfirst=True)
+        normalized = dt.strftime("%Y-%m-%d")
+        # Санитарная проверка: договоры только в диапазоне 1990–2099
+        if not (1990 <= dt.year <= 2099):
+            logger.warning("Дата вне допустимого диапазона: %r → %s", raw, normalized)
+            return None
+        return normalized
+    except (ParserError, ValueError, OverflowError):
+        logger.warning("Не удалось нормализовать дату: %r", raw)
+        return None
 
 
 def _merge_system_into_user(messages: list[dict]) -> list[dict]:
@@ -166,7 +262,12 @@ def _create_client(config: Config, use_fallback: bool = False) -> OpenAI:
     )
 
 
-def extract_metadata(anonymized_text: str, config: Config) -> ContractMetadata:
+def extract_metadata(
+    anonymized_text: str,
+    config: Config,
+    provider: "LLMProvider | None" = None,
+    fallback_provider: "LLMProvider | None" = None,
+) -> ContractMetadata:
     """
     Отправляет анонимизированный текст в LLM, парсит JSON-ответ.
 
@@ -179,6 +280,10 @@ def extract_metadata(anonymized_text: str, config: Config) -> ContractMetadata:
     Raises:
         RuntimeError: если все попытки исчерпаны
     """
+    # Если провайдер не передан — создать через старый путь для обратной совместимости
+    # (удалить в Phase 2 после полного перехода main.py на providers/)
+    _legacy_mode = provider is None
+
     # Обрезать текст если слишком длинный (30K достаточно для 95% документов)
     text = anonymized_text[:30_000]
 
@@ -483,11 +588,12 @@ def _json_to_metadata(data: dict) -> ContractMetadata:
         contract_type=data.get("document_type") or data.get("contract_type"),
         counterparty=data.get("counterparty"),
         subject=data.get("subject"),
-        date_signed=data.get("date_signed"),
-        date_start=data.get("date_start"),
-        date_end=data.get("date_end"),
+        date_signed=_normalize_date(data.get("date_signed")),
+        date_start=_normalize_date(data.get("date_start")),
+        date_end=_normalize_date(data.get("date_end")),
         amount=data.get("amount"),
         special_conditions=special_conditions,
         parties=parties,
         confidence=confidence,
+        is_template=bool(data.get("is_template", False)),
     )
