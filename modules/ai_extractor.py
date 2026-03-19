@@ -71,9 +71,13 @@ USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста 
 - parties (array of strings): все стороны документа. Пустой массив [] если не определены
 - confidence (float): уверенность 0.0–1.0
 - is_template (bool): true если документ — шаблон/бланк с пустыми полями
+- payment_terms (string|null): текстовое описание порядка оплаты («ежемесячно до 5-го числа») или null
+- payment_amount (number|null): сумма одного платежа — только числовое значение без валюты или null
+- payment_frequency (string|null): периодичность платежей — "monthly", "quarterly", "yearly", "once" или null
+- payment_direction (string|null): "income" если деньги поступают от контрагента, "expense" если платим мы, или null
 
 Пример ответа:
-{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "[ФИО_1]"], "confidence": 0.92, "is_template": false}}
+{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "[ФИО_1]"], "confidence": 0.92, "is_template": false, "payment_terms": "ежемесячно до 5-го числа", "payment_amount": 50000, "payment_frequency": "monthly", "payment_direction": "income"}}
 
 Текст документа:
 {text}"""
@@ -524,6 +528,14 @@ def verify_api_key(config: Config) -> bool:
         return False
 
 
+def _safe_float(val) -> Optional[float]:
+    """Безопасное приведение к float: None/пустое → None, невалидное → None."""
+    try:
+        return float(val) if val is not None else None
+    except (ValueError, TypeError):
+        return None
+
+
 def _parse_json_response(raw: str) -> dict:
     """Извлекает JSON из ответа модели (может быть обёрнут по-разному)."""
     # Шаг 0: Убрать блоки <think>...</think> (thinking-модели)
@@ -596,4 +608,8 @@ def _json_to_metadata(data: dict) -> ContractMetadata:
         parties=parties,
         confidence=confidence,
         is_template=bool(data.get("is_template", False)),
+        payment_terms=data.get("payment_terms"),
+        payment_amount=_safe_float(data.get("payment_amount")),
+        payment_frequency=data.get("payment_frequency"),
+        payment_direction=data.get("payment_direction"),
     )

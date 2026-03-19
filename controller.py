@@ -24,6 +24,8 @@ from modules.organizer import organize_file, prepare_output_directory
 from modules.reporter import generate_report
 from modules.scanner import scan_directory
 from modules.validator import validate_batch, validate_metadata
+from services.payment_service import save_payments
+from services.version_service import find_version_match, link_versions
 
 logger = logging.getLogger(__name__)
 
@@ -264,6 +266,43 @@ class Controller:
                     errors += 1
 
                 db.save_result(result)
+
+                # Версионирование: связываем с предыдущей версией если есть (non-blocking)
+                if result.status == "done" and result.metadata and result.text:
+                    try:
+                        saved = db.conn.execute(
+                            "SELECT id FROM contracts WHERE file_hash=?",
+                            (result.file_info.file_hash,),
+                        ).fetchone()
+                        if saved:
+                            cid = saved[0]
+                            group_id = find_version_match(
+                                db, cid, result.text.text,
+                                result.metadata.contract_type,
+                                result.metadata.counterparty,
+                            )
+                            link_versions(db, cid, group_id, link_method="auto_embedding")
+                    except Exception as _ve:
+                        logger.warning(
+                            "Версионирование не удалось для %s: %s",
+                            result.file_info.filename, _ve,
+                        )
+
+                # Платёжный календарь: сохраняем платежи если есть сумма (non-blocking)
+                if result.status == "done" and result.metadata and result.metadata.payment_amount is not None:
+                    try:
+                        saved = db.conn.execute(
+                            "SELECT id FROM contracts WHERE file_hash=?",
+                            (result.file_info.file_hash,),
+                        ).fetchone()
+                        if saved:
+                            save_payments(db, saved[0], result.metadata)
+                    except Exception as _pe:
+                        logger.warning(
+                            "Сохранение платежей не удалось для %s: %s",
+                            result.file_info.filename, _pe,
+                        )
+
                 if on_file_done:
                     on_file_done(result)
                 results.append(result)
