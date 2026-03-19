@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-00-PLAN.md
-last_updated: "2026-03-19T22:23:13.204Z"
+stopped_at: Completed 02-document-lifecycle-02-01-PLAN.md
+last_updated: "2026-03-19T22:24:10.870Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 12
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -49,6 +49,7 @@ Plan: 2 of 8
 | Phase 01-infrastructure P01 | 2 | 2 tasks | 2 files |
 | Phase 01-infrastructure P04 | 5 | 2 tasks | 2 files |
 | Phase 02 P00 | 1 | 2 tasks | 3 files |
+| Phase 02-document-lifecycle P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure]: Year-only guard: isdigit() + len<=4 перед dateutil — parse('2025') возвращает today's month/day
 - [Phase 02]: xfail strict=False: тесты помечены XFAIL до реализации — CI безопасен
 - [Phase 02]: Wave 0 skeleton pattern: тест-файлы с xfail создаются до сервисов, assertions заполняются после
+- [Phase 02-document-lifecycle]: lifecycle_service использует db.conn (публичный атрибут Database) — не db._conn
+- [Phase 02-document-lifecycle]: get_attention_required исключает manual_status документы — юрист берёт их под контроль явно
+- [Phase 02-document-lifecycle]: Статус expiring/expired вычисляется через SQL julianday без Python datetime в сервисном слое
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:23:13.202Z
-Stopped at: Completed 02-00-PLAN.md
+Last session: 2026-03-19T22:24:10.867Z
+Stopped at: Completed 02-document-lifecycle-02-01-PLAN.md
 Resume file: None
