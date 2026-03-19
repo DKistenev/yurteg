@@ -1,0 +1,336 @@
+# Testing Patterns
+
+**Analysis Date:** 2026-03-19
+
+## Test Framework
+
+**Runner:**
+- pytest (version not pinned in requirements.txt, but `>=3.5` assumed based on usage)
+- Config: `pytest.ini` at project root
+
+**pytest.ini Configuration:**
+```ini
+[pytest]
+markers =
+    slow: медленные тесты (>5 сек) — пропустить через: -m "not slow"
+```
+
+**Run Commands:**
+```bash
+pytest tests/stress_test.py -v -s              # Run with output
+pytest tests/stress_test.py -v -k "Anonymizer" # Run specific test class/function
+pytest tests/stress_test.py -v -m "not slow"   # Skip slow tests
+```
+
+**Assertion Library:**
+- pytest's built-in assert statements (no pytest-assert plugin needed)
+
+## Test File Organization
+
+**Location:**
+- `tests/` directory at project root
+- Test files: `tests/stress_test.py`, `tests/generate_test_docs.py`
+- Test data: `tests/test_data/` (generated test documents)
+- Configuration: `tests/conftest.py` (pytest setup)
+
+**Naming:**
+- Test files: `test_*.py` or `*_test.py` — `stress_test.py` follows second pattern
+- Test functions: `test_*` — not used; test classes used instead
+- Test classes: `class Test*` — `class TestAnonymizer`, `class TestValidator`
+- Fixtures: named descriptively — `config`, `tmp_db`, `make_metadata`
+
+**Structure:**
+```
+tests/
+├── conftest.py                  # sys.path setup, shared fixtures
+├── stress_test.py               # ~2500 lines covering all modules
+├── generate_test_docs.py        # ~500 lines creating test documents
+└── test_data/
+    ├── акт_выполненных_работ.docx
+    ├── счёт_на_оплату.docx
+    └── ... (other test documents)
+```
+
+## Test Structure
+
+**Suite Organization:**
+```python
+# From tests/stress_test.py
+import pytest
+from unittest.mock import patch, MagicMock
+
+@pytest.fixture
+def config():
+    """Fixture: returns Config() instance."""
+    return Config()
+
+@pytest.fixture
+def tmp_db(tmp_path):
+    """Fixture: creates temporary database."""
+    db = Database(tmp_path / "test.db")
+    yield db
+    db.close()
+
+class TestAnonymizer:
+    """Test suite for anonymization module."""
+
+    def test_name_extraction(self):
+        """Test case: verify NER extracts Russian names."""
+        result = anonymize("Иванов Иван Иванович")
+        assert "[ФИО_1]" in result.text
+```
+
+**Patterns Observed:**
+
+1. **Fixtures: Factory Pattern**
+```python
+def make_metadata(**overrides) -> ContractMetadata:
+    """Create test metadata with sensible defaults."""
+    defaults = dict(
+        contract_type="Договор поставки",
+        counterparty="ООО ТехноСтрой",
+        confidence=0.85,
+    )
+    defaults.update(overrides)
+    return ContractMetadata(**defaults)
+```
+
+2. **Parametrized Tests**
+```python
+@pytest.mark.parametrize("text,expected", [
+    ("Иванов Иван Иванович", "[ФИО_1]"),
+    ("+7 (495) 123-45-67", "[ТЕЛЕФОН_1]"),
+])
+def test_anonymization_patterns(text, expected):
+    result = anonymize(text)
+    assert expected in result.text
+```
+
+3. **Assertions on Dataclass Fields**
+```python
+def test_validation_result():
+    result = validate_metadata(metadata, config)
+    assert result.status == "ok"
+    assert result.score >= 0.8
+    assert len(result.warnings) == 0
+```
+
+## Mocking
+
+**Framework:** `unittest.mock` (standard library)
+
+**Patterns:**
+
+1. **Mocking API Calls**
+```python
+from unittest.mock import patch, MagicMock
+
+def test_ai_extraction_with_mock():
+    """Mock OpenAI API to avoid real requests."""
+    with patch("openai.OpenAI") as mock_client:
+        mock_client.return_value.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content='{"contract_type": "..."}'))]
+        )
+        result = extract_metadata(anonymized_text, config)
+        assert result.contract_type is not None
+```
+
+2. **Mocking File Operations**
+```python
+def test_file_scanning(tmp_path):
+    """Create temporary files instead of mocking."""
+    pdf_file = tmp_path / "contract.pdf"
+    pdf_file.write_bytes(b"%PDF-1.4 ...fake content...")
+    files = scan_directory(tmp_path, config)
+    assert len(files) == 1
+```
+
+3. **What to Mock:**
+- External API calls (OpenAI, OpenRouter) — avoid real requests
+- Network operations — unreliable in test environments
+- System time — for testing expiration/retry logic
+
+4. **What NOT to Mock:**
+- File I/O (use `tmp_path` fixture instead)
+- Text extraction (test with real PDF/DOCX)
+- Database operations (use temporary SQLite)
+- Regex patterns (test actual matching)
+- Dataclass creation (test real object construction)
+
+## Fixtures and Factories
+
+**Test Data Factories:**
+```python
+def make_metadata(**overrides) -> ContractMetadata:
+    """Factory: create test metadata."""
+    ...
+
+def make_file_info(filename: str, size: int = 1000) -> FileInfo:
+    """Factory: create test file info."""
+    ...
+```
+
+**Location:**
+- Fixture functions in `tests/conftest.py` (shared across test files)
+- Factories in `tests/stress_test.py` (used by multiple test classes)
+
+**Test Data Files:**
+- Generated by `tests/generate_test_docs.py`
+- Stored in `tests/test_data/` directory
+- Cover different document types and edge cases
+- Example: `акт_выполненных_работ.docx` (reference document, no anomalies)
+- Example: `счёт_на_оплату.docx` (intentional anomaly: missing amount)
+
+**Running Test Data Generator:**
+```bash
+python tests/generate_test_docs.py  # Creates test documents in tests/test_data/
+```
+
+## Coverage
+
+**Requirements:**
+- No explicit minimum coverage enforced
+- No coverage.py config file
+- Stress test focuses on critical paths: anonymization, validation, database
+
+**View Coverage:**
+```bash
+pytest tests/stress_test.py --cov=modules --cov-report=html
+# (Requires: pip install pytest-cov)
+```
+
+**Covered Areas:**
+- `modules/anonymizer.py` — comprehensive (NER entities, regex patterns, overlap removal)
+- `modules/validator.py` — comprehensive (L1-L4 validation levels, scoring)
+- `modules/organizer.py` — comprehensive (filename sanitization, conflict resolution, grouping modes)
+- `modules/database.py` — moderate (CRUD operations, migrations)
+- `modules/ai_extractor.py` — light (mocked due to API dependency)
+
+**Gaps:**
+- No tests for `modules/reporter.py` (Excel generation)
+- No tests for `modules/extractor.py` (PDF/DOCX parsing)
+- No E2E tests for full controller pipeline
+- No tests for `main.py` (Streamlit UI)
+
+## Test Types
+
+**Unit Tests:**
+- Scope: Individual functions and dataclass behaviors
+- Approach: Input to function call to assert output
+- Examples: `TestAnonymizer.test_name_extraction()`, `TestValidator.test_validate_l1()`
+- Isolation: Fixtures provide dependencies; mocking used for external services
+
+**Integration Tests:**
+- Scope: Multiple modules working together
+- Approach: Set up data, run through several modules, check final state
+- Examples: Extract text → anonymize → validate metadata
+- No actual I/O mocks (real files, real database)
+
+**E2E Tests:**
+- Status: Not present in current codebase
+- Recommendation: Should test full pipeline (scan → extract → AI → validate → organize → report)
+- Framework: Would use pytest with temporary directories and mocked AI
+
+**Stress/Load Tests:**
+- `tests/stress_test.py` includes performance tests marked `@pytest.mark.slow`
+- Tests with 100+ documents, concurrent database access
+- Validates behavior under load (no memory leaks, no race conditions)
+
+## Async Testing
+
+**Current Status:** Not async (no asyncio usage in codebase)
+
+**Concurrency Pattern:** ThreadPoolExecutor for AI requests
+
+**Testing Concurrency:**
+```python
+def test_concurrent_database_access(tmp_db):
+    """Verify thread-safe database writes."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    def write_result(i):
+        result = ProcessingResult(
+            file_info=make_file_info(f"file_{i}.pdf"),
+            status="done"
+        )
+        tmp_db.save_result(result)
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(write_result, i) for i in range(100)]
+        for f in futures:
+            f.result()  # Wait for all to complete
+
+    all_results = tmp_db.get_all_results()
+    assert len(all_results) == 100
+```
+
+## Error Testing
+
+**Pattern: Assert Expected Exceptions**
+
+1. **Invalid Input Handling**
+```python
+def test_validation_missing_required_field():
+    """Validate that missing counterparty sets error status."""
+    metadata = make_metadata(counterparty=None)
+    result = validate_metadata(metadata, config)
+    assert result.status == "error"
+    assert any("counterparty" in w for w in result.warnings)
+```
+
+2. **File Not Found**
+```python
+def test_scan_nonexistent_directory():
+    """Verify FileNotFoundError raised for missing directory."""
+    with pytest.raises(FileNotFoundError):
+        scan_directory(Path("/nonexistent/path"), config)
+```
+
+3. **Graceful Degradation**
+```python
+def test_extraction_failure_returns_failed_status():
+    """Verify extract_text returns 'failed' method, not exception."""
+    bad_file = FileInfo(
+        path=Path("/fake.pdf"),
+        filename="fake.pdf",
+        extension=".pdf",
+        size_bytes=100,
+        file_hash="abc123"
+    )
+    result = extract_text(bad_file)
+    assert result.extraction_method == "failed"
+    assert result.text == ""
+    # No exception raised to caller
+```
+
+## Test Markers
+
+**Markers Defined (pytest.ini):**
+```
+slow: медленные тесты (>5 сек) — пропустить через: -m "not slow"
+```
+
+**Usage:**
+```python
+@pytest.mark.slow
+def test_large_document_processing():
+    """Process 500 MB PDF file (takes 10 seconds)."""
+    ...
+
+# Run without slow tests
+pytest -m "not slow"
+```
+
+## Continuous Integration
+
+**Status:** No CI configuration (no `.github/workflows/`, no `.gitlab-ci.yml`)
+
+**Recommendation for Future:**
+- GitHub Actions workflow in `.github/workflows/test.yml`
+- Run pytest on Python 3.10+ on push/PR
+- Check coverage threshold (>70% for modules)
+- Lint with pylint/flake8 if added
+
+---
+
+*Testing analysis: 2026-03-19*
