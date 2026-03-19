@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-02-PLAN.md (bot server with FastAPI + webhook + file queue)
-last_updated: "2026-03-19T23:44:05.122Z"
+stopped_at: Completed 03-04-PLAN.md (deadline notification scheduler)
+last_updated: "2026-03-19T23:48:05.690Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -62,6 +62,7 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P01 | 5min | 2 tasks | 2 files |
 | Phase 03-integrations-multitenancy P05 | 2min | 2 tasks | 3 files |
 | Phase 03-integrations-multitenancy P02 | 2min | 2 tasks | 6 files |
+| Phase 03-integrations-multitenancy P04 | 5min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,8 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: rapidfuzz imported inside try/except in ClientManager.find_client_by_counterparty — graceful degradation if not installed
 - [Phase 03-integrations-multitenancy]: bot_data[db] pattern: ServerDatabase stored in Application.bot_data so handlers access via context.bot_data['db']
 - [Phase 03-integrations-multitenancy]: consume_pending_binding atomic: SELECT+DELETE inside single threading.Lock prevents double-consume race
+- [Phase 03-integrations-multitenancy]: Single daily cron at 09:00 UTC — per-user digest_hour scheduling is v2; single daily run sufficient for MVP
+- [Phase 03-integrations-multitenancy]: Scheduler started only inside BOT_TOKEN guard — avoids startup crash in dev without token
 
 ### Pending Todos
 
@@ -123,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:44:05.119Z
-Stopped at: Completed 03-02-PLAN.md (bot server with FastAPI + webhook + file queue)
+Last session: 2026-03-19T23:48:05.688Z
+Stopped at: Completed 03-04-PLAN.md (deadline notification scheduler)
 Resume file: None
