@@ -110,6 +110,115 @@ def _migrate_v1_review_columns(conn: sqlite3.Connection) -> None:
     _mark_migration_applied(conn, 1)
 
 
+def _migrate_v2_lifecycle_columns(conn: sqlite3.Connection) -> None:
+    """v2: Добавить manual_status и warning_days в contracts."""
+    if _is_migration_applied(conn, 2):
+        return
+    for col, col_def in [
+        ("manual_status", "TEXT DEFAULT NULL"),
+        ("warning_days", "INTEGER DEFAULT NULL"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE contracts ADD COLUMN {col} {col_def}")
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует — безопасно
+    conn.commit()
+    _mark_migration_applied(conn, 2)
+
+
+def _migrate_v3_embeddings(conn: sqlite3.Connection) -> None:
+    """v3: Создать таблицу embeddings для семантического поиска."""
+    if _is_migration_applied(conn, 3):
+        return
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS embeddings (
+                contract_id INTEGER NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+                vector BLOB NOT NULL,
+                model_version TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (contract_id)
+            )
+        """)
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 3)
+
+
+def _migrate_v4_document_versions(conn: sqlite3.Connection) -> None:
+    """v4: Создать таблицу document_versions для версионирования документов."""
+    if _is_migration_applied(conn, 4):
+        return
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS document_versions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contract_group_id INTEGER NOT NULL,
+                contract_id INTEGER NOT NULL REFERENCES contracts(id),
+                version_number INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                link_method TEXT NOT NULL
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_versions_group ON document_versions(contract_group_id)"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 4)
+
+
+def _migrate_v5_payments(conn: sqlite3.Connection) -> None:
+    """v5: Создать таблицу payments для учёта платежей по договорам."""
+    if _is_migration_applied(conn, 5):
+        return
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contract_id INTEGER NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+                payment_date TEXT NOT NULL,
+                amount REAL NOT NULL,
+                direction TEXT NOT NULL,
+                is_periodic INTEGER DEFAULT 0,
+                frequency TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_payments_date ON payments(payment_date)"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 5)
+
+
+def _migrate_v6_templates(conn: sqlite3.Connection) -> None:
+    """v6: Создать таблицу templates для хранения шаблонов-эталонов."""
+    if _is_migration_applied(conn, 6):
+        return
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS templates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                contract_type TEXT NOT NULL,
+                name TEXT NOT NULL,
+                original_path TEXT,
+                content_text TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active INTEGER DEFAULT 1
+            )
+        """)
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 6)
+
+
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     """Проверяет существование таблицы в БД."""
     row = conn.execute(
@@ -133,6 +242,11 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     if needs_backup:
         _backup_database(db_path)
     _migrate_v1_review_columns(conn)
+    _migrate_v2_lifecycle_columns(conn)
+    _migrate_v3_embeddings(conn)
+    _migrate_v4_document_versions(conn)
+    _migrate_v5_payments(conn)
+    _migrate_v6_templates(conn)
 
 
 class Database:
