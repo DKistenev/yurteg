@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-01-PLAN.md (startup toast notification)
-last_updated: "2026-03-19T23:42:38.730Z"
+stopped_at: Completed 03-02-PLAN.md (bot server with FastAPI + webhook + file queue)
+last_updated: "2026-03-19T23:44:05.122Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 21
-  completed_plans: 15
+  completed_plans: 17
 ---
 
 # Project State
@@ -60,6 +60,8 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P07 | 48s | 1 tasks | 0 files |
 | Phase 03-integrations-multitenancy P00 | 2min | 1 tasks | 3 files |
 | Phase 03-integrations-multitenancy P01 | 5min | 2 tasks | 2 files |
+| Phase 03-integrations-multitenancy P05 | 2min | 2 tasks | 3 files |
+| Phase 03-integrations-multitenancy P02 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -105,6 +107,10 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: Wave 0 xfail skeletons — server/ пакет намечен: queue_service, binding_service, deadline_service; services/client_manager интерфейс определён
 - [Phase 03-integrations-multitenancy]: INTG-04 переиспользует get_attention_required из lifecycle_service — no new service layer needed, только UI слой
 - [Phase 03-integrations-multitenancy]: INTG-04 toast uses computed_status field on DeadlineAlert, not alert_type — maps expiring/expired correctly
+- [Phase 03-integrations-multitenancy]: Stateless client switching via Streamlit selectbox — db_path resolved from get_db_path(_selected_client), no mutable state on ClientManager
+- [Phase 03-integrations-multitenancy]: rapidfuzz imported inside try/except in ClientManager.find_client_by_counterparty — graceful degradation if not installed
+- [Phase 03-integrations-multitenancy]: bot_data[db] pattern: ServerDatabase stored in Application.bot_data so handlers access via context.bot_data['db']
+- [Phase 03-integrations-multitenancy]: consume_pending_binding atomic: SELECT+DELETE inside single threading.Lock prevents double-consume race
 
 ### Pending Todos
 
@@ -117,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:42:38.728Z
-Stopped at: Completed 03-01-PLAN.md (startup toast notification)
+Last session: 2026-03-19T23:44:05.119Z
+Stopped at: Completed 03-02-PLAN.md (bot server with FastAPI + webhook + file queue)
 Resume file: None
