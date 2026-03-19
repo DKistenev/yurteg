@@ -67,16 +67,19 @@ Plans:
   1. Файл, кинутый в Telegram-бот, через ~1 минуту появляется в реестре — без дополнительных действий со стороны юриста
   2. Telegram-бот сам отправляет сообщение о приближающихся сроках — юристу не нужно открывать приложение чтобы узнать о проблемных договорах
   3. Юрист может переключаться между реестрами разных компаний/клиентов — документы одного клиента не смешиваются с документами другого
-  4. Несколько юристов, работающих с одним реестром, видят одинаковые документы и статусы
-  5. Новый файл, появившийся в подключённой папке Google Drive, обрабатывается автоматически без ручного запуска
-**Plans**: TBD
+  4. Несколько юристов, работающих с одним реестром, видят одинаковые документы и статусы (DEFERRED to v2)
+  5. Новый файл, появившийся в подключённой папке Google Drive, обрабатывается автоматически без ручного запуска (DEFERRED to v2)
+**Plans**: 8 plans
 
 Plans:
-- [ ] 03-01: In-app уведомления через st.toast + APScheduler BackgroundScheduler (INTG-04)
-- [ ] 03-02: Telegram-бот — приём документов (INTG-01)
-- [ ] 03-03: Telegram-бот — отправка уведомлений о сроках (INTG-02)
-- [ ] 03-04: Мультиклиентский режим — изоляция реестров (PROF-01, PROF-02)
-- [ ] 03-05: Google Drive watcher — автообработка новых файлов (INTG-03)
+- [ ] 03-00-PLAN.md — Wave 0: тест-скелеты test_notifications, test_telegram_bot, test_client_manager (INTG-01..INTG-04, PROF-01)
+- [ ] 03-01-PLAN.md — In-app toast уведомления при запуске (INTG-04)
+- [ ] 03-02-PLAN.md — Bot server: FastAPI + webhook + file queue + binding (INTG-01)
+- [ ] 03-03-PLAN.md — Local sync: TelegramSync service + binding UI + auto-fetch (INTG-01)
+- [ ] 03-04-PLAN.md — Deadline notifications: APScheduler + digest via Telegram (INTG-02)
+- [ ] 03-05-PLAN.md — Multi-client mode: ClientManager + sidebar UI (PROF-01)
+- [ ] 03-06-PLAN.md — Finalize tests + human verification checkpoint
+- [ ] 03-07-PLAN.md — DEFERRED: Google Drive (INTG-03) + multi-user (PROF-02)
 
 ### Phase 4: On-Premise и безопасность
 **Goal**: B2B-клиент разворачивает приложение на своём сервере одной командой и получает полный аудит-лог операций
@@ -102,5 +105,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Инфраструктура | 4/4 | Complete   | 2026-03-19 |
 | 2. Жизненный цикл документа | 8/8 | Complete   | 2026-03-19 |
-| 3. Интеграции и мультидоступ | 0/5 | Not started | - |
+| 3. Интеграции и мультидоступ | 0/8 | Not started | - |
 | 4. On-Premise и безопасность | 0/3 | Not started | - |
