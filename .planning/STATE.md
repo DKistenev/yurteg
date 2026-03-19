@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-03-PLAN.md (Telegram app integration — TelegramSync service + auto-fetch + auto-process)
-last_updated: "2026-03-19T23:49:40.916Z"
+stopped_at: Completed 03-08-PLAN.md (Auto-binding of documents to clients by counterparty + summary UI)
+last_updated: "2026-03-19T23:53:55.891Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -64,6 +64,7 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P02 | 2min | 2 tasks | 6 files |
 | Phase 03-integrations-multitenancy P04 | 5min | 2 tasks | 4 files |
 | Phase 03-integrations-multitenancy P03 | 8min | 2 tasks | 3 files |
+| Phase 03-integrations-multitenancy P08 | 5min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,7 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: TelegramSync.bind() uses JSON body POST — matches actual bot_server /api/bind that reads request.json()
 - [Phase 03-integrations-multitenancy]: notify_processed() graceful degradation: /api/notify not yet in bot_server, logs warning and returns False
 - [Phase 03-integrations-multitenancy]: Auto-process uses pipeline_service.process_archive() module function (not PipelineService class) — returns dict with done/errors/total
+- [Phase 03-integrations-multitenancy]: auto_bind_results checks result.status == 'done' (ProcessingResult has no .success attr); move_record_to_client uses raw db.conn SQL (Database has no get/delete by id methods)
 
 ### Pending Todos
 
@@ -130,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:49:40.913Z
-Stopped at: Completed 03-03-PLAN.md (Telegram app integration — TelegramSync service + auto-fetch + auto-process)
+Last session: 2026-03-19T23:53:55.888Z
+Stopped at: Completed 03-08-PLAN.md (Auto-binding of documents to clients by counterparty + summary UI)
 Resume file: None
