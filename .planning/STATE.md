@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-19T21:43:55.770Z"
+stopped_at: Completed 02-00-PLAN.md
+last_updated: "2026-03-19T22:23:13.204Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 12
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 01 — infrastructure
+**Current focus:** Phase 02 — document-lifecycle
 
 ## Current Position
 
-Phase: 01 (infrastructure) — EXECUTING
-Plan: 1 of 4 complete — ready for 01-02
+Phase: 02 (document-lifecycle) — EXECUTING
+Plan: 2 of 8
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: 1 of 4 complete — ready for 01-02
 *Updated after each plan completion*
 | Phase 01-infrastructure P01 | 2 | 2 tasks | 2 files |
 | Phase 01-infrastructure P04 | 5 | 2 tasks | 2 files |
+| Phase 02 P00 | 1 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure]: extract_metadata() принимает provider/fallback_provider с None-дефолтами — обратная совместимость до Phase 2
 - [Phase 01-infrastructure]: _RU_MONTHS + _translate_ru_months() для перевода русских месяцев перед dateutil — dateutil не парсит русский нативно
 - [Phase 01-infrastructure]: Year-only guard: isdigit() + len<=4 перед dateutil — parse('2025') возвращает today's month/day
+- [Phase 02]: xfail strict=False: тесты помечены XFAIL до реализации — CI безопасен
+- [Phase 02]: Wave 0 skeleton pattern: тест-файлы с xfail создаются до сервисов, assertions заполняются после
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T21:43:55.760Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-document-lifecycle/02-CONTEXT.md
+Last session: 2026-03-19T22:23:13.202Z
+Stopped at: Completed 02-00-PLAN.md
+Resume file: None
