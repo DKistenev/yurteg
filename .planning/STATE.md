@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-document-lifecycle-02-05-PLAN.md
-last_updated: "2026-03-19T22:30:43.018Z"
+stopped_at: "Completed 02-document-lifecycle-02-06-PLAN.md (checkpoint:human-verify)"
+last_updated: "2026-03-19T22:36:42.287Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -53,6 +53,7 @@ Plan: 2 of 8
 | Phase 02 P02 | 2 | 2 tasks | 1 files |
 | Phase 02-document-lifecycle P03 | 8 | 2 tasks | 4 files |
 | Phase 02-document-lifecycle P05 | 5 | 2 tasks | 5 files |
+| Phase 02-document-lifecycle P06 | 10 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Recent decisions affecting current work:
 - [Phase 02-document-lifecycle]: find_version_match фильтрует кандидатов по contract_type + counterparty перед cosine_sim — O(1) SQL вместо O(N)
 - [Phase 02-document-lifecycle]: save_payments hook живёт в controller.py — единственное место с доступом к db объекту
 - [Phase 02-document-lifecycle]: Идемпотентность save_payments через DELETE+INSERT — гарантирует актуальность данных при переобработке
+- [Phase 02-document-lifecycle]: Graceful import guard (_HAS_CALENDAR) для streamlit_calendar — приложение запускается без зависимости
+- [Phase 02-document-lifecycle]: tab_payments фильтрует платежи по contract_id через list comprehension — без доп. SQL
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:30:43.015Z
-Stopped at: Completed 02-document-lifecycle-02-05-PLAN.md
+Last session: 2026-03-19T22:36:42.285Z
+Stopped at: Completed 02-document-lifecycle-02-06-PLAN.md (checkpoint:human-verify)
 Resume file: None
