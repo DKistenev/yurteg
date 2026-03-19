@@ -132,6 +132,10 @@ class Config:
     # Анонимизация: какие типы ПД маскировать (None = все)
     anonymize_types: Optional[set[str]] = None
 
+    # Telegram-интеграция
+    telegram_server_url: str = ""  # URL сервера бота (e.g., "https://yurteg-bot.railway.app")
+    telegram_chat_id: int = 0      # привязанный Telegram chat_id (0 = не привязан)
+
     # Имя выходной папки
     output_folder_name: str = "ЮрТэг_Результат"
 
