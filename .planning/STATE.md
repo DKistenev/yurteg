@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: "Completed 02-document-lifecycle-02-06-PLAN.md (checkpoint:human-verify)"
-last_updated: "2026-03-19T22:36:42.287Z"
+stopped_at: Completed 02-document-lifecycle-02-07-PLAN.md
+last_updated: "2026-03-19T22:38:05.812Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -54,6 +54,7 @@ Plan: 2 of 8
 | Phase 02-document-lifecycle P03 | 8 | 2 tasks | 4 files |
 | Phase 02-document-lifecycle P05 | 5 | 2 tasks | 5 files |
 | Phase 02-document-lifecycle P06 | 10 | 2 tasks | 2 files |
+| Phase 02-document-lifecycle P07 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 02-document-lifecycle]: Идемпотентность save_payments через DELETE+INSERT — гарантирует актуальность данных при переобработке
 - [Phase 02-document-lifecycle]: Graceful import guard (_HAS_CALENDAR) для streamlit_calendar — приложение запускается без зависимости
 - [Phase 02-document-lifecycle]: tab_payments фильтрует платежи по contract_id через list comprehension — без доп. SQL
+- [Phase 02-document-lifecycle]: review_service использует db.conn (публичный), не db._conn — последовательно с lifecycle_service и version_service
+- [Phase 02-document-lifecycle]: Вкладка Шаблоны добавлена как 5-й top-level таб рядом с Сводка/Реестр/Детали/Платёжный календарь
+- [Phase 02-document-lifecycle]: review_against_template использует subject поля контракта как текст документа — полного текста в БД нет
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:36:42.285Z
-Stopped at: Completed 02-document-lifecycle-02-06-PLAN.md (checkpoint:human-verify)
+Last session: 2026-03-19T22:38:05.810Z
+Stopped at: Completed 02-document-lifecycle-02-07-PLAN.md
 Resume file: None
