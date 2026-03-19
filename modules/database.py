@@ -5,8 +5,10 @@
 """
 import json
 import logging
+import shutil
 import sqlite3
 import threading
+import time
 from pathlib import Path
 
 from modules.models import ProcessingResult
@@ -44,11 +46,93 @@ CREATE TABLE IF NOT EXISTS contracts (
     processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     model_used TEXT
 );
-
-CREATE INDEX IF NOT EXISTS idx_file_hash ON contracts(file_hash);
-CREATE INDEX IF NOT EXISTS idx_status ON contracts(status);
-CREATE INDEX IF NOT EXISTS idx_contract_type ON contracts(contract_type);
 """
+
+# Индексы создаются отдельно с graceful fallback — безопасно при апгрейде
+_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_file_hash ON contracts(file_hash)",
+    "CREATE INDEX IF NOT EXISTS idx_status ON contracts(status)",
+    "CREATE INDEX IF NOT EXISTS idx_contract_type ON contracts(contract_type)",
+]
+
+
+def _backup_database(db_path: Path) -> Path:
+    """Создаёт timestamped backup перед миграцией. Возвращает путь к backup."""
+    ts = int(time.time())
+    backup = db_path.parent / f"{db_path.stem}_backup_{ts}.sqlite"
+    shutil.copy2(db_path, backup)
+    logger.info("DB backup создан: %s", backup)
+    return backup
+
+
+def _ensure_migrations_table(conn: sqlite3.Connection) -> None:
+    """Создаёт таблицу schema_migrations если не существует."""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version INTEGER PRIMARY KEY,
+            applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.commit()
+
+
+def _is_migration_applied(conn: sqlite3.Connection, version: int) -> bool:
+    """True если миграция с данным версионным номером уже применена."""
+    row = conn.execute(
+        "SELECT 1 FROM schema_migrations WHERE version = ?", (version,)
+    ).fetchone()
+    return row is not None
+
+
+def _mark_migration_applied(conn: sqlite3.Connection, version: int) -> None:
+    """Записывает факт применения миграции."""
+    conn.execute(
+        "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)", (version,)
+    )
+    conn.commit()
+    logger.info("Миграция v%d применена", version)
+
+
+def _migrate_v1_review_columns(conn: sqlite3.Connection) -> None:
+    """v1: Добавить review_status и lawyer_comment (заменяет старый try/except паттерн)."""
+    if _is_migration_applied(conn, 1):
+        return
+    # ALTER TABLE не работает внутри транзакции в SQLite.
+    # Используем отдельные execute() для идемпотентности:
+    for col, default in [("review_status", "'not_reviewed'"), ("lawyer_comment", "''")]:
+        try:
+            conn.execute(
+                f"ALTER TABLE contracts ADD COLUMN {col} TEXT DEFAULT {default}"
+            )
+        except sqlite3.OperationalError:
+            pass  # Колонка уже существует — безопасно
+    conn.commit()
+    _mark_migration_applied(conn, 1)
+
+
+def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    """Проверяет существование таблицы в БД."""
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+    ).fetchone()
+    return row is not None
+
+
+def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
+    """Запускает все ожидающие миграции по порядку.
+    Вызывается из Database.__init__ после создания основной схемы.
+    Для добавления новой миграции — добавить _migrate_vN_* функцию сюда.
+    """
+    # Backup только если БД уже содержит данные И ещё не версионирована
+    needs_backup = (
+        db_path.exists()
+        and db_path.stat().st_size > 0
+        and not _table_exists(conn, "schema_migrations")
+    )
+    _ensure_migrations_table(conn)
+    if needs_backup:
+        _backup_database(db_path)
+    _migrate_v1_review_columns(conn)
 
 
 class Database:
@@ -64,13 +148,15 @@ class Database:
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
 
-        # Миграция v0.3: пометки юриста
-        for col, default in (("review_status", "'not_reviewed'"), ("lawyer_comment", "''")):
+        _run_migrations(self.db_path, self.conn)
+
+        # Создать индексы после миграций (безопасно для апгрейда с частичной схемой)
+        for idx_sql in _INDEXES:
             try:
-                self.conn.execute(f"ALTER TABLE contracts ADD COLUMN {col} TEXT DEFAULT {default}")
-                self.conn.commit()
-            except sqlite3.OperationalError:
-                pass  # Колонка уже существует
+                self.conn.execute(idx_sql)
+            except sqlite3.OperationalError as e:
+                logger.warning("Не удалось создать индекс: %s", e)
+        self.conn.commit()
 
         logger.info("БД открыта: %s", db_path)
 
