@@ -957,6 +957,22 @@ if st.session_state.get("show_results"):
         with Database(db_path) as db:
             all_results = db.get_all_results()
 
+        # --- Startup notification (INTG-04) ---
+        if not st.session_state.get("startup_toast_shown"):
+            _toast_warning_days = st.session_state.get("warning_days_threshold", 30)
+            with Database(db_path) as _db_toast:
+                _alerts = get_attention_required(_db_toast, _toast_warning_days)
+            if _alerts:
+                _expiring = sum(1 for a in _alerts if a.computed_status == "expiring")
+                _expired = sum(1 for a in _alerts if a.computed_status == "expired")
+                _parts = []
+                if _expiring:
+                    _parts.append(f"{_expiring} истекают скоро")
+                if _expired:
+                    _parts.append(f"{_expired} уже истекли")
+                st.toast(f"Внимание: {', '.join(_parts)}", icon="warning")
+            st.session_state["startup_toast_shown"] = True
+
         if all_results:
             df = pd.DataFrame(all_results)
 
