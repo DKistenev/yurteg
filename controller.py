@@ -24,6 +24,7 @@ from modules.organizer import organize_file, prepare_output_directory
 from modules.reporter import generate_report
 from modules.scanner import scan_directory
 from modules.validator import validate_batch, validate_metadata
+from services.client_manager import ClientManager
 from services.payment_service import save_payments
 from services.version_service import find_version_match, link_versions
 
@@ -335,6 +336,89 @@ class Controller:
                 f"Готово! Обработано: {done}, ошибок: {errors}, "
                 f"пропущено: {skipped}")
         return stats
+
+
+def auto_bind_results(
+    results: list[ProcessingResult],
+    client_manager: ClientManager,
+) -> dict:
+    """Автопривязка обработанных документов к клиентам по имени контрагента.
+
+    Для каждого успешно обработанного документа с заполненным полем counterparty
+    вызывает client_manager.find_client_by_counterparty() и группирует результаты.
+
+    Returns:
+        {
+            "bindings": {"Client A": ["file1.pdf", "file2.pdf"], ...},
+            "unmatched": ["file3.pdf", ...],
+            "total": int,
+            "success": int,
+        }
+    """
+    bindings: dict[str, list[str]] = {}
+    unmatched: list[str] = []
+
+    for result in results:
+        if not (result.status == "done" and result.metadata and result.metadata.counterparty):
+            continue
+        matched_client = client_manager.find_client_by_counterparty(
+            result.metadata.counterparty
+        )
+        filename = result.file_info.filename
+        if matched_client:
+            bindings.setdefault(matched_client, []).append(filename)
+        else:
+            unmatched.append(filename)
+
+    return {
+        "bindings": bindings,
+        "unmatched": unmatched,
+        "total": len(results),
+        "success": sum(1 for r in results if r.status == "done"),
+    }
+
+
+def move_record_to_client(
+    record_id: int,
+    from_db: Database,
+    to_db: Database,
+) -> bool:
+    """Копирует запись договора из одной клиентской БД в другую.
+
+    Используется при подтверждении автопривязки пользователем.
+    После успешной вставки удаляет запись из исходной БД.
+
+    Returns:
+        True если запись скопирована и удалена, False если запись не найдена.
+    """
+    row = from_db.conn.execute(
+        "SELECT * FROM contracts WHERE id = ?", (record_id,)
+    ).fetchone()
+    if not row:
+        logger.warning("move_record_to_client: запись %d не найдена", record_id)
+        return False
+
+    cols = row.keys()
+    # Exclude 'id' to let the target DB assign a new primary key
+    data = {k: row[k] for k in cols if k != "id"}
+    placeholders = ", ".join(["?"] * len(data))
+    columns = ", ".join(data.keys())
+    try:
+        to_db.conn.execute(
+            f"INSERT OR IGNORE INTO contracts ({columns}) VALUES ({placeholders})",
+            list(data.values()),
+        )
+        to_db.conn.commit()
+        from_db.conn.execute("DELETE FROM contracts WHERE id = ?", (record_id,))
+        from_db.conn.commit()
+        logger.info(
+            "Запись %d перемещена из %s в %s",
+            record_id, from_db.db_path.name, to_db.db_path.name,
+        )
+        return True
+    except Exception as exc:
+        logger.error("move_record_to_client ошибка: %s", exc, exc_info=True)
+        return False
 
 
 def _deanonymize(text: str, replacements: dict[str, str]) -> str:
