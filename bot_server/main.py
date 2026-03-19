@@ -31,18 +31,20 @@ from telegram.ext import (
 from bot_server.bot import handle_document, handle_start
 from bot_server.config import BOT_TOKEN, DB_PATH, QUEUE_DIR, SERVER_URL
 from bot_server.database import ServerDatabase
+from bot_server.scheduler import setup_scheduler
 
 logger = logging.getLogger(__name__)
 
 # Module-level references populated during lifespan
 app_bot: Application | None = None
 db: ServerDatabase | None = None
+scheduler = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialise bot and register webhook on startup; shutdown cleanly."""
-    global app_bot, db
+    global app_bot, db, scheduler
 
     db = ServerDatabase(DB_PATH)
     QUEUE_DIR.mkdir(parents=True, exist_ok=True)
@@ -64,6 +66,11 @@ async def lifespan(app: FastAPI):
         webhook_url = f"{SERVER_URL}/telegram/webhook"
         await app_bot.bot.set_webhook(webhook_url)
         logger.info("Webhook registered: %s", webhook_url)
+
+        # Start deadline digest scheduler
+        scheduler = setup_scheduler(bot=app_bot.bot, db=db)
+        scheduler.start()
+        logger.info("Deadline digest scheduler started")
     else:
         logger.warning(
             "TELEGRAM_BOT_TOKEN not set — running without Telegram webhook"
@@ -72,6 +79,8 @@ async def lifespan(app: FastAPI):
     yield
 
     # Cleanup
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
     if app_bot is not None:
         await app_bot.shutdown()
 
@@ -170,6 +179,48 @@ async def api_post_deadlines(chat_id: int, request: Request) -> dict:
     alerts: list[dict] = body if isinstance(body, list) else body.get("alerts", [])
     db.save_deadlines(chat_id, alerts)
     return {"ok": True, "saved": len(alerts)}
+
+
+# ---------------------------------------------------------------------------
+# Notification settings
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/notifications/{chat_id}")
+async def get_notification_settings(chat_id: int) -> dict:
+    """Return notification settings for a bound user."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not ready")
+    return db.get_notification_settings(chat_id)
+
+
+@app.put("/api/notifications/{chat_id}")
+async def update_notification_settings(chat_id: int, request: Request) -> dict:
+    """Update notification settings for a bound user."""
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database not ready")
+    data = await request.json()
+    db.save_notification_settings(chat_id, data)
+    return {"ok": True}
+
+
+@app.post("/api/notify")
+async def send_notification(request: Request) -> dict:
+    """Send an arbitrary Markdown message to a bound user's Telegram chat."""
+    if app_bot is None:
+        raise HTTPException(status_code=503, detail="Bot not initialised")
+    data = await request.json()
+    chat_id = data.get("chat_id")
+    text = data.get("text", "")
+    if not chat_id or not text:
+        raise HTTPException(status_code=400, detail="chat_id and text required")
+    try:
+        await app_bot.bot.send_message(
+            chat_id=chat_id, text=text, parse_mode="Markdown"
+        )
+        return {"ok": True}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------
