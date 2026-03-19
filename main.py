@@ -650,6 +650,38 @@ with st.sidebar:
                 icon="⚠️",
             )
 
+    # --- Telegram ---
+    with st.sidebar.expander("Telegram", expanded=False):
+        tg_server = st.text_input(
+            "URL сервера бота",
+            value=config.telegram_server_url,
+            key="tg_server_url",
+            placeholder="https://yurteg-bot.railway.app",
+        )
+        config.telegram_server_url = tg_server
+
+        if config.telegram_chat_id > 0:
+            st.success(f"Привязан (chat_id: {config.telegram_chat_id})")
+        else:
+            tg_code = st.text_input(
+                "Код привязки",
+                max_chars=6,
+                key="tg_bind_code",
+                help="Введите /start в боте @YurTagBot, получите код",
+            )
+            if st.button("Привязать", key="tg_bind_btn") and tg_code and tg_server:
+                from services.telegram_sync import TelegramSync
+                _sync_bind = TelegramSync(tg_server, 0)
+                _chat_id = _sync_bind.bind(tg_code)
+                if _chat_id:
+                    config.telegram_chat_id = _chat_id
+                    st.session_state["telegram_chat_id"] = _chat_id
+                    st.session_state["telegram_server_url"] = tg_server
+                    st.success(f"Привязано! chat_id: {_chat_id}")
+                    st.rerun()
+                else:
+                    st.error("Код не найден или истёк. Попробуйте заново через /start.")
+
     # Внизу sidebar — статус API + версия (всегда видны, вне табов)
     st.markdown("---")
 
@@ -679,6 +711,37 @@ with st.sidebar:
     )
 
 # ── Основная область ────────────────────────────────────────────
+
+# --- Fetch & process Telegram queue (INTG-01) ---
+_tg_server = st.session_state.get("telegram_server_url", "") or st.session_state.get("tg_server_url", "")
+_tg_chat_id = st.session_state.get("telegram_chat_id", 0)
+
+if not st.session_state.get("tg_queue_fetched") and _tg_server and _tg_chat_id and _tg_chat_id > 0:
+    from services.telegram_sync import TelegramSync
+    _sync = TelegramSync(_tg_server, _tg_chat_id)
+    _tg_dest = Path(tempfile.mkdtemp(prefix="yurteg_tg_"))
+    _tg_files = _sync.fetch_queue(_tg_dest)
+    if _tg_files:
+        st.info(f"Получено {len(_tg_files)} файлов из Telegram. Обработка...")
+        # Обработать файлы через существующий пайплайн
+        _tg_config = Config()
+        _tg_stats = pipeline_service.process_archive(
+            source_dir=_tg_dest,
+            config=_tg_config,
+        )
+        _tg_done = _tg_stats.get("done", 0)
+        _tg_errors = _tg_stats.get("errors", 0)
+        _tg_total = _tg_stats.get("total", len(_tg_files))
+        # Отправить карточку с результатами обратно в Telegram
+        _tg_summary = f"Обработано {_tg_done} из {_tg_total} файлов."
+        if _tg_errors:
+            _tg_summary += f" Ошибок: {_tg_errors}."
+        _sync.notify_processed(_tg_chat_id, _tg_summary)
+        st.success(
+            f"Telegram: обработано {_tg_done} файлов"
+            + (f", ошибок: {_tg_errors}" if _tg_errors else "")
+        )
+    st.session_state["tg_queue_fetched"] = True
 
 
 def _select_folder() -> str:
