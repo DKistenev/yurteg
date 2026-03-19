@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-document-lifecycle-02-03-PLAN.md
-last_updated: "2026-03-19T22:29:35.250Z"
+stopped_at: Completed 02-document-lifecycle-02-05-PLAN.md
+last_updated: "2026-03-19T22:30:43.018Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -52,6 +52,7 @@ Plan: 2 of 8
 | Phase 02-document-lifecycle P01 | 2 | 2 tasks | 4 files |
 | Phase 02 P02 | 2 | 2 tasks | 1 files |
 | Phase 02-document-lifecycle P03 | 8 | 2 tasks | 4 files |
+| Phase 02-document-lifecycle P05 | 5 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,8 @@ Recent decisions affecting current work:
 - [Phase 02-document-lifecycle]: version_service использует db.conn (публичный), не db._conn — аналогично lifecycle_service
 - [Phase 02-document-lifecycle]: Хук версионирования добавлен в controller.py — pipeline_service является тонкой обёрткой, save_result реально в controller
 - [Phase 02-document-lifecycle]: find_version_match фильтрует кандидатов по contract_type + counterparty перед cosine_sim — O(1) SQL вместо O(N)
+- [Phase 02-document-lifecycle]: save_payments hook живёт в controller.py — единственное место с доступом к db объекту
+- [Phase 02-document-lifecycle]: Идемпотентность save_payments через DELETE+INSERT — гарантирует актуальность данных при переобработке
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:29:35.248Z
-Stopped at: Completed 02-document-lifecycle-02-03-PLAN.md
+Last session: 2026-03-19T22:30:43.015Z
+Stopped at: Completed 02-document-lifecycle-02-05-PLAN.md
 Resume file: None
