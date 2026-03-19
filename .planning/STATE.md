@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-document-lifecycle-02-01-PLAN.md
-last_updated: "2026-03-19T22:24:10.870Z"
+stopped_at: Checkpoint 02-document-lifecycle-02-02-PLAN.md (human-verify)
+last_updated: "2026-03-19T22:28:29.718Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 12
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -50,6 +50,7 @@ Plan: 2 of 8
 | Phase 01-infrastructure P04 | 5 | 2 tasks | 2 files |
 | Phase 02 P00 | 1 | 2 tasks | 3 files |
 | Phase 02-document-lifecycle P01 | 2 | 2 tasks | 4 files |
+| Phase 02 P02 | 2 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 02-document-lifecycle]: lifecycle_service использует db.conn (публичный атрибут Database) — не db._conn
 - [Phase 02-document-lifecycle]: get_attention_required исключает manual_status документы — юрист берёт их под контроль явно
 - [Phase 02-document-lifecycle]: Статус expiring/expired вычисляется через SQL julianday без Python datetime в сервисном слое
+- [Phase 02]: computed_status вычисляется отдельным SQL-запросом в tab_registry (не через get_all_results) — чистое разделение ответственности
+- [Phase 02]: db открывается новым контекстным менеджером для каждого lifecycle lifecycle-вызова — безопасно при Streamlit reruns
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:24:10.867Z
-Stopped at: Completed 02-document-lifecycle-02-01-PLAN.md
+Last session: 2026-03-19T22:28:29.716Z
+Stopped at: Checkpoint 02-document-lifecycle-02-02-PLAN.md (human-verify)
 Resume file: None
