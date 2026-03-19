@@ -1026,6 +1026,21 @@ if st.session_state.get("show_results"):
 
             # ── Таб: Реестр ─────────────────────────────────────
             with tab_registry:
+                # ── Computed status для всех договоров ──
+                _reg_warning_days = st.session_state.get("warning_days_threshold", 30)
+                status_sql = get_computed_status_sql(_reg_warning_days)
+                with Database(db_path) as _db_reg:
+                    _status_rows = _db_reg.conn.execute(
+                        f"SELECT id, {status_sql} AS computed_status FROM contracts"
+                        f" WHERE status = 'done'",
+                        {"warning_days": _reg_warning_days},
+                    ).fetchall()
+                _id_to_computed = {row[0]: row[1] for row in _status_rows}
+                if "id" in df.columns:
+                    df["computed_status"] = df["id"].map(_id_to_computed).fillna("unknown")
+                else:
+                    df["computed_status"] = "unknown"
+
                 # ── Фильтры: ряд 1 (тип, качество, поиск) ──
                 col_f1, col_f2, col_f3 = st.columns([2, 2, 1])
                 with col_f1:
@@ -1140,15 +1155,25 @@ if st.session_state.get("show_results"):
                     "reviewed": "✅ Проверен",
                     "attention_needed": "⚠️ Внимание",
                 }
-                display_df = df_filtered[[
-                    "filename", "contract_type", "counterparty",
+                _cols_for_display = ["filename", "contract_type", "counterparty",
                     "date_signed", "amount", "confidence",
-                    "validation_status", "review_status",
-                ]].copy()
-                display_df.columns = [
-                    "Файл", "Тип", "Контрагент", "Дата",
-                    "Сумма", "AI", "Качество", "Проверка",
-                ]
+                    "validation_status", "review_status"]
+                if "computed_status" in df_filtered.columns:
+                    _cols_for_display = ["computed_status"] + _cols_for_display
+                display_df = df_filtered[_cols_for_display].copy()
+                if "computed_status" in display_df.columns:
+                    display_df["computed_status"] = display_df["computed_status"].apply(
+                        lambda s: STATUS_LABELS.get(s, ("?", str(s), "#9ca3af"))[0]
+                        + " "
+                        + STATUS_LABELS.get(s, ("?", str(s), "#9ca3af"))[1]
+                    )
+                    display_df.rename(columns={"computed_status": "Статус"}, inplace=True)
+                display_df.rename(columns={
+                    "filename": "Файл", "contract_type": "Тип",
+                    "counterparty": "Контрагент", "date_signed": "Дата",
+                    "amount": "Сумма", "confidence": "AI",
+                    "validation_status": "Качество", "review_status": "Проверка",
+                }, inplace=True)
                 # Форматируем даты в DD.MM.YYYY
                 def _fmt_date(v):
                     if not v or str(v).strip() == "":
@@ -1171,6 +1196,7 @@ if st.session_state.get("show_results"):
                 st.dataframe(
                     display_df,
                     column_config={
+                        "Статус": st.column_config.TextColumn(width="small"),
                         "AI": st.column_config.ProgressColumn(
                             format="%.0f%%", min_value=0, max_value=100,
                         ),
@@ -1184,6 +1210,44 @@ if st.session_state.get("show_results"):
                 )
 
                 st.caption(f"Показано {len(df_filtered)} из {len(df)}")
+
+                # ── Ручная коррекция статуса ─────────────────────
+                if not df_filtered.empty and "id" in df_filtered.columns:
+                    st.markdown("---")
+                    st.subheader("Ручная коррекция статуса")
+                    col1, col2, col3 = st.columns([2, 2, 1])
+                    with col1:
+                        _override_filenames = df_filtered["filename"].tolist()
+                        _override_ids = df_filtered["id"].tolist()
+                        _contract_options = dict(zip(_override_filenames, _override_ids))
+                        selected_name = st.selectbox(
+                            "Договор", options=_override_filenames,
+                            key="status_override_contract",
+                        )
+                    with col2:
+                        _status_options = {
+                            "Авто (сбросить)": None,
+                            "Расторгнут": "terminated",
+                            "Продлён": "extended",
+                            "На согласовании": "negotiation",
+                            "Приостановлен": "suspended",
+                        }
+                        selected_status_label = st.selectbox(
+                            "Статус", options=list(_status_options.keys()),
+                            key="status_override_value",
+                        )
+                    with col3:
+                        st.write("")  # выравнивание по вертикали
+                        if st.button("Применить", key="status_override_btn"):
+                            _contract_id = _contract_options.get(selected_name)
+                            _new_status = _status_options[selected_status_label]
+                            if _contract_id is not None:
+                                with Database(db_path) as _db_override:
+                                    if _new_status is None:
+                                        clear_manual_status(_db_override, _contract_id)
+                                    else:
+                                        set_manual_status(_db_override, _contract_id, _new_status)
+                            st.rerun()
 
                 # Действия
                 col_a1, col_a2, col_a3 = st.columns([1, 1, 1])
