@@ -135,6 +135,12 @@ Recent decisions affecting current work:
 
 None yet.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260320-vya | Подготовка датасета v2: tool call формат, payment_* поля, DPO-пары, edge cases | 2026-03-20 | pending | [260320-vya](./quick/260320-vya-v2-tool-call-payment-dpo-edge-cases/) |
+
 ### Blockers/Concerns
 
 - [Phase 3]: APScheduler + Streamlit threading caveats — нужна проверка против текущей версии Streamlit перед реализацией
@@ -142,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T15:35:23.143Z
-Stopped at: Completed 03-09-PLAN.md (Wire push_deadlines in main.py — INTG-02 gap closed)
+Last activity: 2026-03-20 - Completed quick task 260320-vya: Подготовка датасета v2
+Stopped at: Quick task 260320-vya complete
 Resume file: None
