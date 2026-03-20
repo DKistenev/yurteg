@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-11-PLAN.md (Auto-bind confirmation button — PROF-01 gap closed)
-last_updated: "2026-03-20T15:35:04.269Z"
+stopped_at: Completed 03-09-PLAN.md (Wire push_deadlines in main.py — INTG-02 gap closed)
+last_updated: "2026-03-20T15:35:23.148Z"
 progress:
   total_phases: 4
   completed_phases: 3
@@ -68,6 +68,7 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P06 | 5min | 2 tasks | 2 files |
 | Phase 03-integrations-multitenancy P10 | 74s | 1 tasks | 1 files |
 | Phase 03-integrations-multitenancy P11 | 5min | 1 tasks | 1 files |
+| Phase 03-integrations-multitenancy P09 | 3min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: Provider instances created once in Controller.__init__ and shared across parallel _ai_task threads — avoids per-call instantiation, thread-safe since providers are stateless
 - [Phase 03-integrations-multitenancy]: _legacy_mode in ai_extractor.py retained as safe fallback for direct calls without provider (tests, scripts) — not removed as plan specified
 - [Phase 03-integrations-multitenancy]: Confirmation button placed inside bindings guard, nested Database contexts for move_record_to_client, st.rerun() only on successful moves
+- [Phase 03-integrations-multitenancy]: push_deadlines block placed outside tg_queue_fetched guard — runs independently on every app load; try/except NameError used to detect _alerts from toast block; empty list pushed to clear stale server data
 
 ### Pending Todos
 
@@ -140,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T15:35:04.264Z
-Stopped at: Completed 03-11-PLAN.md (Auto-bind confirmation button — PROF-01 gap closed)
+Last session: 2026-03-20T15:35:23.143Z
+Stopped at: Completed 03-09-PLAN.md (Wire push_deadlines in main.py — INTG-02 gap closed)
 Resume file: None
