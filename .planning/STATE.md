@@ -4,7 +4,7 @@ milestone: v0.4
 milestone_name: milestone
 status: unknown
 stopped_at: Completed 03-09-PLAN.md (Wire push_deadlines in main.py — INTG-02 gap closed)
-last_updated: "2026-03-20T15:35:23.148Z"
+last_updated: "2026-03-20T16:10:18.092Z"
 progress:
   total_phases: 4
   completed_phases: 3

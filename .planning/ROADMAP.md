@@ -1,113 +1,30 @@
-# Roadmap: ЮрТэг — Веха 1 (Архитектура и функционал)
+# Roadmap: ЮрТэг
 
-## Overview
+## Milestones
 
-Веха 1 превращает работающий MVP (v0.4) в продакшен-готовое приложение. Четыре фазы с жёсткой зависимостью: сначала инфраструктурный фундамент (безопасные миграции, мультипровайдер AI, сервис-слой) — он разблокирует всё остальное. Затем полный жизненный цикл документа со статусами и трекингом сроков. Затем интеграции с Telegram и Google Drive, мультиклиентский режим. В финале — on-premise упаковка и аудит-лог для B2B-сегмента. Каждая фаза завершается наблюдаемым результатом для юриста, а не просто «написан код».
+- ✅ **v0.4 Архитектура и функционал** — Phases 1-3 (shipped 2026-03-20)
+- 📋 **v0.5 UI-редизайн** — planned
+- 📋 **v0.6 Локальная LLM** — planned
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v0.4 Архитектура и функционал (Phases 1-3) — SHIPPED 2026-03-20</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Инфраструктура (4 plans) — completed 2026-03-19
+- [x] Phase 2: Жизненный цикл документа (8 plans) — completed 2026-03-19
+- [x] Phase 3: Интеграции и мультидоступ (12 plans) — completed 2026-03-20
 
-- [x] **Phase 1: Инфраструктура** - Безопасные миграции, мультипровайдер AI, сервис-слой (completed 2026-03-19)
-- [x] **Phase 2: Жизненный цикл документа** - Статусы, трекинг сроков, версионирование (completed 2026-03-19)
-- [x] **Phase 3: Интеграции и мультидоступ** - Telegram, Google Drive, мультиклиентский режим (completed 2026-03-19)
-- [ ] **Phase 4: On-Premise и безопасность** - Docker-упаковка, аудит-лог, hardening
+Phase 4 (On-Premise и безопасность) — deferred, не актуально для текущей модели доставки (DMG/EXE).
 
-## Phase Details
+Full details: `.planning/milestones/v0.4-ROADMAP.md`
 
-### Phase 1: Инфраструктура
-**Goal**: Приложение может безопасно обновляться и переключать AI-провайдеров без вмешательства пользователя
-**Depends on**: Nothing (first phase)
-**Requirements**: FUND-01, FUND-02, FUND-03, FUND-04
-**Success Criteria** (what must be TRUE):
-  1. После обновления приложения существующая база документов открывается без ошибок и все данные на месте
-  2. Переключение с GLM на OpenRouter (и обратно) происходит через одну строку в конфиге — без изменений в коде обработки
-  3. Дата, извлечённая AI из документа, всегда хранится в формате ISO 8601 — кривые форматы («01 января 2025», «01/01/25») нормализуются автоматически
-  4. Бизнес-логика обработки архива вызывается независимо от Streamlit UI (функция pipeline_service.process_archive() существует и работает без запуска UI)
-**Plans**: 4 plans
-
-Plans:
-- [ ] 01-01-PLAN.md — Версионированные миграции схемы SQLite (schema_migrations table)
-- [ ] 01-02-PLAN.md — providers/ package — LLMProvider ABC, ZAI и OpenRouter провайдеры
-- [ ] 01-03-PLAN.md — services/ layer — pipeline_service, registry_service
-- [ ] 01-04-PLAN.md — Нормализация дат через dateutil после AI-экстракции
-
-### Phase 2: Жизненный цикл документа
-**Goal**: Юрист видит что происходит с каждым документом — без ручной проверки сроков и статусов
-**Depends on**: Phase 1
-**Requirements**: LIFE-01, LIFE-02, LIFE-03, LIFE-04, LIFE-05, LIFE-06, LIFE-07, LIFE-08
-**Success Criteria** (what must be TRUE):
-  1. Реестр показывает цветной статус каждого договора (действует / скоро истекает / истёк / расторгнут и др.) — статус пересчитывается при каждом открытии, не устаревает
-  2. При открытии приложения сразу видна панель «требует внимания» со списком документов, у которых срок истекает в течение настроенного порога (30/60/90 дней)
-  3. Юрист может вручную установить статус договора (расторгнут / продлён / на согласовании / приостановлен) — и этот статус не перезатирается автоматикой
-  4. При повторной загрузке обновлённого договора система распознаёт его как новую версию существующего и связывает — дубликата в реестре не возникает
-  5. Юрист может посмотреть что изменилось между версиями документа (суммы, даты, контрагенты)
-  6. Платёжный календарь показывает график платежей по договорам — кому платить, от кого получить, когда — на основе извлечённых данных
-**Plans**: 8 plans
-
-Plans:
-- [ ] 02-00-PLAN.md — Wave 0: тест-скелеты tests/test_lifecycle.py, tests/test_versioning.py, tests/test_payments.py (LIFE-01..LIFE-07)
-- [ ] 02-01-PLAN.md — Миграции схемы v2–v6 + lifecycle_service: статусы на лету, панель внимания (LIFE-01, LIFE-02, LIFE-06)
-- [ ] 02-02-PLAN.md — UI: панель «требует внимания» + ручной override статуса в реестре (LIFE-02, LIFE-05, LIFE-06)
-- [ ] 02-03-PLAN.md — version_service: эмбеддинги MiniLM, автосвязывание версий, хук в pipeline (LIFE-03)
-- [ ] 02-04-PLAN.md — diff_versions + generate_redline_docx + вкладка «Версии» в карточке (LIFE-04)
-- [ ] 02-05-PLAN.md — payment_service: unroll периодических платежей, save_payments, хук в pipeline (LIFE-07)
-- [ ] 02-06-PLAN.md — Платёжный календарь UI: streamlit-calendar, вкладка «Платежи» в карточке (LIFE-07)
-- [ ] 02-07-PLAN.md — review_service: библиотека шаблонов, автоматчинг, подсветка отступлений (LIFE-08)
-
-### Phase 3: Интеграции и мультидоступ
-**Goal**: Юрист получает уведомления даже когда приложение закрыто, и может вести несколько клиентов в одном инструменте
-**Depends on**: Phase 2
-**Requirements**: INTG-01, INTG-02, INTG-03, INTG-04, PROF-01, PROF-02
-**Success Criteria** (what must be TRUE):
-  1. Файл, кинутый в Telegram-бот, через ~1 минуту появляется в реестре — без дополнительных действий со стороны юриста
-  2. Telegram-бот сам отправляет сообщение о приближающихся сроках — юристу не нужно открывать приложение чтобы узнать о проблемных договорах
-  3. Юрист может переключаться между реестрами разных компаний/клиентов — документы одного клиента не смешиваются с документами другого
-  4. Несколько юристов, работающих с одним реестром, видят одинаковые документы и статусы (DEFERRED to v2)
-  5. Новый файл, появившийся в подключённой папке Google Drive, обрабатывается автоматически без ручного запуска (DEFERRED to v2)
-**Plans**: 12 plans
-
-Plans:
-- [ ] 03-00-PLAN.md — Wave 0: тест-скелеты test_notifications, test_telegram_bot, test_client_manager (INTG-01..INTG-04, PROF-01)
-- [ ] 03-01-PLAN.md — In-app toast уведомления при запуске (INTG-04)
-- [ ] 03-02-PLAN.md — Bot server: FastAPI + webhook + file queue + binding (INTG-01)
-- [ ] 03-03-PLAN.md — Local sync: TelegramSync service + binding UI + auto-fetch + auto-process (INTG-01)
-- [ ] 03-04-PLAN.md — Deadline notifications: APScheduler + digest via Telegram (INTG-02)
-- [ ] 03-05-PLAN.md — Multi-client mode: ClientManager + sidebar UI (PROF-01)
-- [ ] 03-06-PLAN.md — Finalize tests + human verification checkpoint
-- [ ] 03-07-PLAN.md — DEFERRED: Google Drive (INTG-03) + multi-user (PROF-02)
-- [ ] 03-08-PLAN.md — Auto-bind documents to clients by counterparty + processing summary (PROF-01)
-- [ ] 03-09-PLAN.md — Gap fix: wire push_deadlines() call in main.py (INTG-02)
-- [ ] 03-10-PLAN.md — Gap fix: wire provider abstraction in controller.py (FUND-03)
-- [ ] 03-11-PLAN.md — Gap fix: add auto-bind confirmation button in main.py (PROF-01)
-
-### Phase 4: On-Premise и безопасность
-**Goal**: B2B-клиент разворачивает приложение на своём сервере одной командой и получает полный аудит-лог операций
-**Depends on**: Phase 3
-**Requirements**: SECR-01, SECR-02
-**Success Criteria** (what must be TRUE):
-  1. B2B-клиент запускает приложение командой docker-compose up — без установки Python, без настройки зависимостей
-  2. Журнал действий записывает каждую операцию с документом (что обработано, когда, какой AI-провайдер, покидали ли данные машину) — лог доступен для проверки
-  3. В режиме LOCAL_ONLY=true приложение не делает ни одного внешнего HTTP-запроса — это проверяемо и enforceable
-**Plans**: TBD
-
-Plans:
-- [ ] 04-01: Журнал действий — append-only audit.log (SECR-01)
-- [ ] 04-02: LOCAL_ONLY режим — блокировка внешних HTTP-вызовов (SECR-02 prereq)
-- [ ] 04-03: Dockerfile (multi-stage) + docker-compose.yml с volume mounts (SECR-02)
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Инфраструктура | 4/4 | Complete   | 2026-03-19 |
-| 2. Жизненный цикл документа | 8/8 | Complete   | 2026-03-19 |
-| 3. Интеграции и мультидоступ | 12/12 | Complete   | 2026-03-20 |
-| 4. On-Premise и безопасность | 0/3 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Инфраструктура | v0.4 | 4/4 | Complete | 2026-03-19 |
+| 2. Жизненный цикл | v0.4 | 8/8 | Complete | 2026-03-19 |
+| 3. Интеграции | v0.4 | 12/12 | Complete | 2026-03-20 |
