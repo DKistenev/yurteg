@@ -1047,6 +1047,36 @@ if st.button("Начать обработку", type="primary", disabled=not can
                 for _f in _cl_files:
                     st.caption(f"  {_f}")
 
+            if _bind_summary["bindings"]:
+                if st.button("Подтвердить привязку", key="confirm_bind_btn", type="primary"):
+                    from controller import move_record_to_client
+                    from modules.database import Database
+
+                    _src_db_path = client_manager.get_db_path(_selected_client)
+                    _moved = 0
+                    _move_errors = 0
+
+                    with Database(_src_db_path) as _from_db:
+                        _all_src = _from_db.get_all_results()
+                        _filename_to_id = {r["filename"]: r["id"] for r in _all_src}
+
+                        for _cl_name, _cl_files in _bind_summary["bindings"].items():
+                            _dest_db_path = client_manager.get_db_path(_cl_name)
+                            with Database(_dest_db_path) as _to_db:
+                                for _fname in _cl_files:
+                                    _rid = _filename_to_id.get(_fname)
+                                    if _rid and move_record_to_client(_rid, _from_db, _to_db):
+                                        _moved += 1
+                                    else:
+                                        _move_errors += 1
+
+                    if _moved:
+                        st.success(f"Перемещено {_moved} документов")
+                    if _move_errors:
+                        st.warning(f"Не удалось переместить {_move_errors} документов")
+                    if _moved:
+                        st.rerun()
+
             if _bind_summary["unmatched"]:
                 st.warning(f"{len(_bind_summary['unmatched'])} док → не определено")
                 for _f in _bind_summary["unmatched"]:
