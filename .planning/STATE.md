@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v0.4
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-06-PLAN.md (Test finalization — all xfail stubs replaced with real assertions)
-last_updated: "2026-03-19T23:57:43.652Z"
+stopped_at: Completed 03-11-PLAN.md (Auto-bind confirmation button — PROF-01 gap closed)
+last_updated: "2026-03-20T15:35:04.269Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 21
-  completed_plans: 21
+  total_plans: 24
+  completed_plans: 24
 ---
 
 # Project State
@@ -66,6 +66,8 @@ Plan: 8 of 9
 | Phase 03-integrations-multitenancy P03 | 8min | 2 tasks | 3 files |
 | Phase 03-integrations-multitenancy P08 | 5min | 2 tasks | 2 files |
 | Phase 03-integrations-multitenancy P06 | 5min | 2 tasks | 2 files |
+| Phase 03-integrations-multitenancy P10 | 74s | 1 tasks | 1 files |
+| Phase 03-integrations-multitenancy P11 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -123,6 +125,9 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: auto_bind_results checks result.status == 'done' (ProcessingResult has no .success attr); move_record_to_client uses raw db.conn SQL (Database has no get/delete by id methods)
 - [Phase 03-integrations-multitenancy]: test_telegram_bot.py rewired to use ServerDatabase directly — server.queue_service/binding_service stubs obsolete
 - [Phase 03-integrations-multitenancy]: test_switch_client uses get_db() path comparison — ClientManager has no switch_client/active_db_path API
+- [Phase 03-integrations-multitenancy]: Provider instances created once in Controller.__init__ and shared across parallel _ai_task threads — avoids per-call instantiation, thread-safe since providers are stateless
+- [Phase 03-integrations-multitenancy]: _legacy_mode in ai_extractor.py retained as safe fallback for direct calls without provider (tests, scripts) — not removed as plan specified
+- [Phase 03-integrations-multitenancy]: Confirmation button placed inside bindings guard, nested Database contexts for move_record_to_client, st.rerun() only on successful moves
 
 ### Pending Todos
 
@@ -135,6 +140,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T23:57:43.650Z
-Stopped at: Completed 03-06-PLAN.md (Test finalization — all xfail stubs replaced with real assertions)
+Last session: 2026-03-20T15:35:04.264Z
+Stopped at: Completed 03-11-PLAN.md (Auto-bind confirmation button — PROF-01 gap closed)
 Resume file: None
