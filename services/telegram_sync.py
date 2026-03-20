@@ -103,8 +103,6 @@ class TelegramSync:
         """Попросить сервер отправить карточку с результатами обработки пользователю.
 
         POST /api/notify  — тело JSON {"chat_id": chat_id, "text": summary}
-        Примечание: эндпоинт /api/notify ещё не добавлен в bot_server/main.py.
-        Метод завершается gracefully (логирует warning и возвращает False).
         """
         if not self.is_configured():
             return False

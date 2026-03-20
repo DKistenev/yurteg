@@ -6,7 +6,7 @@ and notification settings. Thread-safe via threading.Lock for all writes.
 import logging
 import sqlite3
 import threading
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ class ServerDatabase:
         with self._lock:
             self._conn.execute(
                 "INSERT OR REPLACE INTO bindings (chat_id, bound_at) VALUES (?, ?)",
-                (chat_id, datetime.utcnow().isoformat()),
+                (chat_id, datetime.now(UTC).isoformat()),
             )
             self._conn.commit()
 
@@ -149,7 +149,7 @@ class ServerDatabase:
         self, chat_id: int, code: str, ttl_minutes: int
     ) -> None:
         """Store a pending binding code with expiry."""
-        expires_at = (datetime.utcnow() + timedelta(minutes=ttl_minutes)).isoformat()
+        expires_at = (datetime.now(UTC) + timedelta(minutes=ttl_minutes)).isoformat()
         with self._lock:
             self._conn.execute(
                 "INSERT OR REPLACE INTO pending_bindings (code, chat_id, expires_at) "
@@ -166,7 +166,7 @@ class ServerDatabase:
         The code is deleted immediately to prevent re-use.
         """
         with self._lock:
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(UTC).isoformat()
             row = self._conn.execute(
                 "SELECT chat_id FROM pending_bindings WHERE code = ? AND expires_at > ?",
                 (code, now),
@@ -190,7 +190,7 @@ class ServerDatabase:
             self._conn.execute(
                 "DELETE FROM deadline_sync WHERE chat_id = ?", (chat_id,)
             )
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(UTC).isoformat()
             for alert in alerts:
                 self._conn.execute(
                     "INSERT INTO deadline_sync "
@@ -209,8 +209,8 @@ class ServerDatabase:
 
     def get_alerts_for_user(self, chat_id: int, warning_days: int) -> list[dict]:
         """Return deadline records expiring within warning_days from today."""
-        cutoff = (datetime.utcnow() + timedelta(days=warning_days)).date().isoformat()
-        today = datetime.utcnow().date().isoformat()
+        cutoff = (datetime.now(UTC) + timedelta(days=warning_days)).date().isoformat()
+        today = datetime.now(UTC).date().isoformat()
         rows = self._conn.execute(
             "SELECT contract_ref, counterparty, date_end, status "
             "FROM deadline_sync "

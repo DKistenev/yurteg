@@ -62,10 +62,10 @@ def test_binding_code_generation(server_db):
 def test_binding_code_expiry(server_db, tmp_path):
     """INTG-01: истёкший код возвращает None при consume."""
     import sqlite3
-    from datetime import datetime, timedelta
+    from datetime import UTC, datetime, timedelta
 
     # Вставляем код с уже истёкшим expires_at напрямую в БД
-    expired_at = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+    expired_at = (datetime.now(UTC) - timedelta(minutes=10)).isoformat()
     conn = sqlite3.connect(str(tmp_path / "server.db"))
     conn.execute(
         "INSERT OR REPLACE INTO pending_bindings (code, chat_id, expires_at) VALUES (?, ?, ?)",
