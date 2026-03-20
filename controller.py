@@ -24,6 +24,7 @@ from modules.organizer import organize_file, prepare_output_directory
 from modules.reporter import generate_report
 from modules.scanner import scan_directory
 from modules.validator import validate_batch, validate_metadata
+from providers import get_provider, get_fallback_provider
 from services.client_manager import ClientManager
 from services.payment_service import save_payments
 from services.version_service import find_version_match, link_versions
@@ -36,6 +37,8 @@ class Controller:
 
     def __init__(self, config: Config) -> None:
         self.config = config
+        self._provider = get_provider(config)
+        self._fallback_provider = get_fallback_provider(config)
 
     def process_archive(
         self,
@@ -173,7 +176,11 @@ class Controller:
 
         def _ai_task(item):
             result, anonymized = item
-            metadata = extract_metadata(anonymized.text, self.config)
+            metadata = extract_metadata(
+                anonymized.text, self.config,
+                provider=self._provider,
+                fallback_provider=self._fallback_provider,
+            )
             return result, anonymized, metadata
 
         with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
