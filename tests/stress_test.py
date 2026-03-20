@@ -1407,7 +1407,7 @@ class TestLoadStress:
 class TestIntegrationStress:
     """E2E тесты с мокнутым AI."""
 
-    def _mock_extract_metadata(self, text, config):
+    def _mock_extract_metadata(self, text, config, **kwargs):
         """Мок для AI: возвращает фиксированные метаданные."""
         return ContractMetadata(
             contract_type="Договор поставки",
