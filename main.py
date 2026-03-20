@@ -1129,6 +1129,35 @@ if st.session_state.get("show_results"):
                 st.toast(f"Внимание: {', '.join(_parts)}", icon="warning")
             st.session_state["startup_toast_shown"] = True
 
+        # --- Push deadline data to Telegram bot server (INTG-02) ---
+        if not st.session_state.get("deadlines_pushed") and _tg_server and _tg_chat_id and _tg_chat_id > 0:
+            from services.telegram_sync import TelegramSync
+            _dl_sync = TelegramSync(_tg_server, _tg_chat_id)
+            # _alerts может не существовать, если startup_toast_shown уже был True
+            try:
+                _push_alerts = _alerts  # type: ignore[name-defined]
+            except NameError:
+                _toast_wd = st.session_state.get("warning_days_threshold", 30)
+                with Database(db_path) as _db_dl:
+                    _push_alerts = get_attention_required(_db_dl, _toast_wd)
+            if _push_alerts:
+                _dl_data = [
+                    {
+                        "filename": a.filename,
+                        "counterparty": a.counterparty,
+                        "contract_type": a.contract_type,
+                        "date_end": a.date_end,
+                        "days_until_expiry": a.days_until_expiry,
+                        "computed_status": a.computed_status,
+                    }
+                    for a in _push_alerts
+                ]
+                _dl_sync.push_deadlines(_dl_data)
+            else:
+                # Нет алертов — очистить устаревшие данные на сервере
+                _dl_sync.push_deadlines([])
+            st.session_state["deadlines_pushed"] = True
+
         if all_results:
             df = pd.DataFrame(all_results)
 
