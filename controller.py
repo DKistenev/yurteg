@@ -19,7 +19,7 @@ from modules.ai_extractor import extract_metadata, verify_api_key, verify_metada
 from modules.anonymizer import anonymize
 from modules.database import Database
 from modules.extractor import extract_text
-from modules.models import ProcessingResult
+from modules.models import AnonymizedText, ProcessingResult
 from modules.organizer import organize_file, prepare_output_directory
 from modules.reporter import generate_report
 from modules.scanner import scan_directory
@@ -157,7 +157,15 @@ class Controller:
                     errors += 1
                     continue
 
-                anonymized = anonymize(text.text, self.config.anonymize_types)
+                if self.config.active_provider == "ollama":
+                    # Локальная модель — ПД не покидают машину, анонимизация не нужна
+                    anonymized = AnonymizedText(
+                        text=text.text,
+                        replacements={},
+                        stats={},
+                    )
+                else:
+                    anonymized = anonymize(text.text, self.config.anonymize_types)
                 result.anonymized = anonymized
                 prepared.append((result, anonymized))
             except Exception as e:

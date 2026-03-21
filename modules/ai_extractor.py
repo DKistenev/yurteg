@@ -18,6 +18,7 @@ from dateutil.parser import ParserError
 
 from config import Config
 from modules.models import ContractMetadata
+from modules.postprocessor import sanitize_metadata
 
 if TYPE_CHECKING:
     from providers.base import LLMProvider
@@ -303,6 +304,9 @@ def extract_metadata(
     # Этап 1: Основная модель
     result = _try_model(config, messages, config.active_model, use_fallback=False)
     if isinstance(result, ContractMetadata):
+        # Post-processing для локальной модели: очистить мусор и строки None
+        if config.active_provider == "ollama":
+            sanitize_metadata(result)
         # Проверка: если все ключевые поля пустые — пробуем упрощённый промпт
         if not result.contract_type and not result.counterparty and not result.subject:
             logger.info("Все ключевые поля пустые, пробую упрощённый промпт...")
@@ -312,6 +316,8 @@ def extract_metadata(
             ]
             fb = _try_model(config, fallback_msgs, config.active_model, use_fallback=False)
             if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
+                if config.active_provider == "ollama":
+                    sanitize_metadata(fb)
                 return fb
         return result
 
