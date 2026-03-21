@@ -1,30 +1,51 @@
-"""Ollama провайдер — stub для локальной LLM (Веха 3).
+"""Ollama провайдер — локальная LLM через llama-server.
 
-Ollama поддерживает OpenAI-совместимый endpoint на localhost:11434.
-Реализация запланирована на Веху 3 (локальная QWEN).
+Использует OpenAI-совместимый endpoint llama-server на localhost.
+Post-processing ответов через modules/postprocessor.sanitize_metadata
+подключается в Phase 5 (PROC-01) в ai_extractor.py.
 """
+import logging
+
+from openai import OpenAI
+
 from config import Config
 from providers.base import LLMProvider
 
+logger = logging.getLogger(__name__)
+
 
 class OllamaProvider(LLMProvider):
-    """Провайдер Ollama — локальная LLM через OpenAI-совместимый endpoint.
-
-    STUB: полная реализация в Вехе 3.
-    """
+    """Провайдер для llama-server — локальная QWEN 1.5B через OpenAI API."""
 
     name = "ollama"
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, base_url: str = "http://localhost:8080/v1") -> None:
         self._config = config
+        self._client = OpenAI(
+            base_url=base_url,
+            api_key="not-needed",  # llama-server не требует ключ
+        )
 
     def complete(self, messages: list[dict], **kwargs) -> str:
-        raise NotImplementedError(
-            "Поддержка Ollama запланирована на Веху 3. "
-            "Используйте active_provider='zai' или 'openrouter'."
+        """Отправляет запрос в llama-server, возвращает сырой текст ответа.
+
+        Post-processing (sanitize_metadata) применяется в ai_extractor.py.
+        """
+        response = self._client.chat.completions.create(
+            model="local",  # llama-server загружает модель при старте, имя игнорируется
+            temperature=0.05,  # из Modelfile
+            max_tokens=512,    # num_predict из Modelfile
+            messages=messages,
         )
+        content = response.choices[0].message.content
+        if not content:
+            raise RuntimeError("llama-server вернул пустой ответ")
+        return content
 
     def verify_key(self) -> bool:
-        raise NotImplementedError(
-            "Поддержка Ollama запланирована на Веху 3."
-        )
+        """Проверяет доступность llama-server через models endpoint."""
+        try:
+            self._client.models.list()
+            return True
+        except Exception:
+            return False
