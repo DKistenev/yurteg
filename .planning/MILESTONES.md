@@ -1,5 +1,18 @@
 # Milestones
 
+## v0.5 Локальная LLM (Shipped: 2026-03-21)
+
+**Phases completed:** 3 phases, 4 plans, 4 tasks
+
+**Key accomplishments:**
+
+- llama-server download manager (GitHub Releases + HuggingFace Hub) and GBNF grammar + field-level Cyrillic sanitizer for local model output
+- OllamaProvider с openai SDK для llama-server, дефолт active_provider='ollama' и автозапуск сервера через @st.cache_resource при старте Streamlit
+- One-liner:
+- One-liner:
+
+---
+
 ## v0.4 Архитектура и функционал (Shipped: 2026-03-20)
 
 **Phases completed:** 3 phases, 24 plans
@@ -18,6 +31,7 @@
 8. Мультиклиентский режим — изолированные БД, fuzzy-автопривязка по контрагенту
 
 **Deferred to v2:**
+
 - INTG-03: Google Drive автообработка
 - PROF-02: Совместный доступ нескольких юристов
 - SECR-01: Аудит-лог (нет value без мультиюзера)

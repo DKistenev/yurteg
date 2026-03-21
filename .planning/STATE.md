@@ -4,7 +4,7 @@ milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
 stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-21T15:12:57.266Z"
+last_updated: "2026-03-21T15:21:59.410Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 3

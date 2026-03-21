@@ -2,31 +2,29 @@
 
 ## What This Is
 
-ЮрТэг — десктопное приложение на Python (Streamlit) для автоматической обработки архивов юридических документов. Загрузка папки с PDF/DOCX → извлечение текста → анонимизация ПД → AI-извлечение метаданных → автосортировка по папкам → Excel-реестр. Плюс: статусы документов, версионирование, платёжный календарь, ревью против шаблонов, Telegram-бот для приёма документов и уведомлений, мультиклиентский режим.
+ЮрТэг — десктопное приложение на Python (Streamlit) для автоматической обработки архивов юридических документов. Загрузка папки с PDF/DOCX → извлечение текста → AI-извлечение метаданных (локальная QWEN 1.5B или облако) → автосортировка по папкам → Excel-реестр. Плюс: статусы документов, версионирование, платёжный календарь, ревью против шаблонов, Telegram-бот, мультиклиентский режим. По умолчанию работает полностью локально — без отправки данных в облако.
 
 ## Core Value
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current State (после v0.4)
+## Current State (после v0.5)
 
-**Codebase:** 11 353 LOC Python, 219 тестов
-**Tech stack:** Python 3.10+, Streamlit, SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz
-**AI:** ZAI GLM-4.7 (основной), OpenRouter (fallback), Ollama stub для будущей локальной LLM
+**Codebase:** ~12 300 LOC Python, 223 теста
+**Tech stack:** Python 3.10+, Streamlit, SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz, huggingface_hub
+**AI:** QWEN 1.5B локальная (по умолчанию), ZAI GLM-4.7 (облако), OpenRouter (fallback)
+**Inference:** llama-server (llama.cpp) с GBNF грамматикой, автоскачивание модели с HuggingFace
 **Доставка:** DMG для macOS через PyInstaller, планируется .exe для Windows
 
-### Что построено в v0.4:
+### Что построено в v0.5:
 
-- Модульный пайплайн: scanner → extractor → anonymizer → ai_extractor → validator → database → organizer → reporter
-- Версионированные миграции SQLite (6 миграций, автобэкап)
-- Провайдер-абстракция AI (ZAI/OpenRouter/Ollama) с переключением через конфиг
-- Сервис-слой без Streamlit (pipeline_service, lifecycle_service, version_service, payment_service, review_service, client_manager, telegram_sync)
-- Автостатусы документов (действует/истекает/истёк) + ручной override
-- Версионирование документов через MiniLM эмбеддинги + diff + redline .docx
-- Платёжный календарь с разворотом периодических платежей
-- AI-ревью договора против шаблона-эталона
-- Telegram-бот: приём документов, ежедневный дайджест сроков, привязка через /start
-- Мультиклиентский режим: изолированные БД, fuzzy-автопривязка по контрагенту
+- LlamaServerManager — автоскачивание llama-server бинарника + GGUF модели (~940MB), subprocess lifecycle, health polling
+- GBNF грамматика для JSON-схемы ContractMetadata с enum-ограничениями
+- Post-processor с профилями допустимых символов по полям (cyrillic_only, cyrillic_latin, enum, date, number)
+- OllamaProvider — полноценный провайдер через openai SDK для llama-server
+- Пропуск анонимизации для локального провайдера (данные не покидают машину)
+- UI-переключатель провайдера в sidebar с file-based persistence
+- Рефакторинг extract_metadata для маршрутизации через provider.complete()
 
 ## Requirements
 
@@ -47,14 +45,15 @@
 - ✓ AI-ревью против шаблона — v0.4
 - ✓ Telegram-бот (приём документов + уведомления) — v0.4
 - ✓ Мультиклиентский режим — v0.4
+- ✓ Локальная LLM (QWEN 1.5B) как провайдер по умолчанию — v0.5
+- ✓ llama-server + GBNF грамматика — v0.5
+- ✓ Post-processing ответов модели — v0.5
+- ✓ Пропуск анонимизации для локального провайдера — v0.5
+- ✓ UI-переключатель провайдера — v0.5
 
 ### Active
 
-- [x] Интеграция локальной QWEN 1.5B как провайдера по умолчанию (v0.5, Phase 4)
-- [x] llama-server + GBNF грамматика (v0.5, Phase 4)
-- [x] Post-processing ответов локальной модели (v0.5, Phase 4)
-- [x] Пропуск анонимизации для локального провайдера (v0.5, Phase 5)
-- [ ] UI-редизайн — уйти от AI-like интерфейса (веха будущая)
+- [ ] UI-редизайн — уйти от AI-like интерфейса
 - [ ] Сборка DMG/EXE для конечных пользователей
 
 ### Out of Scope
@@ -72,45 +71,37 @@
 
 9 интервью (3 реальных + 6 синтетических). Топ-боли: поиск документов (9/9), ручной реестр (7/9), пропущенные сроки (4/9), хаос нейминга (6/9). Главные барьеры: безопасность (снимается локальностью), «ещё одна система» (zero-onboarding), недоверие к AI (подсветка неуверенности).
 
-## Current Milestone: v0.5 Локальная LLM
-
-**Goal:** Интегрировать дообученную QWEN 1.5B как провайдер по умолчанию — юрист ничего не настраивает, всё работает локально из коробки.
-
-**Target features:**
-- llama-server + GBNF грамматика (кириллица-only) вместо Ollama
-- Реализация OllamaProvider (сейчас stub)
-- Post-processing ответов модели ("None" → null, санитайзер)
-- Пропуск анонимизации для локального провайдера
-- Локальная модель = провайдер по умолчанию
-
 ### Будущие вехи
 
 | # | Веха | Описание |
 |---|------|----------|
 | 1 | **Архитектура + функционал** | ✅ Завершена (v0.4) |
-| 2 | **Локальная LLM** | ◆ v0.5 — текущая |
+| 2 | **Локальная LLM** | ✅ Завершена (v0.5) |
 | 3 | UI-редизайн | Уйти от AI-like интерфейса |
+| 4 | DMG/EXE сборка | Доставка конечным пользователям |
 
 ## Constraints
 
 - **Команда**: 3 юриста, нет разработчика — всё через Claude Code
 - **Tech stack**: Python, Streamlit, SQLite — менять стек нецелесообразно
-- **AI SDK**: openai Python SDK — для совместимости с GLM, OpenRouter и будущей Ollama
+- **AI SDK**: openai Python SDK — для совместимости с GLM, OpenRouter и llama-server
 - **Доставка**: DMG/EXE для индивидуальных юристов, не Docker
-- **Безопасность**: локальная обработка по умолчанию, анонимизация как дополнительный слой
+- **Безопасность**: локальная обработка по умолчанию, анонимизация для облачных провайдеров
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GLM как основной AI-провайдер | Самая доступная цена | ✓ Работает, fallback на OpenRouter |
-| openai SDK вместо anthropic | Совместимость с GLM, OpenRouter, Ollama | ✓ Good |
+| GLM как основной AI-провайдер | Самая доступная цена | ✓ Работает, теперь fallback |
+| openai SDK вместо anthropic | Совместимость с GLM, OpenRouter, llama-server | ✓ Good |
 | Напоминания — in-app + Telegram | Toast при запуске + единый бот на сервере | ✓ Done (v0.4) |
 | Единый Telegram-бот на сервере | Юрист не создаёт бота, привязка через /start | ✓ Done (v0.4) |
 | Мультиклиент через изолированные БД | Отдельный .db на клиента, надёжно и просто | ✓ Done (v0.4) |
-| Phase 4 (Docker/аудит/LOCAL_ONLY) отложена | Фокус на индивидуальных юристов, не B2B | ✓ Правильно |
 | UI-редизайн — отдельная веха | Не мешать архитектуру и визуал | ✓ Good |
-| Локальная QWEN — отдельная веха | Дистилляция 7B → 1.5B — отдельный трек | ✓ Good |
+| llama-server вместо Ollama | GBNF grammar support, llamafile для бандлинга | ✓ Done (v0.5) |
+| QWEN 1.5B как дефолт | Локальность = безопасность, 85% чистых ответов | ✓ Done (v0.5) |
+| Пропуск анонимизации для локальной LLM | Данные не покидают машину — маскировка не нужна | ✓ Done (v0.5) |
+| ORPO вместо SFT+DPO | Одна фаза обучения, лучше language control | ✓ Good (v3) |
 
 ## Evolution
 
@@ -130,4 +121,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after Phase 5 completion — milestone v0.5 done*
+*Last updated: 2026-03-21 after v0.5 milestone completion*
