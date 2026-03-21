@@ -65,15 +65,29 @@ from modules.postprocessor import get_grammar_path
 # Загрузить API-ключи из .env (десктоп; в облаке уже в os.environ)
 load_dotenv()
 
+# ── Persisted settings (до автозапуска — определяет active_provider) ────
+def _load_persisted_provider() -> str:
+    """Читает active_provider из ~/.yurteg/settings.json."""
+    _sf = Path.home() / ".yurteg" / "settings.json"
+    try:
+        if _sf.exists():
+            import json as _j
+            return _j.loads(_sf.read_text(encoding="utf-8")).get("active_provider", "ollama")
+    except Exception:
+        pass
+    return "ollama"
+
+_persisted_provider = _load_persisted_provider()
+
 # ── Автозапуск llama-server для локальной LLM ──────────────────
 
 
 @st.cache_resource
 def _get_llama_manager() -> "LlamaServerManager | None":
     """Запускает llama-server один раз, переживает Streamlit reruns."""
-    config = Config()
-    if config.active_provider != "ollama":
+    if _persisted_provider != "ollama":
         return None
+    config = Config()
 
     manager = LlamaServerManager(port=config.llama_server_port)
 
@@ -1046,15 +1060,16 @@ if st.button("Начать обработку", type="primary", disabled=not can
     if ai_verify:
         config.validation_mode = "selective"
 
-    # Проверить ключ
-    with st.spinner("Проверка API-ключа..."):
-        key_ok = verify_api_key(config)
-    if not key_ok:
-        if _CLOUD_MODE:
-            st.error("API-ключ недействителен. Проверьте Streamlit Secrets.")
-        else:
-            st.error("API-ключ недействителен. Проверьте .env файл.")
-        st.stop()
+    # Проверить ключ (пропускаем для локальной модели — ключ не нужен)
+    if config.active_provider != "ollama":
+        with st.spinner("Проверка API-ключа..."):
+            key_ok = verify_api_key(config)
+        if not key_ok:
+            if _CLOUD_MODE:
+                st.error("API-ключ недействителен. Проверьте Streamlit Secrets.")
+            else:
+                st.error("API-ключ недействителен. Проверьте .env файл.")
+            st.stop()
 
     # Контейнеры для обновления
     progress_bar = st.progress(0, text="Подготовка...")
