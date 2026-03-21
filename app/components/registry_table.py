@@ -372,6 +372,9 @@ async def load_table_data(grid, state: "AppState", segment: str = "all") -> None
     db = _client_manager.get_db(state.current_client)
     rows = build_version_rows(rows, db)
 
+    # Per D-20, Pitfall 5: sync filtered_doc_ids on every data load, not just on click
+    state.filtered_doc_ids = [r['id'] for r in rows if not r.get('is_child')]
+
     grid.options["rowData"] = rows
     grid.update()
     logger.debug("Загружено %d строк реестра (сегмент=%s)", len(rows), segment)

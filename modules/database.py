@@ -326,6 +326,30 @@ class Database:
             self.conn.commit()
         logger.debug("Сохранён: %s (статус=%s)", result.file_info.filename, result.status)
 
+    def get_contract_by_id(self, contract_id: int) -> dict | None:
+        """Возвращает один контракт по ID с десериализованными JSON-полями."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT * FROM contracts WHERE id = ?", (contract_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        d = dict(row)
+        for field in ("special_conditions", "parties", "validation_warnings"):
+            raw = d.get(field)
+            if raw:
+                try:
+                    parsed = json.loads(raw)
+                    d[field] = parsed if isinstance(parsed, list) else []
+                except (json.JSONDecodeError, TypeError):
+                    d[field] = []
+            else:
+                d[field] = []
+        d.setdefault("review_status", "not_reviewed")
+        d.setdefault("lawyer_comment", "")
+        d.setdefault("manual_status", None)
+        return d
+
     def get_all_results(self) -> list[dict]:
         """Возвращает все записи для генерации отчёта."""
         cursor = self.conn.execute(

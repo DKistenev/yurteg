@@ -3,7 +3,7 @@
 Per D-04: AppState dataclass в app/state.py.
 Per D-05: app.storage.client['state'] для хранения (per-connection, in-memory).
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -34,6 +34,7 @@ class AppState:
     # Navigation
     current_client: str = "Основной реестр"
     selected_doc_id: Optional[int] = None
+    filtered_doc_ids: list = field(default_factory=list)
 
     # Filters
     filter_type: str = ""
