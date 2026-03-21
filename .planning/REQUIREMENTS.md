@@ -53,14 +53,20 @@
 - [ ] **SETT-04**: Настройка Telegram-бота (привязка, статус подключения)
 - [ ] **SETT-05**: Переключение клиента через иконку профиля (top-left)
 
+### Онбординг
+
+- [ ] **ONBR-01**: Splash screen при первом запуске с прогрессом загрузки модели и setup wizard (Telegram, провайдер)
+- [ ] **ONBR-02**: Empty state реестра при пустой базе — центрированный CTA «Загрузить первые документы»
+- [ ] **ONBR-03**: Флаг «первый запуск» — splash и wizard показываются только один раз, при повторных запусках пропускаются
+- [ ] **ONBR-04**: Краткое описание возможностей приложения на splash screen (что делает ЮрТэг, 2-3 предложения)
+
 ### Дизайн
 
 - [ ] **DSGN-01**: Светлая тема с тёплыми нейтральными тонами (без AI slop: no cyan-on-dark, no glassmorphism, no gradient text)
 - [ ] **DSGN-02**: Один акцентный цвет для действий и статусов, палитра по правилу 60-30-10
 - [ ] **DSGN-03**: Типографика с чёткой иерархией (display + body font pairing, modular scale)
-- [ ] **DSGN-04**: Empty state с onboarding при первом запуске (центрированный CTA + подсказка)
-- [ ] **DSGN-05**: Календарь как переключатель вида реестра (FullCalendar.js интеграция)
-- [ ] **DSGN-06**: Анимации появления элементов (staggered reveals, ease-out-quart)
+- [ ] **DSGN-04**: Календарь как переключатель вида реестра (FullCalendar.js интеграция)
+- [ ] **DSGN-05**: Анимации появления элементов (staggered reveals, ease-out-quart)
 
 ## v0.7 Requirements
 
@@ -115,18 +121,21 @@
 | SETT-03 | Phase 11 | Pending |
 | SETT-04 | Phase 11 | Pending |
 | SETT-05 | Phase 11 | Pending |
-| DSGN-01 | Phase 12 | Pending |
-| DSGN-02 | Phase 12 | Pending |
-| DSGN-03 | Phase 12 | Pending |
-| DSGN-04 | Phase 12 | Pending |
-| DSGN-05 | Phase 12 | Pending |
-| DSGN-06 | Phase 12 | Pending |
+| ONBR-01 | Phase 12 | Pending |
+| ONBR-02 | Phase 12 | Pending |
+| ONBR-03 | Phase 12 | Pending |
+| ONBR-04 | Phase 12 | Pending |
+| DSGN-01 | Phase 13 | Pending |
+| DSGN-02 | Phase 13 | Pending |
+| DSGN-03 | Phase 13 | Pending |
+| DSGN-04 | Phase 13 | Pending |
+| DSGN-05 | Phase 13 | Pending |
 
 **Coverage:**
-- v0.6 requirements: 36 total
-- Mapped to phases: 36
+- v0.6 requirements: 39 total
+- Mapped to phases: 39
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 — traceability mapped to Phases 7-12*
+*Last updated: 2026-03-22 — added ONBR requirements, remapped to Phases 7-13*

@@ -4,7 +4,7 @@
 
 - ✅ **v0.4 Архитектура и функционал** — Phases 1-3 (shipped 2026-03-20)
 - ✅ **v0.5 Локальная LLM** — Phases 4-6 (shipped 2026-03-21)
-- ◆ **v0.6 UI-редизайн** — Phases 7-12 (in progress)
+- ◆ **v0.6 UI-редизайн** — Phases 7-13 (in progress)
 
 ## Phases
 
@@ -30,14 +30,15 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 
 </details>
 
-### v0.6 UI-редизайн (Phases 7-12)
+### v0.6 UI-редизайн (Phases 7-13)
 
 - [ ] **Phase 7: App Scaffold + State Architecture** — NiceGUI запускается, AppState определён, архитектурные паттерны зафиксированы
 - [ ] **Phase 8: Registry View** — Реестр с реальными данными, AG Grid, фильтры, поиск, статус-бейджи
 - [ ] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией
 - [ ] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени
 - [ ] **Phase 11: Settings + Templates** — Страница настроек, управление шаблонами, переключение клиента
-- [ ] **Phase 12: Design Polish + Calendar** — Цветовая система, типографика, empty state, календарь, анимации
+- [ ] **Phase 12: Onboarding** — Splash screen с wizard, empty states, first-run flow
+- [ ] **Phase 13: Design Polish + Calendar** — Цветовая система, типографика, календарь, анимации
 
 ## Phase Details
 
@@ -103,17 +104,28 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
   4. Новый шаблон привязывается к типу документа, и в карточке документа доступен в выпадающем списке при запуске ревью
 **Plans**: TBD
 
-### Phase 12: Design Polish + Calendar
-**Goal**: Интерфейс выглядит профессионально: светлая утилитарная тема без AI slop, понятные empty state экраны и возможность переключить реестр в вид платёжного календаря
-**Depends on**: Phase 8, Phase 9, Phase 11
-**Requirements**: DSGN-01, DSGN-02, DSGN-03, DSGN-04, DSGN-05, DSGN-06
-**Design skills**: `/colorize` (palette), `/typeset` (font system), `/animate` (motion), `/polish` (final pass), `/audit` (a11y, quality check), `/onboard` (empty states), `frontend-design` (AI slop test)
+### Phase 12: Onboarding
+**Goal**: Первый контакт юриста с приложением — splash screen с прогрессом загрузки модели и setup wizard, empty states для пустых экранов, first-run flow который показывается только один раз
+**Depends on**: Phase 10, Phase 11
+**Requirements**: ONBR-01, ONBR-02, ONBR-03, ONBR-04
+**Design skills**: `/onboard` (first-run experience, empty states), `/clarify` (wizard copy, CTA labels)
 **Success Criteria** (what must be TRUE):
-  1. При первом запуске (пустая база) пользователь видит центрированный экран с иллюстрацией и единственной кнопкой «Загрузить первые документы»
-  2. Переключатель «Список / Календарь» в реестре меняет вид таблицы на месячный календарь с отметками дат окончания договоров
-  3. Весь интерфейс использует светлую тему с одним акцентным цветом (без cyan, glassmorphism, gradient text)
-  4. Типографика читается чётко: заголовок карточки, метки полей и тело заметки визуально отличаются по размеру и весу
-  5. Появление строк в реестре при первой загрузке анимировано (staggered reveal, не мгновенный рендер)
+  1. При первом запуске юрист видит splash screen с прогрессом загрузки модели и шагами setup wizard (Telegram, провайдер)
+  2. Wizard можно пропустить — кнопка «Пропустить» на каждом шаге
+  3. После загрузки модели splash закрывается, открывается реестр с empty state «Загрузить первые документы»
+  4. При повторном запуске splash и wizard не показываются — приложение открывается сразу
+**Plans**: TBD
+
+### Phase 13: Design Polish + Calendar
+**Goal**: Интерфейс выглядит профессионально: светлая утилитарная тема без AI slop и возможность переключить реестр в вид платёжного календаря
+**Depends on**: Phase 8, Phase 9, Phase 11, Phase 12
+**Requirements**: DSGN-01, DSGN-02, DSGN-03, DSGN-04, DSGN-05
+**Design skills**: `/colorize` (palette), `/typeset` (font system), `/animate` (motion), `/polish` (final pass), `/audit` (a11y, quality check), `frontend-design` (AI slop test)
+**Success Criteria** (what must be TRUE):
+  1. Переключатель «Список / Календарь» в реестре меняет вид таблицы на месячный календарь с отметками дат окончания договоров
+  2. Весь интерфейс использует светлую тему с одним акцентным цветом (без cyan, glassmorphism, gradient text)
+  3. Типографика читается чётко: заголовок карточки, метки полей и тело заметки визуально отличаются по размеру и весу
+  4. Появление строк в реестре при первой загрузке анимировано (staggered reveal, не мгновенный рендер)
 **Plans**: TBD
 
 ## Progress
@@ -131,4 +143,5 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 | 9. Document Detail Card | v0.6 | 0/? | Not started | - |
 | 10. Pipeline Wiring | v0.6 | 0/? | Not started | - |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
-| 12. Design Polish + Calendar | v0.6 | 0/? | Not started | - |
+| 12. Onboarding | v0.6 | 0/? | Not started | - |
+| 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |
