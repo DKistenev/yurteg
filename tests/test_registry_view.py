@@ -251,3 +251,82 @@ def test_fetch_rows_segment_attention(mock_cm, monkeypatch):
             warnings = []
         assert score < 0.7 or bool(warnings), \
             f"Row should have low score or warnings: score={score}, warnings={warnings}"
+
+
+# ── Tests for build_version_rows ──────────────────────────────────────────────
+
+@pytest.fixture
+def tmp_db_with_versions(tmp_path):
+    """БД с двумя контрактами в одной версионной группе."""
+    db_path = tmp_path / "test_versions.db"
+    db = Database(db_path)
+
+    # Вставляем 2 контракта
+    for i, filename in enumerate(["v1.pdf", "v2.pdf"], start=1):
+        db.conn.execute(
+            """
+            INSERT INTO contracts
+            (filename, file_hash, original_path, status, contract_type, counterparty,
+             subject, date_end, amount, validation_score, validation_warnings, processed_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                filename, f"hash_v{i}", filename, "done",
+                "Договор аренды", "ООО Версия", f"Предмет v{i}",
+                "2030-12-31", "100000", 0.9, "[]", f"2026-03-{i:02d} 10:00:00",
+            ),
+        )
+    db.conn.commit()
+
+    # Получаем id-шники
+    ids = [r[0] for r in db.conn.execute("SELECT id FROM contracts ORDER BY id").fetchall()]
+    assert len(ids) == 2, f"Expected 2 contracts, got {ids}"
+    group_id = ids[0]
+
+    # Связываем оба в одну группу версий
+    for i, cid in enumerate(ids, start=1):
+        db.conn.execute(
+            "INSERT INTO document_versions (contract_group_id, contract_id, version_number, link_method) VALUES (?, ?, ?, ?)",
+            (group_id, cid, i, "auto_embedding"),
+        )
+    db.conn.commit()
+
+    return db, ids, group_id
+
+
+def test_build_version_rows_adds_children(tmp_db_with_versions):
+    """build_version_rows помечает строки с версиями как has_children=True."""
+    from app.components.registry_table import build_version_rows
+    db, ids, group_id = tmp_db_with_versions
+
+    base_rows = [{"id": ids[0], "contract_type": "Договор аренды"}, {"id": ids[1], "contract_type": "Договор аренды"}]
+    result = build_version_rows(base_rows, db)
+
+    # Оба контракта в одной группе — оба должны быть помечены как has_children=True
+    parent = next(r for r in result if r["id"] == ids[0])
+    assert parent["has_children"] is True, f"Expected has_children=True, got {parent}"
+
+
+def test_build_version_rows_no_versions(tmp_db_with_versions):
+    """Строки без версий имеют has_children=False."""
+    from app.components.registry_table import build_version_rows
+    db, ids, group_id = tmp_db_with_versions
+
+    # Используем несуществующий id — нет в document_versions
+    base_rows = [{"id": 9999, "contract_type": "Договор"}]
+    result = build_version_rows(base_rows, db)
+    assert result[0]["has_children"] is False, f"Expected has_children=False, got {result[0]}"
+
+
+def test_build_version_rows_hidden_by_default(tmp_db_with_versions):
+    """Все результирующие строки имеют is_child=False (D-16: дети скрыты по умолчанию)."""
+    from app.components.registry_table import build_version_rows
+    db, ids, group_id = tmp_db_with_versions
+
+    base_rows = [{"id": ids[0], "contract_type": "Договор аренды"}, {"id": ids[1], "contract_type": "Договор аренды"}]
+    result = build_version_rows(base_rows, db)
+
+    # build_version_rows только помечает родителей — не добавляет children inline
+    # Дети загружаются lazy через load_version_children при клике ▶
+    for row in result:
+        assert row.get("is_child") is False, f"Expected is_child=False in base rows, got {row}"
