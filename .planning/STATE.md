@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.4
-milestone_name: milestone
-status: unknown
-stopped_at: Completed 03-09-PLAN.md (Wire push_deadlines in main.py — INTG-02 gap closed)
-last_updated: "2026-03-20T16:10:18.092Z"
+milestone: v0.5
+milestone_name: Локальная LLM
+status: defining_requirements
+stopped_at: Milestone v0.5 started
+last_updated: "2026-03-21"
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 24
-  completed_plans: 24
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -23,8 +23,10 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 
 ## Current Position
 
-Phase: 03 (integrations-multitenancy) — EXECUTING
-Plan: 8 of 9
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-21 — Milestone v0.5 started
 
 ## Performance Metrics
 
@@ -148,6 +150,6 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-20 - Completed quick task 260320-vya: Подготовка датасета v2
-Stopped at: Quick task 260320-vya complete
+Last activity: 2026-03-21 — Milestone v0.5 «Локальная LLM» started
+Stopped at: Defining requirements
 Resume file: None

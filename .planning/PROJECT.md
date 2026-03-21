@@ -50,8 +50,11 @@
 
 ### Active
 
-- [ ] UI-редизайн — уйти от AI-like интерфейса (веха 2)
-- [ ] Интеграция локальной QWEN 1.5B (веха 3)
+- [ ] Интеграция локальной QWEN 1.5B как провайдера по умолчанию (v0.5)
+- [ ] llama-server + GBNF грамматика (кириллица-only)
+- [ ] Post-processing ответов локальной модели
+- [ ] Пропуск анонимизации для локального провайдера
+- [ ] UI-редизайн — уйти от AI-like интерфейса (веха будущая)
 - [ ] Сборка DMG/EXE для конечных пользователей
 
 ### Out of Scope
@@ -69,13 +72,24 @@
 
 9 интервью (3 реальных + 6 синтетических). Топ-боли: поиск документов (9/9), ручной реестр (7/9), пропущенные сроки (4/9), хаос нейминга (6/9). Главные барьеры: безопасность (снимается локальностью), «ещё одна система» (zero-onboarding), недоверие к AI (подсветка неуверенности).
 
+## Current Milestone: v0.5 Локальная LLM
+
+**Goal:** Интегрировать дообученную QWEN 1.5B как провайдер по умолчанию — юрист ничего не настраивает, всё работает локально из коробки.
+
+**Target features:**
+- llama-server + GBNF грамматика (кириллица-only) вместо Ollama
+- Реализация OllamaProvider (сейчас stub)
+- Post-processing ответов модели ("None" → null, санитайзер)
+- Пропуск анонимизации для локального провайдера
+- Локальная модель = провайдер по умолчанию
+
 ### Будущие вехи
 
 | # | Веха | Описание |
 |---|------|----------|
 | 1 | **Архитектура + функционал** | ✅ Завершена (v0.4) |
-| 2 | UI-редизайн | Уйти от AI-like интерфейса |
-| 3 | Локальная LLM | Интеграция дообученной QWEN 1.5B |
+| 2 | **Локальная LLM** | ◆ v0.5 — текущая |
+| 3 | UI-редизайн | Уйти от AI-like интерфейса |
 
 ## Constraints
 
@@ -98,5 +112,22 @@
 | UI-редизайн — отдельная веха | Не мешать архитектуру и визуал | ✓ Good |
 | Локальная QWEN — отдельная веха | Дистилляция 7B → 1.5B — отдельный трек | ✓ Good |
 
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd:transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-03-20 after v0.4 milestone completion*
+*Last updated: 2026-03-21 after milestone v0.5 started*
