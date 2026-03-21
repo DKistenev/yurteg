@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** ЮрТэг — Milestone 1 (deadline tracking, notifications, multi-provider AI, on-premise readiness)
-**Domain:** Legal document processing pipeline — Python/Streamlit desktop app, brownfield evolution
-**Researched:** 2026-03-19
-**Confidence:** MEDIUM-HIGH
+**Project:** ЮрТэг v0.6 — NiceGUI UI Migration
+**Domain:** Legal document processing desktop app — Streamlit → NiceGUI UI layer replacement
+**Researched:** 2026-03-21
+**Confidence:** HIGH
 
 ## Executive Summary
 
-ЮрТэг is a local-first legal document processing tool that extracts metadata from PDF/DOCX contracts using AI, organizes files, and generates a registry. The existing MVP (v0.4) is a working Streamlit/SQLite/openai-SDK pipeline. Milestone 1 is a focused brownfield extension — not a rewrite — adding four capabilities: document status lifecycle with deadline tracking, in-app and Telegram notifications, multi-provider AI with automatic fallback, and architectural groundwork for on-premise B2B deployment. Research confirms that all four capabilities can be implemented using minimal new dependencies (APScheduler 3.x, python-telegram-bot 22.7, thin openai SDK wrapper) while maintaining the existing architecture.
+ЮрТэг v0.6 is a targeted UI-layer replacement, not a feature milestone. The business logic built across v0.4–v0.5 (pipeline, services, AI providers, SQLite) is completely untouched. The only structural change is replacing a 2247-line Streamlit monolith (`main.py`) with a modular NiceGUI application. The recommended framework is NiceGUI 3.9.0, the latest stable release as of 2026-03-19, built on FastAPI + Vue + Quasar + Tailwind. It provides the SPA navigation, clickable ag-grid tables, and persistent header that Streamlit structurally cannot support. The new UI architecture follows the "registry = app" pattern: the document registry is always visible as the primary workspace, rows navigate to full-page document cards, and settings are a first-class tab — not a sidebar dropdown.
 
-The recommended approach is strictly additive and surgical: introduce a `providers/` directory for AI abstraction, a `services/` layer as a stable facade separating business logic from Streamlit, and `deadline_service` for notification logic. Document status should be computed at query time (not stored) to avoid staleness bugs. FastAPI is explicitly deferred — it adds deployment complexity with no current benefit for an in-process desktop app, and the service layer already enables a future FastAPI router with zero code duplication. The Russian SMB legal market strongly prefers Telegram over email for notifications, and local-first architecture is the primary competitive differentiator versus cloud-only global CLMs and heavy Russian enterprise СЭД platforms.
+The recommended implementation is a flat `app/` directory containing `main.py`, `state.py`, four page modules, and three shared components. State management replaces 45 scattered `st.session_state` keys with a single typed `AppState` dataclass stored in `app.storage.client`. Long-running pipeline calls use `await run.io_bound()` to stay off the asyncio event loop. The header, tabs, and navigation render once and persist across sub-page swaps via `ui.sub_pages()`. All existing services are called directly as Python function calls — no HTTP adapter layer needed.
 
-The three highest-severity risks are: (1) AI-extracted dates stored raw without normalization causing silent reminder failures, (2) the existing `try/except OperationalError` SQLite migration pattern breaking existing user databases on upgrade when new columns are added, and (3) multi-provider abstraction drifting into an overengineered custom LLM framework. All three must be addressed at the start of Milestone 1 before any feature code is written. Security (no `--local-only` mode, no audit log) is flagged as a deal-breaker for the enterprise B2B segment and must ship together with on-premise packaging, not as a separate follow-up.
+The primary risk cluster is three NiceGUI-specific pitfalls that are easy to introduce and expensive to retrofit: global-scope UI elements shared across clients, synchronous SQLite calls blocking the async event loop, and the llama-server subprocess not being cleaned up on window close. All three must be hardened in Phase 1 (app scaffold and state architecture) before any feature screens are built. A secondary risk is PyInstaller packaging, which requires explicit NiceGUI static asset inclusion and must be treated as a dedicated future phase, not a finishing step.
 
 ---
 
@@ -19,144 +19,151 @@ The three highest-severity risks are: (1) AI-extracted dates stored raw without 
 
 ### Recommended Stack
 
-The existing stack (Python 3.12, Streamlit, SQLite, openai SDK) requires only three net-new libraries for Milestone 1. APScheduler 3.11.2 (not the 4.x alpha) provides background deadline checking without blocking Streamlit's main thread — the scheduler writes alerts to SQLite, and the UI reads them on rerender via `st.toast`, which decouples the scheduler from Streamlit's session context. For Telegram notifications, python-telegram-bot 22.7 is used in one-way push mode only (`Bot.send_message()`), called via `asyncio.run()` from the APScheduler background thread. Multi-provider AI requires zero new dependencies — all three target providers (ZAI/GLM, OpenRouter, Ollama) expose OpenAI-compatible endpoints and are handled by the existing openai SDK with `base_url` overrides.
+The UI framework is NiceGUI 3.9.0. It is built on FastAPI + Vue + Quasar + Tailwind and provides a Python-first API for every component needed: clickable ag-grid tables, tab navigation, persistent headers, reactive state, and a native desktop window via pywebview. The critical version note: NiceGUI v3 removed the `.tailwind()` method and the global auto-index page — all pages must use `@ui.page` decorators, and all styling must use `.classes()` with literal Tailwind class names.
 
 **Core technologies:**
-- APScheduler 3.11.2: background deadline checking daemon thread — stable branch, alpha 4.x explicitly rejected
-- python-telegram-bot 22.7: outbound-only Telegram push notifications — simpler than aiogram for non-interactive use
-- openai SDK (existing): thin `ProviderRouter` wrapper over `base_url` — replaces LiteLLM (50+ transitive deps, overkill)
-- FastAPI 0.135.1: business logic extraction target — deferred from Milestone 1 runtime, service layer is the actual deliverable
-- st.toast (existing Streamlit): in-app deadline alerts — zero new dependency
+- **NiceGUI 3.9.0**: Full UI framework — replaces Streamlit; provides SPA navigation, clickable tables, native window
+- **ui.aggrid**: AG Grid wrapper — main registry table with per-column filtering, sort, and row click; superior to `ui.table` for 100+ rows
+- **ui.sub_pages**: SPA routing primitive — content area swaps without full page reload; header stays persistent
+- **pywebview (via nicegui[native])**: macOS WKWebView / Windows EdgeChromium — no Electron, no Node.js
+- **app.storage.client**: Per-connection in-memory state — replaces `st.session_state`; `app.storage.user` for persistent preferences
+- **run.io_bound / run.cpu_bound**: Background thread wrappers — mandatory for any blocking call (SQLite, pipeline, llama-server)
 
-**Explicitly rejected:** LiteLLM (50+ deps, adds memory pressure on Streamlit Cloud for no benefit over base_url pattern), LangChain (wrong abstraction for single-call extraction), APScheduler 4.x alpha, Celery (requires Redis, incompatible with single-process desktop).
+See `STACK.md` for full API patterns and version compatibility matrix.
 
 ### Expected Features
 
-The feature research cross-references CLM industry patterns, competitor analysis (Juro, Ironclad, DIRECTUM, Docsvision), and CustDev findings (9 interviews). ЮрТэг's differentiation space — AI-powered + zero-onboarding + local-first + affordable — is made tangible day-to-day by status tracking and deadline reminders. Email notifications are an anti-feature for this market: Russian legal professionals have higher Telegram engagement than email; SMTP adds server infrastructure that contradicts zero-onboarding.
+This is a UI architecture milestone. All six feature areas below already exist as business logic — the question is how they surface in the new "registry = app" architecture.
 
-**Must have (table stakes — P1, current milestone):**
-- Document status with 7 states (черновик / на согласовании / подписан / действует / истекает / истёк / расторгнут) and color-coded registry rows
-- Configurable reminder threshold (30/60/90 days) — simplest config field, highest reported user value
-- In-app "требует внимания" panel on launch — passive, zero user setup
-- Manual status override — AI is not always right; users must correct lifecycle state
-- Filter/sort registry by status — status is useless without filterability
-- Multi-provider AI (GLM primary, OpenRouter fallback, Ollama future) — architectural requirement for B2B on-premise segment
+**Must have (table stakes — blocks milestone if missing):**
+- Clickable rows navigating to full-page document detail — any modern list UI; a row that does nothing on click feels broken
+- Sort by column header click — standard since the 90s; already expected
+- Active filter chips visible above table — users forget filters are active without visual indication
+- Document count in header ("Показано 12 из 47") — baseline trust signal
+- Loading state during pipeline processing — AI extraction takes 2–30 seconds; silence reads as crash
+- Empty state for first launch with clear CTA — critical for hackathon demo first impression
 
-**Should have (competitive — P2, add when stable):**
-- Telegram notifications — trigger: users ask "can I be notified when the app is closed?"
-- AI-confidence score visible in UI — trigger: users report errors they couldn't anticipate
-- Deadline history/audit log — trigger: compliance-oriented user segment grows
+**Should have (differentiators beyond Russian legal tool competitors):**
+- Full-page transition to document detail (Linear pattern) — feels native desktop, not modal-heavy web app
+- Inline status badge with quick-change dropdown — status change without entering detail view
+- Scroll position memory on back navigation — users return to same row; losing position is a known frustration
+- Calendar view toggle (month view) — differentiator for contract expiry tracking; FullCalendar.js via JS interop
+- Settings page as proper top-level tab — provider switching, notification threshold, Telegram config
 
-**Defer (v2+):**
-- Batch status update (500+ document scale not yet reached)
-- Multi-user registry access (requires auth, breaks local-first)
-- Email notifications (only if Telegram adoption proves insufficient)
-- OS-level push notifications (requires tray app, separate tech stack)
-- Cloud backup/sync (security barrier #1 per CustDev — contradicts positioning)
+**Defer to v0.7:**
+- Keyboard navigation within table (arrow keys) — nice to have, not blocking
+- Persistent column widths — cosmetic polish
+- Row density toggle — post-launch preference
+- Context menu on right-click — three-dot hover menu covers same actions
+
+See `FEATURES.md` for full pattern specifications and reference app analysis (Linear, Notion, Finder).
 
 ### Architecture Approach
 
-The recommended architecture is a three-layer brownfield addition to the existing codebase: a `providers/` package abstracting AI vendor specifics behind an `LLMProvider` ABC, a `services/` package grouping business operations (pipeline, registry, deadline) as stable facades callable by both Streamlit and any future FastAPI router, and unchanged processing modules (`scanner`, `extractor`, `anonymizer`, `ai_extractor`, `validator`, `database`, `organizer`, `reporter`). Document status is computed at query time using SQL `CASE` expressions over `date_end`, never stored as a column updated by a background job — this eliminates the staleness bug class entirely. FastAPI is designed as a future thin router over the service layer, not a current deployment requirement.
+The new UI layer follows a strict separation: `app/` directory contains only NiceGUI code; everything outside `app/` (controller, modules, services, providers, config, SQLite) is unchanged. Page modules each export a single `build(state: AppState)` function and call services as direct Python function calls — no HTTP layer. The `AppState` dataclass is the single source of truth for all ephemeral UI state (current client, active filters, selected document ID, processing status). Persistent settings (provider choice, warning days, Telegram token) continue to use `~/.yurteg/settings.json` via `config.py`.
 
-**Major components (new additions):**
-1. `providers/base.py` + `providers/zai.py` + `providers/openrouter.py` — LLMProvider ABC isolating vendor specifics from extraction logic; adding a new provider = one new file
-2. `services/pipeline_service.py` — process_archive() facade; what Streamlit calls today, what FastAPI calls tomorrow
-3. `services/registry_service.py` — query, filter, report generation
-4. `services/deadline_service.py` — approaching deadline queries, notification formatting
-5. `modules/models.py` (extended) — DocumentStatus enum, DeadlineAlert dataclass
+**Major components:**
+1. **`app/main.py`** — `ui.run()` entry point, `app.on_startup` hooks (llama-server, Telegram sync), `ui.sub_pages` routing table
+2. **`app/state.py`** — `AppState` dataclass definition + `get_state()` accessor; replaces 45 `st.session_state` keys
+3. **`app/pages/registry.py`** — core view: ag-grid table, filter chips, search bar, client selector, calendar toggle
+4. **`app/pages/document.py`** — full-page card: 5 tabs (metadata, versions, review, notes, payments), status override
+5. **`app/pages/settings.py`** — provider selector, anonymization toggle, notifications, Telegram config
+6. **`app/components/header.py`** — persistent top navigation shared across all sub-pages
+7. **`app/components/table.py`** — `ui.aggrid` wrapper encapsulating column definitions and row click handler
+8. **`app/components/process.py`** — folder picker (native OS dialog), process button, progress bar
 
-**Build order dependency (critical):** Provider abstraction and schema migration infrastructure must be complete before any deadline or notification feature code is written. Service layer can be built in parallel with provider abstraction.
+See `ARCHITECTURE.md` for data flow diagrams, full API examples, build order, and the complete Streamlit-to-NiceGUI API mapping table (262 `st.*` calls mapped).
 
 ### Critical Pitfalls
 
-1. **AI dates stored raw without normalization** — Add a dedicated date normalization pass using `dateutil.parser.parse()` immediately after AI extraction; store only ISO 8601 strings; surface LOW-confidence dates with a UI warning before any reminder fires. Must be implemented before reminder logic.
+1. **Global-scope UI elements shared across clients** — Any `ui.*` created outside a `@ui.page` function is shared across all browser connections. Prevention: every screen inside a `@ui.page` decorated function; all state in `app.storage.client`. Must be established in Phase 1 — it is HIGH-cost to retrofit.
 
-2. **SQLite migration breaks existing user databases** — Replace the existing `try/except OperationalError` column-addition pattern with a versioned `schema_migrations` table (50 lines). Backfill `status = 'active'` for all existing rows. This is the first task in Milestone 1, not an afterthought.
+2. **Synchronous SQLite calls blocking the async event loop** — Plain `sqlite3` calls inside `async def` handlers freeze the entire NiceGUI event loop. Prevention: wrap every `database.py` call with `await run.io_bound(...)`. Establish the pattern in Phase 1 before any data is wired to UI.
 
-3. **Reminder logic built into Streamlit session** — Scheduler state must live in SQLite, not in `st.session_state`. APScheduler BackgroundScheduler must be guarded against double-registration (`if 'scheduler_started' not in st.session_state`). Reminders must be testable without a running Streamlit server.
+3. **llama-server subprocess orphaned on window close** — `app.on_shutdown` is not reliably called in native mode (confirmed NiceGUI issue #2107). Prevention: triple-layer cleanup — `app.on_shutdown` + `app.on_disconnect` + `atexit.register`. Address in Phase 2.
 
-4. **On-premise treated as packaging, not architecture** — `--local-only` mode (env var `LOCAL_ONLY=true` that blocks all external HTTP calls) and an append-only `audit.log` must ship together with the Docker image, not as a subsequent item. These are the trust signals that make the enterprise sale, not the Dockerfile itself.
+4. **Double initialization with reload=True** — NiceGUI hot-reload spawns a subprocess where module-level code runs twice; two llama-server instances start on the same port. Prevention: always `reload=False` in production; all startup side effects in `app.on_startup()`.
 
-5. **Multi-provider abstraction drifts into custom framework** — The entire abstraction is: a `ProviderConfig` dataclass, a factory function `get_provider(config) -> LLMProvider`, and one file per provider. Any file named `router.py`, `gateway.py`, or `llm_manager.py` is a warning sign. Code review gate must enforce this.
+5. **Tailwind dynamic class names silently ignored** — JIT mode only includes class names present as literal strings in source. `f'bg-{color}-500'` constructs produce zero CSS. Prevention: always use lookup dicts with full literal class strings. No exceptions.
+
+6. **ui.upload gives bytes only, no file path** — The existing pipeline expects `pathlib.Path` objects. Prevention: use native OS file picker (`app.native.main_window.create_file_dialog()`) for all batch import.
+
+7. **Large file downloads freeze the event loop** — `ui.download(bytes)` serializes content synchronously. Prevention: route all file downloads through a FastAPI `FileResponse` endpoint.
+
+8. **PyInstaller misses NiceGUI static assets** — App crashes on clean launch with "static directory does not exist". Prevention: explicit `datas` entries in `.spec` file; test on a machine with no Python installed. Treat as a dedicated v0.7 phase.
+
+See `PITFALLS.md` for full recovery strategies, tech debt table, integration gotchas, and the "Looks Done But Isn't" checklist.
 
 ---
 
 ## Implications for Roadmap
 
-Based on combined research, four phases are suggested. The ordering is driven by hard dependency constraints identified in the architecture research (provider abstraction and migration infrastructure are prerequisites for all features) and the pitfall research (infrastructure failures are harder to recover from than feature gaps).
+Based on combined research, a six-phase implementation order is recommended. The ordering is driven by: (1) pitfalls that must be prevented from Phase 1 or become expensive to retrofit; (2) the dependency chain from navigation skeleton → data layer → features; (3) the architecture research's explicit build order.
 
-### Phase 1: Infrastructure Foundation
+### Phase 1: App Scaffold + State Architecture
 
-**Rationale:** Two blocking prerequisites must be resolved before any feature can be safely built. SQLite migration fragility (PITFALL 5) affects every subsequent database change. Provider abstraction (ARCHITECTURE Step 1) is required before the multi-provider feature and before on-premise packaging. Both are zero-behavior-change refactors — safe to do first, dangerous to defer.
+**Rationale:** The three most expensive pitfalls (global state, async SQLite, double init) must be encoded in the app's skeleton before any feature screen is built. Retrofitting `@ui.page` wrappers and `run.io_bound` calls across dozens of UI event handlers is a HIGH-recovery-cost operation. Establish the pattern once; all subsequent phases inherit it.
+**Delivers:** App launches in native window. Navigation between three empty tabs works. `AppState` dataclass defined. `get_state()` accessor enforced. `reload=False` set. `app.on_startup` wiring in place. All `@ui.page` decorators established.
+**Addresses:** First-launch empty state — needed as soon as the app renders.
+**Avoids:** Global UI state leak (Pitfall 1), double initialization (Pitfall 4), storage scope mismatch (Pitfall 9).
+**Research flag:** Standard patterns — skip research phase. NiceGUI docs are authoritative and complete for this scope.
 
-**Delivers:** Versioned schema migration system; `providers/` package with ZAI and OpenRouter providers extracted from current `ai_extractor.py`; `services/` skeleton (pipeline, registry services); `config.py` extended with `active_provider` and provider configs.
+### Phase 2: Registry View (Core Product)
 
-**Addresses:** Multi-provider AI (P1 feature prerequisite); clean upgrade path for all future schema changes.
+**Rationale:** The registry IS the product. Everything else (document card, settings, calendar) hangs off rows in this table. Wire real data to the ag-grid before building detail views — validating the data model early catches schema issues before they ripple into five downstream tabs.
+**Delivers:** Existing documents from SQLite display in the registry. Column sort and per-column filters work. Filter chips render above table. Search bar with 300ms debounce queries SQLite via `run.io_bound`. Inline status badge with dropdown. Document count in header. Client selector wired to `client_manager`.
+**Uses:** `ui.aggrid`, `run.io_bound` for all DB calls, `AppState.filter_*` fields, `lifecycle_service.get_computed_status_sql()`.
+**Avoids:** Sync SQLite blocking the event loop (Pitfall 2), Tailwind dynamic class names for status badges (Pitfall 7).
+**Research flag:** Standard patterns — fully documented in NiceGUI docs and ARCHITECTURE.md. No additional research needed.
 
-**Avoids:** SQLite migration corruption (PITFALL 5); provider abstraction drift (PITFALL 3); vendor lock in prompt logic (ARCHITECTURE anti-pattern 2).
+### Phase 3: Document Detail Card
 
-**Research flag:** Standard patterns — no additional research needed. Direct codebase analysis in ARCHITECTURE.md provides the exact refactoring steps.
+**Rationale:** Once the registry renders real data and rows are clickable, the full-page document card is the natural next step. All five tab content types pull from existing services — no new business logic. This phase validates the `ui.navigate.to('/document/{id}')` routing and scroll position memory pattern.
+**Delivers:** Clicking a registry row opens a full-page document card. Five tabs: Обзор, Ревью по шаблону, Версии, Платежи, Заметки. Breadcrumb "← Реестр" with scroll position memory. Manual status override (`lifecycle_service.set_manual_status`). Lawyer notes with auto-save on blur.
+**Avoids:** Modal anti-pattern (FEATURES.md explicitly rejects modals for detail view), inline row expand accordion.
+**Research flag:** Standard patterns. `ui.tabs` + `ui.tab_panels` is straightforward. Version diff rendering may need a targeted spike if complex visual diff output is needed.
 
----
+### Phase 4: Pipeline Wiring + Local LLM
 
-### Phase 2: Deadline Tracking and Document Status
+**Rationale:** Processing new documents is the core action of the app. This phase completes the async pipeline wiring and establishes the llama-server lifecycle management. Must come after the UI skeleton is solid — progress callbacks and `loop.call_soon_threadsafe` patterns require a working event loop to test against.
+**Delivers:** Native OS folder picker wired to pipeline. Process button triggers `await run.io_bound(pipeline_service.process_archive, ...)`. Real-time progress bar updates via `loop.call_soon_threadsafe`. `LlamaServerManager` singleton initialized in `app.on_startup`. Startup splash shown during model load.
+**Avoids:** `ui.upload` bytes-only pitfall (Pitfall 5) — native picker used instead. llama-server orphaned process (Pitfall 3) — triple-layer cleanup established. Blocking event loop during pipeline (Anti-Pattern 3 from ARCHITECTURE.md).
+**Research flag:** Triple-layer cleanup behavior (`app.on_disconnect`) in `native=True` mode on macOS is not definitively confirmed — deserves a focused test or community issue search before building Phase 4.
 
-**Rationale:** Once the service layer and schema migration infrastructure exist, deadline tracking is purely additive: new columns, new service, new UI elements. Date normalization (PITFALL 1) must be implemented here, not discovered later. Status computation at query time (ARCHITECTURE anti-pattern 3 avoidance) is a design decision that must be made in this phase.
+### Phase 5: Settings + Templates + Export
 
-**Delivers:** Document status lifecycle (7 states, color-coded registry); `date_end` normalization with `confidence_date_end` flag; `services/deadline_service.py`; configurable reminder threshold (global setting); in-app "требует внимания" panel on launch; filter/sort by status.
+**Rationale:** Settings page enables provider switching and Telegram configuration that are already functional in the Streamlit version. Export (Excel registry) requires the FastAPI `FileResponse` pattern to avoid the large-download event-loop freeze. These are lower-risk, form-heavy features that belong after the core registry/document flow is stable.
+**Delivers:** Settings page with left-nav sections (AI provider, обработка, уведомления, Telegram, интерфейс, о программе). Changes save on blur (macOS System Preferences pattern). Templates list with add/delete. Excel export via FastAPI `FileResponse` route.
+**Avoids:** Large file download freeze (Pitfall 6) — FastAPI route from day one for Excel export.
+**Research flag:** Standard patterns. Settings forms are `ui.input` / `ui.select` / `ui.toggle` — no research needed.
 
-**Addresses:** All P1 table-stakes features (document status, reminder threshold, in-app panel, manual status override, filter by status).
+### Phase 6: Design Polish + Calendar View
 
-**Avoids:** Raw date storage (PITFALL 1); computed status staleness (ARCHITECTURE anti-pattern 3); performance trap of Python-loop status checking (use SQL `WHERE date_end BETWEEN` queries).
-
-**Research flag:** Standard patterns — deadline service and status computation are well-documented SQL + Python patterns. No additional research needed.
-
----
-
-### Phase 3: Notifications (In-App + Telegram)
-
-**Rationale:** Notifications depend on deadline tracking (Phase 2) being complete and stable. APScheduler integration has known Streamlit threading caveats (PITFALL 2, STACK threading caveat) that require careful implementation — safer to validate deadline logic separately before adding scheduler complexity. Telegram is a separate delivery channel on top of in-app alerts, not a replacement.
-
-**Delivers:** APScheduler BackgroundScheduler with double-registration guard; SQLite `alerts` table (write from scheduler, read on Streamlit rerender via `st.toast`); optional Telegram bot integration (token from env var only, never config file); async `send_deadline_alert()` called via `asyncio.run()` from scheduler thread; `pending_notifications` table for async delivery decoupling.
-
-**Addresses:** P2 Telegram notifications; in-app panel refinement (acknowledgement, history).
-
-**Avoids:** Reminder logic in Streamlit session (PITFALL 2); Telegram token in config (SECURITY pitfall); synchronous Telegram call blocking processing thread (INTEGRATION gotcha).
-
-**Research flag:** Needs attention. APScheduler + Streamlit threading interaction has community-documented edge cases. The `ScriptRunContext` / `NoSessionContext` error pattern when calling `st.*` from background threads must be validated against the current Streamlit version before implementation.
-
----
-
-### Phase 4: On-Premise Packaging and Security Hardening
-
-**Rationale:** Docker packaging is purely additive (no code changes) and can only be correctly done once the service layer is stable (Phase 1) and features are complete (Phases 2-3). Security hardening (`--local-only` mode, audit log, path traversal fix) must ship together with the Docker image — they are the trust signals for the B2B segment, not optional polish.
-
-**Delivers:** `Dockerfile` (multi-stage) + `docker-compose.yml` with volume mounts for documents, output, and SQLite; `LOCAL_ONLY=true` env var that blocks all external HTTP calls and raises exceptions; append-only `audit.log` (file-based, not just SQLite) recording filename hash, provider used, data-left-machine flag; path traversal fix in `organizer.py` (`Path.resolve()` check); `@st.cache_data(ttl=30)` on registry query to prevent sluggish UI at 500+ contracts; `PRAGMA journal_mode=WAL` in SQLite for concurrent access.
-
-**Addresses:** On-premise B2B segment requirements; security checklist for enterprise sale; performance traps at scale.
-
-**Avoids:** On-premise as packaging only (PITFALL 4); path traversal vulnerability (SECURITY pitfall); no `--local-only` mode (security mistake).
-
-**Research flag:** `--local-only` enforcement pattern (how to intercept all outbound HTTP calls in a Streamlit + openai SDK + python-telegram-bot app) may need a brief spike — specifically whether patching at the `httpx` transport level is sufficient or whether each library needs explicit gating.
-
----
+**Rationale:** Design polish comes last — not because it is unimportant, but because it requires stable components to apply to. Color system, typography, empty states, and hover interactions need real content to evaluate against. Calendar view (FullCalendar.js via JS interop) is a differentiator but depends on filter state being fully functional in Phase 2.
+**Delivers:** Full Tailwind/Quasar color system applied. Light mode locked. Empty states for all three scenarios (first launch, no results, empty tab). Hover-reveal actions on registry rows. Calendar view toggle (FullCalendar.js integration, month view). Attention panel for expiring documents.
+**Avoids:** Tailwind dynamic class names (Pitfall 7) — all status colors use literal class lookup dicts baked into the component library.
+**Research flag:** FullCalendar.js JS interop pattern with NiceGUI needs a targeted proof-of-concept during phase planning. FEATURES.md recommends this approach but the exact `ui.add_head_html` + event callback wiring needs validation before committing. Fallback: custom NiceGUI grid layout.
 
 ### Phase Ordering Rationale
 
-- Phase 1 before everything: migration infrastructure and provider abstraction are prerequisites, not optimizations. Skipping them means Phases 2-4 introduce compounding tech debt.
-- Phase 2 before Phase 3: notifications require deadline tracking to have stable, validated `date_end` data. Building the scheduler before date normalization means reminders fire on hallucinated dates.
-- Phase 3 before Phase 4: packaging should include the complete notification feature set so on-premise deployments get all v1 functionality.
-- FastAPI explicitly excluded from Milestone 1: the service layer (Phase 1) is the prerequisite. FastAPI as a running HTTP server adds two-process complexity with no current benefit for a single-machine desktop app.
+- Phases 1–2 establish the non-negotiable architectural constraints. Any deviation here forces a full audit of all subsequent phases.
+- Phase 3 depends on Phase 2's routing and data model being stable.
+- Phase 4 depends on the async event loop patterns from Phase 1 being enforced — pipeline callbacks touch the UI thread directly.
+- Phase 5 is deliberately late because settings only become meaningful once there is real processing to configure.
+- Phase 6 is always last — design polish applied to moving targets produces rework.
+- PyInstaller/DMG packaging is out of scope for v0.6 and should be treated as Phase 7 (v0.7 milestone) with a dedicated research phase per PITFALLS.md Pitfall 8.
 
 ### Research Flags
 
-Phases needing attention during planning:
-- **Phase 3 (Notifications):** APScheduler + Streamlit threading caveats need version-specific validation. The `scheduler_started` guard pattern from community docs should be tested against current Streamlit before implementation begins.
-- **Phase 4 (On-Premise):** `LOCAL_ONLY` enforcement strategy — specifically how to block outbound calls across openai SDK, python-telegram-bot (which uses httpx internally), and any other HTTP clients — needs a brief implementation spike before committing to the approach.
+Phases likely needing deeper research during planning:
+- **Phase 4:** llama-server triple-layer cleanup behavior in `native=True` mode on macOS — `app.on_disconnect` reliability in pywebview native mode is not definitively confirmed; requires targeted testing.
+- **Phase 6:** FullCalendar.js integration via `ui.add_head_html` — the Python-to-JS data bridge and event callback pattern needs a working proof-of-concept before committing to it in the phase plan.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Infrastructure):** Direct codebase analysis already provides exact refactoring steps. ABC provider pattern and service layer extraction are well-documented Python patterns.
-- **Phase 2 (Deadline Tracking):** SQL-based status computation and date normalization with `dateutil` are standard. Feature requirements are fully specified.
+Phases with standard patterns (skip research phase):
+- **Phase 1:** `@ui.page`, `app.storage.client`, `ui.sub_pages`, `ui.run` — all documented with official examples.
+- **Phase 2:** `ui.aggrid`, `run.io_bound`, filter state management — in official docs and verified in STACK.md and ARCHITECTURE.md.
+- **Phase 3:** `ui.tabs`, `ui.tab_panels`, `ui.navigate` — standard NiceGUI patterns.
+- **Phase 5:** Settings forms, FastAPI `FileResponse` — well-documented.
 
 ---
 
@@ -164,47 +171,48 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Core libraries verified via PyPI and official docs. APScheduler 3.x, python-telegram-bot 22.7, openai SDK base_url pattern all confirmed. FastAPI/uvicorn versions verified. LiteLLM rejection well-reasoned from direct dependency analysis. |
-| Features | MEDIUM-HIGH | CLM industry patterns cross-referenced across multiple sources. Russian market specifics inferred from CustDev data (9 interviews, mix of real and synthetic). P1 feature set has strong convergent validity across research and CustDev. P2/P3 trigger conditions are hypotheses pending user feedback. |
-| Architecture | HIGH | Based on direct codebase analysis of current `ai_extractor.py`, `config.py`, and `main.py`. ABC provider pattern and service layer extraction are established Python patterns with clear rationale for this codebase. Build order dependency constraints are directly derived from code structure. |
-| Pitfalls | MEDIUM-HIGH | Critical pitfalls (date normalization, SQLite migration, scheduler threading) are directly observed from CONCERNS.md codebase analysis — HIGH confidence. On-premise enterprise trust signals inferred from PROJECT.md CustDev and general enterprise patterns — MEDIUM confidence. Performance traps at scale are threshold estimates, not measured values. |
+| Stack | HIGH | NiceGUI 3.9.0 verified via official docs and pyproject.toml. All API examples cross-checked against nicegui.io. Version compatibility matrix confirmed (Python >=3.10, pywebview >=5.0.1, fastapi >=0.109.1). |
+| Features | HIGH | UX patterns verified against Pencil & Paper research, Nielsen Norman Group, and direct reference app analysis (Linear, Notion, Finder). CustDev findings (9 interviews) validate filter/search as top pain point (9/9). |
+| Architecture | HIGH | Codebase analyzed directly — 2247-line main.py confirmed with 262 `st.*` calls, 45 `st.session_state` uses. All service layer interfaces verified as unchanged. NiceGUI patterns confirmed via official docs. |
+| Pitfalls | HIGH | 8 of 9 critical pitfalls confirmed via official GitHub issues and FAQs with issue numbers. One CVE (CVE-2026-33332) verified via GitLab advisory. One pitfall (llama-server orphan) confirmed by issue #2107. |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **APScheduler thread lifecycle in Streamlit Cloud:** Streamlit Community Cloud may restart processes in ways that affect the BackgroundScheduler's daemon thread. The desktop deployment path is clear; cloud deployment behavior of the scheduler needs validation if Streamlit Cloud remains a target.
-- **GLM-specific error codes:** PITFALL research flags that GLM returns different HTTP status codes than OpenAI for rate limits and content policy violations. The exact error mapping needs a test harness against the live GLM API before the fallback logic can be declared correct.
-- **Reminder threshold per-document vs global:** Feature research recommends launching with a global threshold (simpler). Whether the target user segment wants per-contract-type thresholds is a validated CustDev hypothesis but not a confirmed requirement. This gap should be raised during roadmap planning.
-- **Ollama model quality for legal Russian text:** Local QWEN via Ollama is targeted for Milestone 3. The extraction prompt's performance against a Russian-language local model is untested. This gap is acceptable for Milestone 1 but must be addressed before the on-premise offline variant is promised to customers.
+- **FullCalendar.js interop in NiceGUI native mode:** FEATURES.md recommends it but no working proof-of-concept exists yet. Build a spike in Phase 6 planning before committing. Fallback: custom NiceGUI grid layout.
+- **`app.on_disconnect` in native=True mode:** The triple-layer cleanup relies on this hook, but its reliability in pywebview native mode is not definitively confirmed (Pitfall 3 cites issue #2107 for `app.on_shutdown`; `on_disconnect` behavior may differ). Verify with a minimal test before Phase 4.
+- **Multi-tab isolation in single-user mode:** Architecture assumes single-user desktop, but the Pitfall 1 isolation requirement applies even in single-user mode when the user opens multiple browser tabs pointing at the same NiceGUI server. Confirm the `@ui.page` + `app.storage.client` pattern fully isolates tabs.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Current codebase direct analysis: `modules/ai_extractor.py`, `config.py`, `main.py`, CONCERNS.md — architecture and pitfall findings
-- APScheduler 3.x User Guide — BackgroundScheduler docs: https://apscheduler.readthedocs.io/en/3.x/userguide.html
-- Streamlit multithreading docs: https://docs.streamlit.io/develop/concepts/design/multithreading
-- st.toast official docs: https://docs.streamlit.io/develop/api-reference/status/st.toast
-- python-telegram-bot v22.7 PyPI and docs: https://pypi.org/project/python-telegram-bot/
-- FastAPI PyPI v0.135.1: https://pypi.org/project/fastapi/
-- LiteLLM GitHub (for rejection rationale): https://github.com/BerriAI/litellm
-- PROJECT.md CustDev findings (9 interviews)
+- [NiceGUI official docs — nicegui.io/documentation](https://nicegui.io/documentation) — all core API patterns (aggrid, sub_pages, storage, navigate, run, dark_mode, colors)
+- [NiceGUI pyproject.toml — github.com/zauberzeug/nicegui](https://github.com/zauberzeug/nicegui/blob/main/pyproject.toml) — version pinning verified
+- [NiceGUI v3 breaking changes — discussion #5331](https://github.com/zauberzeug/nicegui/discussions/5331) — `.tailwind()` removal, auto-index removal, mutable object detection removal
+- [NiceGUI issue #2107](https://github.com/zauberzeug/nicegui/issues/2107) — on_shutdown not called in native mode (confirmed)
+- [NiceGUI issue #5684](https://github.com/zauberzeug/nicegui/issues/5684) — double initialization with reload=True
+- [NiceGUI issue #3756](https://github.com/zauberzeug/nicegui/issues/3756) — large file download freezes event loop
+- [NiceGUI issue #355 + discussion #1135](https://github.com/zauberzeug/nicegui/issues/355) — PyInstaller static asset bundling
+- [CVE-2026-33332 — media route memory exhaustion](https://advisories.gitlab.com/pkg/pypi/nicegui/CVE-2026-33332/) — security pitfall for `add_media_files`
+- Current codebase — `main.py` directly analyzed (2247 lines, 262 `st.*` calls, 45 `st.session_state` uses)
+- CustDev findings — 9 interviews; поиск документов 9/9, хаос нейминга 6/9
 
 ### Secondary (MEDIUM confidence)
-- APScheduler PyPI version confirmation: https://pypi.org/project/APScheduler/
-- FastAPI + Streamlit two-tier pattern: https://pybit.es/articles/from-backend-to-frontend-connecting-fastapi-and-streamlit/
-- Streamlit service layer community pattern: https://discuss.streamlit.io/t/project-structure-for-medium-and-large-apps-full-example-ui-and-logic-splitted/59967
-- CLM feature standards: ContractSafe, Agiloft, Juro (2025-2026 sources)
-- Multi-provider LLM orchestration: https://dev.to/ash_dubai/multi-provider-llm-orchestration-in-production-a-2026-guide-1g10
-- Legal tech pitfalls: American Bar Association (2025), LexWorkplace, LegalSoft
-- Ten Python datetime pitfalls: https://dev.arie.bovenberg.net/blog/python-datetime-pitfalls/
+- [Pencil & Paper — Enterprise Data Tables UX](https://www.pencilandpaper.io/articles/ux-pattern-analysis-enterprise-data-tables) — hover state and row interaction patterns
+- [Pencil & Paper — Enterprise Filtering UX](https://www.pencilandpaper.io/articles/ux-pattern-analysis-enterprise-filtering) — filter chip pattern
+- [Nielsen Norman Group — Empty States](https://www.nngroup.com/articles/empty-state-interface-design/) — empty state design principles
+- [Linear Blog — UI Redesign](https://linear.app/now/how-we-redesigned-the-linear-ui) — full-page transition vs split pane rationale
+- [NiceGUI discussion #836](https://github.com/zauberzeug/nicegui/discussions/836) — background thread patterns
+- [Talk Python episode #525 — NiceGUI 3.0](https://talkpython.fm/episodes/show/525/nicegui-goes-3.0) — v3 architecture patterns
 
 ### Tertiary (LOW confidence)
-- Telegram bot deadline notifications blog: https://medium.com/@ewho.ruth2014/adding-telegram-bot-notifications-for-task-deadlines-41981bb0957c — implementation details need verification
-- LiteLLM alternatives comparison: https://mljourney.com/litellm-alternatives-advanced-solutions-for-multi-model-llm-integration/ — single source
+- [uxpatterns.dev — Calendar View Pattern](https://uxpatterns.dev/patterns/data-display/calendar) — calendar UX conventions; consistent with other sources
+- [Setproduct — Settings UI Design](https://www.setproduct.com/blog/settings-ui-design) — settings page pattern; consistent with macOS HIG
 
 ---
-*Research completed: 2026-03-19*
+
+*Research completed: 2026-03-21*
 *Ready for roadmap: yes*

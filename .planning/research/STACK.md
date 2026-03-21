@@ -1,178 +1,278 @@
 # Stack Research
 
-**Domain:** Python document processing app — deadline tracking, notifications, multi-provider LLM, API layer
-**Researched:** 2026-03-19
-**Confidence:** MEDIUM-HIGH (core libraries verified via PyPI/official docs; Streamlit threading patterns from official docs)
+**Domain:** Python desktop app UI layer — migration from Streamlit to NiceGUI
+**Researched:** 2026-03-21
+**Confidence:** HIGH (NiceGUI v3 verified via official docs + pyproject.toml; all APIs cross-checked against nicegui.io)
 
 ---
 
 ## Context
 
-This is a brownfield addition to an existing Python 3.12 / Streamlit / SQLite / openai-SDK app. The goal is to add four capabilities without replacing the existing stack:
+This is a targeted UI-layer replacement for ЮрТэг v0.6. The existing Python backend (controller, modules, services, SQLite, openai SDK, llama-server) is **not changing**. Only the UI shell changes: Streamlit out, NiceGUI in.
 
-1. Deadline tracking and document status management
-2. In-app + Telegram notifications
-3. Multi-provider LLM abstraction (GLM / Claude / local QWEN)
-4. API layer separating business logic from Streamlit UI
+The goal: registry-centric single-workspace app, clickable table, full-page document card, three top tabs (Documents / Templates / Settings), light professional theme, desktop window via native mode.
 
 ---
 
 ## Recommended Stack
 
-### 1. Deadline Tracking & Background Scheduling
+### Core Technologies
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| APScheduler | 3.11.2 | Background job runner for deadline checks | Proven in production, BackgroundScheduler runs in a separate daemon thread without blocking Streamlit's main thread. v3.x (not v4 alpha) is the stable branch. SQLite job store available for persistence. |
+| NiceGUI | 3.9.0 | Full UI framework replacing Streamlit | Latest stable (released 2026-03-19). Based on FastAPI + Vue + Quasar + Tailwind. Provides clickable tables, native split-views, proper navigation without page reloads, desktop window mode. Streamlit fought the single-workspace architecture at every turn; NiceGUI embraces it. |
+| pywebview | >=5.0.1, <7 | Desktop native window (macOS/Windows) | NiceGUI's optional `native` extra depends on pywebview 5.x. Wraps a system WebView in a borderless window — no Electron, no Chromium bundling. macOS uses WKWebView, Windows uses EdgeChromium. |
+| Tailwind CSS | 4.x (bundled) | Utility-class styling | Built into NiceGUI v3. Applied via `.classes()` on any element. No separate install. v3 removed the Python `.tailwind()` wrapper — use `.classes()` directly. |
+| Quasar | bundled | Component system under NiceGUI | Every NiceGUI element maps to a Quasar Vue component. Access full Quasar props via `.props()`. Color tokens (primary, secondary, accent) customizable via `ui.colors()`. |
 
-**Why APScheduler 3.x, not 4.x alpha:**
-Version 4.0.0a6 (released April 2025) is still in alpha. The 3.x branch (latest: 3.11.2, Dec 2025) is stable. For a small team with no dedicated developer, alpha software is not acceptable risk.
+### UI Component Map
 
-**Streamlit threading caveat:**
-APScheduler's `BackgroundScheduler` runs outside Streamlit's `ScriptRunContext`. It **cannot** call `st.*` functions directly. The correct pattern: the scheduler writes deadline alerts to the SQLite database; on each Streamlit rerender (triggered by user interaction or `st.rerun()`), the UI reads the alert table and renders `st.toast()`. This decouples the scheduler from the UI thread.
+| Component Needed | NiceGUI API | Notes |
+|-----------------|-------------|-------|
+| Clickable data table with sort/filter | `ui.aggrid` | AG Grid wrapped by NiceGUI. Column-level `filter`, `floatingFilter`, `sort`. Row click via `on_row_click`. Superior to `ui.table` for large datasets and inline filtering. |
+| Simple static table | `ui.table` | Based on Quasar QTable. Use for small tables where AG Grid feels heavy (e.g., template list). Has `set_filter()`, sortable columns, row selection. |
+| Top-level tab navigation | `ui.tabs` + `ui.tab_panels` | Declare tabs in header, bind panels below. Supports icon + label tabs. |
+| Persistent top bar | `ui.header` | Renders above all content. Put `ui.tabs` inside it for top-level navigation. |
+| Full-page view transition | `ui.sub_pages()` or `ui.navigate.to()` | `ui.sub_pages()` swaps content without browser reload (SPA pattern). `ui.navigate.to('/doc/123')` does a full page replace — fine for detail views. |
+| Session / per-user state | `app.storage.user` | Persists across requests for one user. `app.storage.tab` for tab-isolated state. Use for current client selection, active filters, open document ID. |
+| Two-pane split layout | `ui.splitter` | Resizable horizontal or vertical split. Good for list + detail, but full-page replace is simpler for the document card. |
+| Card container | `ui.card` | Dropped shadow container. Use for document card header area, form sections in Settings. |
+| Vertical / horizontal flex | `ui.column`, `ui.row` | Context-manager based. `ui.column().classes('w-full gap-4')` is the bread-and-butter layout. |
+| Notification toast | `ui.notify()` | Built-in. Replaces `st.toast`. Accepts `type='warning'`, `type='positive'`, etc. |
+| Light mode lock | `ui.dark_mode(value=False)` | Call once per page. Overrides global dark/system setting. Value=False = always light. |
+| Custom CSS | `ui.add_head_html('<style>...</style>')` | For global resets, font-face, Tailwind component classes via `@layer components`. |
+| Color theme | `ui.colors(primary='#...', secondary='#...')` | Sets Quasar color tokens globally. Call once at app startup. |
 
-**Document status in SQLite:**
-No new library needed. Add a `status` column (`draft` / `active` / `expiring` / `expired`) and a `deadline_date` column to the existing documents table. APScheduler runs a daily job that updates statuses via direct SQLite writes.
-
----
-
-### 2. In-App Notifications
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| Streamlit built-in `st.toast` | ≥1.25.0 (already installed) | Show deadline alerts in the UI | Zero dependencies. Already available. Duration configurable. Stacks multiple toasts. 2025 fixes: respects theme colors, works inside dialogs. |
-
-**Pattern:**
-```python
-# On app startup / rerun, check for pending alerts
-alerts = db.get_unread_alerts()
-for alert in alerts:
-    st.toast(f"Срок истекает: {alert.doc_name} — {alert.deadline}", icon="⚠️")
-    db.mark_alert_read(alert.id)
-```
-
-No extra library needed for in-app notifications. `st.toast` is sufficient.
-
----
-
-### 3. Telegram Notifications
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| python-telegram-bot | 22.7 | Send deadline alerts to Telegram | Standard library. Bot.send_message() works standalone — no full bot framework needed, just instantiate `Bot(token)` and call `await bot.send_message(chat_id=..., text=...)`. Async-native since v20. |
-
-**Why python-telegram-bot, not raw requests to Telegram HTTP API:**
-The HTTP API approach requires manual error handling, retry logic, and parse_mode encoding. python-telegram-bot provides all of this. For a one-way notification sender (not a bot that receives commands), only `telegram.Bot` is used — the full `Application` framework is not needed.
-
-**Minimal usage pattern (one-way push):**
-```python
-import asyncio
-from telegram import Bot
-
-async def send_deadline_alert(token: str, chat_id: str, text: str) -> None:
-    async with Bot(token) as bot:
-        await bot.send_message(chat_id=chat_id, text=text, parse_mode="HTML")
-
-# Call from APScheduler job (which runs in a thread, not async context):
-asyncio.run(send_deadline_alert(token, chat_id, text))
-```
-
-**Why not aiogram:**
-aiogram is a full async bot framework optimized for bots that receive user commands. For outbound-only notifications, it is overkill and has a steeper learning curve.
-
-**User setup requirement:**
-User must create a Telegram bot via @BotFather, obtain a token, and start a conversation with the bot to get their `chat_id`. This is a one-time setup. Store token + chat_id in `.env` / Streamlit Secrets.
-
----
-
-### 4. Multi-Provider LLM Abstraction
-
-**Decision: Thin wrapper over existing openai SDK — do NOT add LiteLLM.**
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| openai SDK (already installed) | 1.30.0+ | Unified interface to all providers | All target providers (ZAI/GLM, OpenRouter, Ollama, vLLM) expose OpenAI-compatible `/v1/chat/completions` endpoints. The SDK's `base_url` parameter already supports this. No new dependency needed. |
-
-**Why not LiteLLM:**
-LiteLLM 1.82.x is a 50+ transitive dependency tree. It adds significant install size to a Streamlit Cloud deployment (which has memory limits). The project's three current providers (GLM via ZAI, Claude via OpenRouter, future local QWEN via Ollama/vLLM) all speak OpenAI-compatible JSON. LiteLLM solves a problem this project doesn't have: abstracting fundamentally incompatible APIs (e.g., Anthropic's native format). Since even Anthropic models are accessed through OpenRouter here, the openai SDK with a configurable `base_url` is sufficient.
-
-**Why not LangChain:**
-LangChain adds even heavier dependencies and is designed for agent pipelines and RAG chains. ЮрТэг's AI usage is a single structured extraction call per document — there is no chain to build.
-
-**Recommended implementation — `ProviderRouter` in `modules/ai_provider.py`:**
-
-```python
-from dataclasses import dataclass
-from openai import OpenAI
-
-@dataclass
-class ProviderConfig:
-    name: str          # "glm" | "openrouter" | "local"
-    base_url: str
-    api_key: str
-    model: str
-
-def build_client(cfg: ProviderConfig) -> OpenAI:
-    return OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
-```
-
-`config.py` holds a list of `ProviderConfig` objects; `ai_extractor.py` iterates them on failure. This is the entire abstraction needed — ~30 lines, zero new dependencies.
-
-**For future local QWEN (Веха 3):**
-Run Ollama locally; it exposes `http://localhost:11434/v1` with OpenAI-compatible API. Same `build_client()` call, `api_key="ollama"`.
-
----
-
-### 5. API Layer (Business Logic Separation)
-
-| Technology | Version | Purpose | Why Recommended |
-|------------|---------|---------|-----------------|
-| FastAPI | 0.135.1 | HTTP API layer separating pipeline logic from Streamlit UI | Standard Python async API framework. Auto-generates OpenAPI docs. Pydantic validation built in. Enables future B2B on-premise API deployment without Streamlit dependency. |
-| uvicorn | 0.34.0+ | ASGI server to run FastAPI | Minimal, production-ready. Ships with FastAPI standard install. |
-
-**Architecture pattern:**
-```
-Streamlit UI  →  HTTP (localhost)  →  FastAPI app  →  pipeline modules
-                                                    →  SQLite DB
-```
-
-In desktop mode: FastAPI runs as a subprocess on `localhost:8000`; Streamlit calls it via `httpx` or `requests`. In on-premise B2B mode: FastAPI is deployed independently (Docker container); Streamlit becomes optional.
-
-**Why FastAPI over Flask:**
-FastAPI is async-native (matters for concurrent document processing), has built-in Pydantic validation (already used in the project's dataclasses), and auto-generates OpenAPI docs — useful for the "Tech-savvy юристы" segment that wants an API.
-
-**Immediate scope for Веха 1:**
-The API layer does not need to be fully deployed in this milestone. The correct approach is to extract business logic from `controller.py` into service classes that have no Streamlit imports. These service classes are then called both from a thin FastAPI router AND from the existing Streamlit `main.py`. This is the refactoring work; running FastAPI as a separate process is a subsequent step.
-
----
-
-## Supporting Libraries
+### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| httpx | 0.27.0+ | Async HTTP client for Streamlit → FastAPI calls | When FastAPI runs as a separate process. Not needed if service classes are called directly in the same process. |
-| pydantic | 2.x (already via FastAPI) | Request/response schema validation in FastAPI | Required by FastAPI; already used implicitly via openai SDK. |
+| nicegui | 3.9.0 | Core UI | Always |
+| nicegui[native] | 3.9.0 | Adds pywebview for desktop window | When building DMG/EXE deliverable. In dev, run without native=True. |
+| pywebview | >=5.0.1 | macOS WKWebView / Windows EdgeChromium window | Installed automatically via `nicegui[native]`. |
+
+No additional CSS framework, no JS bundler, no Vite. NiceGUI ships Tailwind + Quasar pre-bundled.
+
+---
+
+## Key API Patterns
+
+### Table with Sort, Filter, Row Click (ui.aggrid)
+
+```python
+from nicegui import ui
+
+columns = [
+    {'headerName': 'Документ', 'field': 'name', 'filter': 'agTextColumnFilter', 'floatingFilter': True, 'flex': 2},
+    {'headerName': 'Тип', 'field': 'doc_type', 'filter': 'agTextColumnFilter', 'floatingFilter': True, 'flex': 1},
+    {'headerName': 'Статус', 'field': 'status', 'filter': 'agTextColumnFilter', 'floatingFilter': True, 'flex': 1},
+    {'headerName': 'Срок', 'field': 'deadline', 'sortable': True, 'flex': 1},
+]
+
+grid = ui.aggrid({
+    'columnDefs': columns,
+    'rowData': rows,          # list of dicts from DocumentService
+    'rowSelection': 'single',
+    'defaultColDef': {'sortable': True, 'resizable': True},
+}).classes('w-full h-full')
+
+grid.on('rowClicked', lambda e: open_document(e.args['data']['id']))
+```
+
+**Data updates:** Assign directly to `grid.options['rowData']` then call `grid.update()`. Do NOT mutate the original `rows` list — NiceGUI v3 removed auto-detection of mutable object changes.
+
+### Full-Page View Transitions
+
+```python
+from nicegui import ui, app
+
+@ui.page('/')
+def registry_page():
+    # main registry with aggrid
+
+@ui.page('/doc/{doc_id}')
+def document_page(doc_id: int):
+    doc = document_service.get(doc_id)
+    # full-page card
+
+# Navigate programmatically:
+ui.navigate.to(f'/doc/{doc_id}')
+ui.navigate.back()
+```
+
+For SPA-style swap without URL change, use `ui.sub_pages({'/': registry, '/doc': doc_card})`.
+
+### Session State
+
+```python
+from nicegui import app
+
+# Store selected client across navigation
+app.storage.user['active_client_id'] = client_id
+
+# Read
+client_id = app.storage.user.get('active_client_id')
+```
+
+`app.storage.user` requires `app.storage.secret` set in `ui.run()`.
+
+### App Shell with Persistent Header + Tabs
+
+```python
+from nicegui import ui
+
+@ui.page('/')
+def main():
+    ui.dark_mode(value=False)
+
+    with ui.header().classes('bg-white border-b border-gray-200 px-6 py-3'):
+        ui.label('ЮрТэг').classes('text-lg font-semibold text-gray-900')
+        with ui.tabs().classes('ml-8') as tabs:
+            tab_docs = ui.tab('docs', label='Документы')
+            tab_templates = ui.tab('templates', label='Шаблоны')
+            tab_settings = ui.tab('settings', label='Настройки')
+
+    with ui.tab_panels(tabs, value=tab_docs).classes('w-full flex-1'):
+        with ui.tab_panel(tab_docs):
+            build_registry()
+        with ui.tab_panel(tab_templates):
+            build_templates()
+        with ui.tab_panel(tab_settings):
+            build_settings()
+```
+
+### Theming — Light Mode, Professional Palette
+
+```python
+from nicegui import ui
+
+# Called once at startup, before ui.run()
+ui.colors(
+    primary='#1A56DB',    # action blue — buttons, links, active states
+    secondary='#6B7280',  # muted gray
+    accent='#059669',     # status green (active contracts)
+    dark='#111827',
+    positive='#059669',
+    negative='#DC2626',
+    warning='#D97706',
+    info='#1A56DB',
+)
+
+# Per-page: force light mode
+ui.dark_mode(value=False)
+
+# Global font and base styles
+ui.add_head_html('''
+<style type="text/tailwindcss">
+  @layer base {
+    body { font-family: 'Inter', system-ui, sans-serif; }
+  }
+  @layer components {
+    .status-active { @apply bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded; }
+    .status-expiring { @apply bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded; }
+    .status-expired { @apply bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded; }
+  }
+</style>
+''')
+```
+
+### Integrating Existing Python Services
+
+Services are plain Python objects — no special wiring needed. Pass them into page functions as closures or module-level singletons:
+
+```python
+# services.py — initialized once at module level
+from modules.document_service import DocumentService
+from modules.template_service import TemplateService
+
+document_service = DocumentService(db_path='data/yurteg.db')
+template_service = TemplateService(db_path='data/yurteg.db')
+```
+
+```python
+# main.py
+from services import document_service
+
+@ui.page('/')
+def registry():
+    docs = document_service.list_all()   # direct call, no HTTP
+    grid = ui.aggrid({'rowData': docs, ...})
+```
+
+`app.on_startup` for one-time initialization (e.g., starting the reminder scheduler):
+
+```python
+from nicegui import app
+
+@app.on_startup
+async def startup():
+    reminder_service.start_scheduler()
+
+@app.on_shutdown
+async def shutdown():
+    reminder_service.stop_scheduler()
+```
+
+Background work (non-blocking):
+
+```python
+from nicegui import background_tasks, run
+
+# I/O-bound (e.g., calling llama-server)
+result = await run.io_bound(ai_extractor.extract, text)
+
+# CPU-bound (e.g., bulk anonymization)
+result = await run.cpu_bound(anonymizer.process, text)
+
+# Fire-and-forget
+background_tasks.create(process_file_async(path))
+```
+
+### Desktop Native Mode
+
+```python
+# config at module level — NOT inside if __name__ == '__main__'
+from nicegui import app
+
+app.native.window_args['title'] = 'ЮрТэг'
+app.native.window_args['min_size'] = (1024, 720)
+app.native.settings['ALLOW_DOWNLOADS'] = True
+
+ui.run(
+    native=True,
+    window_size=(1280, 800),
+    title='ЮрТэг',
+    storage_secret='yurteg-secret-key',
+    reload=False,            # disable hot-reload in production builds
+)
+```
+
+**Critical:** native configuration must be at module level, not inside `if __name__ == '__main__'` — native mode spawns a subprocess that ignores the main guard.
+
+**Install for native mode:**
+```bash
+pip install "nicegui[native]==3.9.0"
+# installs pywebview>=5.0.1 automatically
+```
 
 ---
 
 ## Installation
 
 ```bash
-# Deadline tracking + scheduling
-pip install APScheduler==3.11.2
+# Core — browser-based dev
+pip install "nicegui==3.9.0"
 
-# Telegram notifications
-pip install python-telegram-bot==22.7
+# With desktop window support
+pip install "nicegui[native]==3.9.0"
 
-# API layer
-pip install "fastapi[standard]==0.135.1"
-# uvicorn is included in fastapi[standard]
-
-# httpx (only needed if FastAPI runs as separate process)
-pip install httpx==0.27.0
+# No other UI dependencies needed
+# Streamlit can be removed from requirements.txt
 ```
 
-**No new dependency for multi-provider LLM** — openai SDK already installed.
+Remove from requirements.txt after migration is confirmed working:
+- `streamlit`
+- `streamlit-server-state` (if used)
 
 ---
 
@@ -180,15 +280,13 @@ pip install httpx==0.27.0
 
 | Recommended | Alternative | Why Not |
 |-------------|-------------|---------|
-| APScheduler 3.11.2 | schedule library | `schedule` runs in the main thread; blocks Streamlit renders. No persistence. Not suitable for long-running apps. |
-| APScheduler 3.11.2 | APScheduler 4.0 alpha | Still in alpha (a6 as of 2025). No stable release. Too risky for a team with no dedicated developer. |
-| APScheduler 3.11.2 | Celery + Redis | Massive overkill. Requires a Redis server. Not deployable as a single desktop .dmg. |
-| python-telegram-bot 22.7 | aiogram | Designed for interactive bots receiving commands. For outbound-only push, adds unnecessary complexity. |
-| python-telegram-bot 22.7 | raw Telegram HTTP API (requests) | No retry logic, no error handling, manual encoding. Not worth reinventing. |
-| Thin openai SDK wrapper | LiteLLM | 50+ transitive deps. Solves incompatible-API problems this project doesn't have (all providers speak OpenAI JSON). Adds Streamlit Cloud memory pressure. |
-| Thin openai SDK wrapper | LangChain | Designed for chains/agents/RAG. ЮрТэг makes single extraction calls — no chain needed. Even heavier than LiteLLM. |
-| FastAPI | Flask | Synchronous by default. No built-in Pydantic validation. FastAPI is the current standard for new Python API projects. |
-| FastAPI | Django REST Framework | Server-side rendered framework assumptions. Way too heavy for an internal API layer in a desktop app. |
+| `ui.aggrid` for main registry | `ui.table` (Quasar QTable) | `ui.table` has set_filter() and sortable columns but no floating mini-filters in column headers. For 500+ document registries with per-column filtering, AG Grid is materially better UX. |
+| `ui.table` for templates list | `ui.aggrid` | Templates list is small (10–30 rows), rarely filtered. Quasar QTable is lighter and feels more native for a simple list. |
+| `ui.navigate.to('/doc/{id}')` | `ui.sub_pages` in-place swap | Full URL navigation is simpler, supports browser back button, and is easier to implement per-client state. Sub_pages is better for dashboards that need instant switching without URL changes. |
+| NiceGUI | Streamlit | Streamlit's rerun model makes it impossible to have persistent UI state (like an open document card) alongside a running pipeline. Every interaction triggers a full script rerun. This caused the toolbar/state hacks in v0.4-v0.5. |
+| NiceGUI | PyQt6 / Tkinter | Python GUI toolkits give no web renderer, no Tailwind, no Quasar components. Would require hand-building every table, tab, and toast. |
+| NiceGUI | Electron + FastAPI | Requires Node.js, a bundler, and a separate frontend codebase. Three-lawyer team with no developer cannot maintain that split. |
+| NiceGUI | Flet (Flutter) | Flet 0.x is Flutter-based — good mobile story, poor web/Tailwind story. Less ecosystem maturity than NiceGUI. No AG Grid equivalent. |
 
 ---
 
@@ -196,31 +294,12 @@ pip install httpx==0.27.0
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| LiteLLM | 50+ deps, >200MB install with all extras; overkill when all providers are already OpenAI-compatible | Thin `ProviderRouter` wrapper over existing openai SDK |
-| LangChain | Adds complexity and weight for what is a single structured prompt call | Direct openai SDK call with configurable `base_url` |
-| APScheduler 4.x alpha | Alpha software, breaking API changes expected, no stable docs | APScheduler 3.11.2 (stable branch) |
-| Celery | Requires external broker (Redis/RabbitMQ); not compatible with single-process desktop deployment | APScheduler BackgroundScheduler |
-| Direct `st.*` calls from APScheduler threads | Raises `NoSessionContext` — scheduler thread has no Streamlit session | Write to SQLite; UI reads on rerender |
-| `streamlit-server-state` | Adds a cross-session shared state abstraction — increases complexity; unnecessary when scheduler writes to SQLite | APScheduler + SQLite alert table pattern |
-
----
-
-## Stack Patterns by Variant
-
-**If deploying on-premise (B2B крупный инхаус):**
-- Run FastAPI as a standalone Docker container
-- Remove Streamlit dependency from production image
-- Mount SQLite file as a Docker volume
-- Expose FastAPI on internal network; optionally add an nginx reverse proxy
-
-**If staying desktop-only:**
-- Call service classes directly from Streamlit without running FastAPI as a separate process
-- FastAPI router stays as dead code ready to activate — zero runtime cost
-- APScheduler BackgroundScheduler starts in `main.py` at app launch, runs daemon thread
-
-**If adding local QWEN (Веха 3):**
-- Add `ProviderConfig(name="local", base_url="http://localhost:11434/v1", api_key="ollama", model="qwen2.5:1.5b")` to config
-- Zero code changes in `ai_extractor.py`
+| `.tailwind()` method | Removed in NiceGUI v3. Raises AttributeError. | `.classes('tailwind-class-name')` |
+| Mutating original `rows` list to update table | NiceGUI v3 no longer detects mutable object changes. Table will not update. | `grid.options['rowData'] = new_rows; grid.update()` |
+| Placing native config inside `if __name__ == '__main__'` | Subprocess ignores main guard — config silently not applied. | Module-level `app.native.window_args[...]` |
+| `ui.run(reload=True)` in production DMG | Hot-reload file watcher causes issues inside PyInstaller bundles. | `ui.run(reload=False)` |
+| Streamlit patterns (st.session_state, st.rerun) | Do not exist in NiceGUI. | `app.storage.user`, reactive bindings, `ui.update()` |
+| Global scope UI elements (v2 auto-index pattern) | Removed in NiceGUI v3. Shared auto-index client gone. | `@ui.page('/')` decorator for all pages |
 
 ---
 
@@ -228,27 +307,31 @@ pip install httpx==0.27.0
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| APScheduler 3.11.2 | Python 3.8–3.12 | Requires `pytz` for timezone-aware triggers; `tzlocal` recommended |
-| python-telegram-bot 22.7 | Python 3.8–3.13 | Requires `httpx` internally; async-only since v20 |
-| FastAPI 0.135.1 | Python 3.8–3.13 | Requires `pydantic >=2.0`; fastapi[standard] pins compatible uvicorn |
-| openai 1.30.0+ (existing) | All above | No conflicts; openai SDK is the abstraction layer for all LLM calls |
+| nicegui 3.9.0 | Python 3.10–3.13 | Minimum Python bumped to 3.10 in v3 |
+| nicegui 3.9.0 | fastapi >=0.109.1 | FastAPI is a core dep, not optional |
+| nicegui 3.9.0 | pywebview >=5.0.1, <7 | Optional, via `nicegui[native]` |
+| nicegui 3.9.0 | pydantic-core >=2.35.0 | Pinned; do not downgrade pydantic for other deps |
+| pywebview 5.x | macOS 12+ | WKWebView backend. Works on macOS 12 Monterey and later. |
+| pywebview 5.x | Windows 10+ | EdgeChromium backend. .NET not required for pywebview 5.x (unlike older versions). |
+
+**Existing stack compatibility:** NiceGUI brings its own FastAPI and uvicorn. If the project already uses FastAPI for services, they can share the same app instance via `app.include_router()`. The openai SDK, pdfplumber, natasha, sqlite3, and all other pipeline modules are unaffected — NiceGUI is purely a UI concern.
 
 ---
 
 ## Sources
 
-- [APScheduler PyPI — version 3.11.2 confirmed](https://pypi.org/project/APScheduler/) — MEDIUM confidence
-- [APScheduler 3.x User Guide — BackgroundScheduler docs](https://apscheduler.readthedocs.io/en/3.x/userguide.html) — HIGH confidence
-- [Streamlit Threading — official docs on ScriptRunContext and background threads](https://docs.streamlit.io/develop/concepts/design/multithreading) — HIGH confidence
-- [st.toast — official Streamlit docs, 2025 release notes confirming duration + theme fixes](https://docs.streamlit.io/develop/api-reference/status/st.toast) — HIGH confidence
-- [python-telegram-bot PyPI — v22.7 confirmed Mar 16, 2026](https://pypi.org/project/python-telegram-bot/) — HIGH confidence
-- [LiteLLM GitHub — 100+ provider support, OpenAI-compatible routing](https://github.com/BerriAI/litellm) — HIGH confidence
-- [LiteLLM OpenAI-compatible endpoints docs](https://docs.litellm.ai/docs/providers/openai_compatible) — HIGH confidence
-- [FastAPI PyPI — v0.135.1 confirmed](https://pypi.org/project/fastapi/) — HIGH confidence
-- [FastAPI + Streamlit two-tier architecture pattern](https://pybit.es/articles/from-backend-to-frontend-connecting-fastapi-and-streamlit/) — MEDIUM confidence
-- [python-telegram-bot Bot.send_message docs v22.7](https://docs.python-telegram-bot.org/telegram.bot.html) — HIGH confidence
+- [NiceGUI official docs — nicegui.io/documentation](https://nicegui.io/documentation) — HIGH confidence
+- [NiceGUI pyproject.toml — github.com/zauberzeug/nicegui/blob/main/pyproject.toml](https://github.com/zauberzeug/nicegui/blob/main/pyproject.toml) — HIGH confidence (verified pywebview >=5.0.1, fastapi >=0.109.1, Python >=3.10)
+- [NiceGUI v3 changelog discussion — github.com/zauberzeug/nicegui/discussions/5331](https://github.com/zauberzeug/nicegui/discussions/5331) — HIGH confidence (.tailwind() removed, mutable objects change, auto-index removed)
+- [ui.table docs — nicegui.io/documentation/table](https://nicegui.io/documentation/table) — HIGH confidence
+- [ui.aggrid docs — nicegui.io/documentation/aggrid](https://nicegui.io/documentation/aggrid) — HIGH confidence
+- [ui.navigate docs — nicegui.io/documentation/navigate](https://nicegui.io/documentation/navigate) — HIGH confidence
+- [ui.dark_mode docs — nicegui.io/documentation/dark_mode](https://nicegui.io/documentation/dark_mode) — HIGH confidence
+- [Section: Pages & Routing — nicegui.io/documentation/section_pages_routing](https://nicegui.io/documentation/section_pages_routing) — HIGH confidence (sub_pages, app.storage)
+- [Section: Configuration & Deployment — nicegui.io/documentation/section_configuration_deployment](https://nicegui.io/documentation/section_configuration_deployment) — HIGH confidence (app.native, ui.run params)
+- [Section: Styling & Appearance — nicegui.io/documentation/section_styling_appearance](https://nicegui.io/documentation/section_styling_appearance) — HIGH confidence (CSS layers, add_head_html, classes)
 
 ---
 
-*Stack research for: ЮрТэг Веха 1 — deadline tracking, notifications, multi-provider LLM, API layer*
-*Researched: 2026-03-19*
+*Stack research for: ЮрТэг v0.6 — NiceGUI UI migration*
+*Researched: 2026-03-21*

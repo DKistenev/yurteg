@@ -1,110 +1,298 @@
 # Pitfalls Research
 
-**Domain:** Legal document management — deadline tracking, multi-provider AI, on-premise deployment
-**Researched:** 2026-03-19
-**Confidence:** MEDIUM (domain-specific + codebase analysis HIGH; some on-premise enterprise patterns LOW due to single WebSearch sources)
+**Domain:** Streamlit → NiceGUI migration, desktop Python app (legal document processing)
+**Researched:** 2026-03-21
+**Confidence:** HIGH (most pitfalls confirmed via official NiceGUI GitHub issues, FAQs, and verified bug reports)
+
+> This file replaces the v0.4/v0.5 pitfalls doc and focuses on the v0.6 UI migration.
+> Previous milestone pitfalls (deadline tracking, multi-provider AI) remain valid as business logic is unchanged.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Deadline Dates Extracted by AI Are Not Validated Before Storing
+### Pitfall 1: Global Scope UI Elements Shared Across All Clients
 
 **What goes wrong:**
-AI extracts `date_end` from contract text and stores it raw. Dates come back in a variety of formats ("31 декабря 2025 г.", "31.12.25", "2025-12-31"), some ambiguous, some wrong (hallucinated). The reminder system then fires on invalid dates — or silently never fires because `date_end` is NULL or unparseable. The user sees the reminder feature as broken, and stops trusting the product entirely.
+Any `ui.*` element created at module level (outside a `@ui.page`-decorated function) is shared across all browser connections. In multi-client mode — one NiceGUI server serving several lawyers — client A sees client B's document registry. The registry becomes a shared mutable blob.
 
 **Why it happens:**
-The existing `ai_extractor.py` already has fragile JSON parsing (CONCERNS.md line 41–45). Adding date fields to the same parser compounds the fragility. There is no dedicated date normalization step — dates from AI response are cast to the database schema as-is.
+Developers coming from Streamlit assume script-level code is per-session, because Streamlit reruns the entire script per user. NiceGUI is the opposite: module-level elements live once, globally, across all connections. There is no per-connection "rerun" model.
 
 **How to avoid:**
-After AI extraction, add a dedicated date normalization pass: parse every candidate date field through `dateutil.parser.parse()` with a fallback to None, store normalized ISO 8601 strings only, log the original raw string for audit. Set `confidence_date_end` flag (LOW/HIGH) based on whether normalization succeeded cleanly. Surface LOW-confidence dates in the UI with a warning before reminders fire.
+Every page must be wrapped in a `@ui.page('/')` decorated function. All state — selected client DB, current document, filter values — must live in `app.storage.user` or inside the page function's local scope, never in module-level Python variables.
+
+```python
+# WRONG — shared across all clients
+table = ui.table(columns=..., rows=...)
+
+# RIGHT — isolated per client connection
+@ui.page('/')
+def index():
+    table = ui.table(columns=..., rows=...)
+```
 
 **Warning signs:**
-- Regression test: process 20 real contracts and check that `date_end` is never stored as a non-ISO string
-- Any reminder fires on year 1970 or year 2099 (classic epoch/hallucination artifacts)
-- AI response parsing error rate above 5% in logs
+- One user's filter change affects another user's view in a different tab
+- Multi-client mode shows one lawyer's documents to another
 
-**Phase to address:** Deadline tracking phase (Milestone 1, before any reminder logic is written)
+**Phase to address:** Phase 1 (app scaffold) — establish the `@ui.page` architecture before building any screens.
 
 ---
 
-### Pitfall 2: Reminder Logic Built Into Streamlit Session State
+### Pitfall 2: Blocking the Async Event Loop with Synchronous SQLite Calls
 
 **What goes wrong:**
-Streamlit is a request-response framework with no persistent background process. If someone adds reminders by polling `datetime.now()` inside a Streamlit callback or by spawning a thread from `main.py`, the reminder check only runs while the browser tab is open. Close the tab — no reminders fire. The feature looks complete in a demo, works in local testing, then silently fails for actual users.
+Standard `sqlite3` is synchronous. Calling it directly inside an `async def` page handler or any async UI callback blocks the entire NiceGUI event loop. The UI freezes — no spinner, no button response — until the query finishes. With 500+ documents even a simple `SELECT *` causes a noticeable pause for all connected clients simultaneously.
 
 **Why it happens:**
-`main.py` is already 1,402 lines with logic interleaved in UI (CONCERNS.md line 7–9). The natural impulse is to add deadline checks directly in the render loop. Streamlit Community Cloud has no persistent process at all.
+NiceGUI runs on FastAPI/Starlette's asyncio event loop. Any blocking call that takes >10ms stalls every connected client. The existing ЮрТэг codebase uses plain `sqlite3`, which was fine for Streamlit (which spawns a new OS thread per session) but breaks NiceGUI's single-threaded async model.
 
 **How to avoid:**
-Decouple reminder state from Streamlit entirely. Store `next_reminder_at` and `reminded_at` in SQLite. Use one of: (a) a separate `scheduler.py` invoked by the user's OS scheduler (cron/Task Scheduler) — zero-dependency, works on-premise, (b) APScheduler as a background thread initialized at app startup with an explicit guard against double-registration. For Telegram channel (if chosen), the scheduler writes to a `pending_notifications` table; a separate lightweight process or cron script polls and delivers. Document that reminders require the app to be running or the scheduler script to be registered.
+Wrap every database call in `run.io_bound()`:
+
+```python
+from nicegui import run
+
+async def load_documents(client_id: str):
+    rows = await run.io_bound(db_service.get_all_documents, client_id)
+    table.rows = rows
+    table.update()
+```
+
+Alternatively migrate to `aiosqlite` for native async SQLite. For ЮрТэг, wrapping the existing `database.py` service calls with `run.io_bound()` is the lower-risk path — business logic remains unchanged.
 
 **Warning signs:**
-- Reminder logic lives in any function decorated with `@st.fragment` or called from a render function
-- Unit test for reminders requires a running Streamlit server
-- Reminder check passes in demo but no one tested overnight with tab closed
+- UI becomes unresponsive during any data load
+- NiceGUI WebSocket timeout errors appear in browser DevTools console
+- Spinner component never animates (event loop blocked before it can render)
 
-**Phase to address:** Deadline tracking phase — architecture decision must be made before first line of reminder code
+**Phase to address:** Phase 1 (DB integration layer) — establish the async wrapper pattern before wiring any UI element to data.
 
 ---
 
-### Pitfall 3: Multi-Provider Abstraction Drifts Into a Custom LLM Framework
+### Pitfall 3: llama-server Subprocess Leaked on App Close
 
 **What goes wrong:**
-"We need to switch between GLM, Claude, and local QWEN" sounds like it requires a complex abstraction layer. The team builds provider-specific adapters, retry logic per provider, routing rules, and a config system. Three months later the "abstraction" is bigger than the feature it serves, has its own bugs, and no one on the team (3 lawyers, no developer) can debug it. When a provider's API changes, the whole thing breaks.
+`llama-server` is started as a `subprocess.Popen()` child. When the NiceGUI window closes in native mode, `app.on_shutdown()` is **not reliably called** — this is a confirmed, documented NiceGUI bug (issue #2107). The llama-server process keeps running in the background, consuming ~1.5 GB RAM and a CPU core indefinitely after the user has "closed" the app.
 
 **Why it happens:**
-The codebase already uses `openai` SDK with a base_url override (the correct approach for GLM compatibility). The temptation is to wrap this further. CONCERNS.md line 149–153 flags the existing three-tiered fallback as already hard to reason about.
+`native=True` uses pywebview. When the OS window closes, the webview quits, but the underlying asyncio/FastAPI server does not always trigger the full shutdown lifecycle on macOS. This is a NiceGUI issue, not a user error.
 
 **How to avoid:**
-Do not build a custom abstraction. The `openai` Python SDK with `base_url` + `api_key` parameters already works for GLM, OpenRouter, and any OpenAI-compatible endpoint. For local QWEN (when it arrives in Milestone 3), Ollama exposes an OpenAI-compatible API — same pattern. The entire "multi-provider" feature is: a config entry per provider (name, base_url, api_key env var, model string), a provider selector in `config.py`, and a single factory function `build_client(provider_name) -> openai.OpenAI`. Nothing else. If LiteLLM is considered, be aware it adds ~500µs latency per call and non-trivial deployment complexity with no benefit over the base_url pattern for this use case.
+Register cleanup on both shutdown and disconnect hooks, plus `atexit` as a final safety net:
+
+```python
+app.on_disconnect(provider_manager.stop_local_server)
+app.on_shutdown(provider_manager.stop_local_server)
+
+import atexit
+atexit.register(provider_manager.stop_local_server)
+```
+
+On macOS, also handle `signal.SIGTERM` since PyInstaller-packaged apps may receive SIGTERM instead of a graceful shutdown event.
 
 **Warning signs:**
-- Any new file called `router.py`, `gateway.py`, or `llm_manager.py`
-- Provider-specific classes that inherit from a base `LLMProvider`
-- Retry logic duplicated per provider instead of a single `retry_with_backoff()` utility
+- `ps aux | grep llama` shows server running after the app window was closed
+- RAM usage does not drop after closing the app
+- Second app launch fails with "port already in use" on llama-server's port (default 8080)
 
-**Phase to address:** Multi-provider phase (Milestone 1) — enforce the base_url pattern as the only approach before any code is written
+**Phase to address:** Phase 2 (local LLM wiring) — implement triple-layer cleanup from day one, not as a post-launch fix.
 
 ---
 
-### Pitfall 4: On-Premise "Readiness" Implemented as an Installer, Not an Architecture
+### Pitfall 4: Double Initialization on Startup Launches llama-server Twice
 
 **What goes wrong:**
-The team interprets "on-premise readiness" as packaging the app into a .exe or Docker image. The enterprise client IT team installs it and immediately asks: "Where is the audit log? How do we disable external API calls? How do we integrate with AD? How does our security team verify what data leaves the machine?" None of these are answered. The sale fails not because the product is bad but because it lacks enterprise trust signals — the same reason DIRECTUM implementations failed at target accounts (PROJECT.md line 67–68).
+With `reload=True` (NiceGUI's default setting), the main module runs twice: once in the parent process, once in the child subprocess. Any code at module level — including `subprocess.Popen(llama_server)`, HuggingFace model downloads, and DB schema initialization — executes twice. Two llama-server processes start simultaneously on the same port. The second one crashes and the error is silent.
 
 **Why it happens:**
-CustDev confirmed security is barrier #1 (PROJECT.md line 61). But security for enterprise means specific, auditable answers — not just "it runs locally." The MVP has no authentication, no audit log, and the anonymization pipeline sends text to external APIs (CONCERNS.md line 87–91).
+NiceGUI's hot-reload spawns a subprocess where `__name__ == '__mp_main__'`, bypassing the standard `if __name__ == '__main__'` guard. Import-time side effects in NiceGUI itself (FastAPI init, ~200 element class loading) also double-run (issue #5684).
 
 **How to avoid:**
-On-premise readiness is a checklist of trust signals, not a deployment format. The minimum viable list for the Крупный инхаус / юроотдел segment: (1) a `--local-only` mode flag that disables all external API calls and forces local LLM only, (2) an append-only `audit.log` recording every file processed, which model was called, and whether data left the machine, (3) a clear UI banner stating what goes to external APIs when local-only mode is off, (4) `config.py` allowing full API endpoint override (so IT can point to an internal proxy). Authentication (AD/LDAP) is Milestone 2+ and must not be bundled into Milestone 1 scope.
+Always use `reload=False` in production. Wrap all startup side effects in `app.on_startup()`:
+
+```python
+app.on_startup(provider_manager.autostart_local_server)
+ui.run(reload=False, native=True, host='127.0.0.1', port=8888)
+```
 
 **Warning signs:**
-- On-premise "done" is declared when Docker image builds successfully
-- No `--local-only` flag exists
-- Security team's first question ("what data leaves the machine?") takes more than 30 seconds to answer from the UI
+- Two llama-server processes visible in Activity Monitor immediately after launch
+- "Address already in use" error on llama-server port in logs
+- DB migration runs twice causing SQLite constraint errors in logs
 
-**Phase to address:** Architecture/on-premise phase (Milestone 1) — `--local-only` flag and audit log must ship together, not as separate items
+**Phase to address:** Phase 1 (app entrypoint scaffolding) — set `reload=False` and move all startup logic to `app.on_startup` before any feature code is added.
 
 ---
 
-### Pitfall 5: SQLite Schema Migration Breaks Existing User Databases on Update
+### Pitfall 5: `ui.upload` Provides No File Path — Only Bytes in Memory
 
 **What goes wrong:**
-Milestone 1 adds new columns: `date_end`, `date_start`, `status` (active/expiring/expired), `next_reminder_at`, `reminded_at`. The existing silent `try/except OperationalError` migration (CONCERNS.md line 157–158) adds columns if they don't exist — but does not backfill them, does not handle renamed columns, and has no migration tracking. A user who upgrades from MVP loses their processed flag or gets NULL deadlines for all previously processed contracts, with no explanation.
+`ui.upload` does not expose the original file's path on disk. It delivers file content as bytes via the `on_upload` callback. The existing ЮрТэг pipeline (`scanner.py`, `extractor.py`, `controller.py`) works with `pathlib.Path` objects throughout. Wiring `ui.upload` directly to the pipeline breaks immediately at the type boundary.
 
 **Why it happens:**
-Tech debt already documented in CONCERNS.md. Adding more columns to an already fragile migration system compounds the risk rather than resolving it.
+Browser security prevents JavaScript from accessing real filesystem paths, and NiceGUI's `ui.upload` follows browser semantics even in native desktop mode.
 
 **How to avoid:**
-Before adding any new columns, replace the `try/except` migration with a versioned migration table: `CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT)`. Each migration is a numbered function that checks whether it's been applied. This is 50 lines of code and eliminates the entire class of silent migration bugs. Backfill `status = 'active'` for all existing rows when the deadline columns are added (safe default).
+Use the native OS file picker instead of `ui.upload` for the batch import use case:
+
+```python
+# Native file dialog — returns actual Path objects
+result = await app.native.main_window.create_file_dialog(
+    allow_multiple=True,
+    file_types=['PDF files (*.pdf)', 'Word files (*.docx)']
+)
+paths = [Path(p) for p in result]
+await run.io_bound(controller.process_files, paths)
+```
+
+For individual file drop scenarios, save bytes to `tempfile.NamedTemporaryFile` and pass the temp path to the pipeline.
 
 **Warning signs:**
-- Any `ALTER TABLE` statement inside a `try/except OperationalError` block
-- No `schema_migrations` table in the database
-- Test that installs MVP, processes files, upgrades to Milestone 1 code, and verifies existing records intact — this test does not exist
+- `e.name` gives the filename but `e.content.read()` gives bytes with no path attribute
+- Pipeline errors: `TypeError: expected str, bytes or os.PathLike object`
 
-**Phase to address:** First thing in Milestone 1, before any feature code — migration infrastructure is a prerequisite for deadline columns
+**Phase to address:** Phase 2 (file import screen) — choose native picker vs. upload widget as an explicit architecture decision before any import UI is built.
+
+---
+
+### Pitfall 6: Large File Downloads Block the Event Loop
+
+**What goes wrong:**
+`ui.download(content, filename)` where `content` is a large bytes object (Excel export of 300+ documents can reach 50–200 MB) freezes the entire NiceGUI event loop before the download starts. All other UI interactions halt. For files ≥1 GB (e.g., bulk PDF archive exports) the download silently fails with no error message shown (issue #3756).
+
+**Why it happens:**
+`ui.download()` serializes the full content synchronously in the async event loop before streaming to the browser. This is a known NiceGUI limitation with no built-in workaround.
+
+**How to avoid:**
+Serve large files via a FastAPI route. NiceGUI exposes its underlying FastAPI app as `app`:
+
+```python
+from fastapi.responses import FileResponse
+from nicegui import app as nicegui_app
+
+@nicegui_app.get('/export/registry')
+async def export_registry(client_id: str):
+    path = await run.io_bound(reporter.generate_excel, client_id)
+    return FileResponse(str(path), filename='registry.xlsx',
+                        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+# In UI:
+ui.link('Скачать реестр', '/export/registry?client_id=...')
+```
+
+**Warning signs:**
+- UI hangs for 5–10 seconds after clicking "Export to Excel" with a large dataset
+- Browser shows no download progress bar, then file appears suddenly
+- With very large datasets, browser tab shows "Waiting for response…" indefinitely
+
+**Phase to address:** Phase 3 (export/reporting features) — always route file downloads through FastAPI `FileResponse`, never through `ui.download` for any file that could exceed 5 MB.
+
+---
+
+### Pitfall 7: Tailwind Dynamic Class Names Silently Ignored
+
+**What goes wrong:**
+NiceGUI uses Tailwind CSS in JIT mode. Class names constructed dynamically in Python (e.g., `f'bg-{color}-500'`) are not present in the initial HTML, so Tailwind's JIT purger excludes them from the generated CSS. The class appears in the DOM via DevTools but has zero CSS rules attached — the style is silently not applied.
+
+**Why it happens:**
+Tailwind JIT scans source files for class name strings at build/startup time. Dynamically constructed strings are invisible to the scanner. This is documented Tailwind behavior that surprises Python developers who are not familiar with Tailwind's compilation model.
+
+**How to avoid:**
+Never construct Tailwind class names dynamically via string interpolation. Always use full, literal class name strings:
+
+```python
+# WRONG
+status = 'expiring'
+row.classes(f'bg-{status}-100')  # Tailwind never sees 'bg-expiring-100'
+
+# RIGHT — use a lookup dict with literal strings
+STATUS_COLORS = {
+    'active':   'bg-green-50 text-green-700',
+    'expiring': 'bg-yellow-50 text-yellow-700',
+    'expired':  'bg-red-50 text-red-700',
+}
+row.classes(STATUS_COLORS[status])
+```
+
+For reusable component styles, define them via `ui.add_head_html('<style type="text/tailwindcss">@layer components { .doc-card { @apply rounded-lg border ... } }</style>')`.
+
+**Warning signs:**
+- Element has the expected class name in browser DevTools inspector
+- No visual change — class has no associated CSS rule in the Styles panel
+- Works with hardcoded class strings, breaks when class name is computed from a variable
+
+**Phase to address:** Phase 2 (theming and component library) — document the styling conventions including this constraint before any screen is built.
+
+---
+
+### Pitfall 8: PyInstaller Misses NiceGUI Static Assets — App Crashes on Launch
+
+**What goes wrong:**
+PyInstaller-bundled app crashes on launch with `RuntimeError: Static directory does not exist` or shows blank pages. NiceGUI copies its `static/` and `templates/` directories (~15 MB of JS/CSS/font assets) to a temp path at startup, but PyInstaller doesn't include them unless explicitly told to (discussion #1135, issue #355).
+
+**Why it happens:**
+PyInstaller traces Python imports but ignores data files accessed via `__file__`-relative paths. NiceGUI's assets are non-Python files.
+
+**How to avoid:**
+Add explicit `datas` entries to the `.spec` file:
+
+```python
+import nicegui
+datas = [
+    (str(Path(nicegui.__file__).parent / 'static'), 'nicegui/static'),
+    (str(Path(nicegui.__file__).parent / 'templates'), 'nicegui/templates'),
+]
+```
+
+Also: never use `--noconsole` / `--windowed` flags with NiceGUI unless the server is explicitly started outside the console process — it will silently fail to bind without any visible error.
+
+For macOS DMG: consider `briefcase` as an alternative to PyInstaller; it has better data-file handling and native macOS app bundle conventions. If staying with PyInstaller, test the `.app` bundle on a **clean machine without Python installed** before declaring packaging done.
+
+**Warning signs:**
+- App works with `python main.py` but crashes after PyInstaller build
+- Error message mentions "static" or "templates" paths not found
+- NiceGUI page loads completely blank (missing JS/CSS)
+
+**Phase to address:** Phase 4 (DMG packaging milestone v0.7) — dedicate a full phase to packaging. Do not treat it as a last step that takes an hour.
+
+---
+
+### Pitfall 9: Streamlit State Patterns Mapped Wrong to NiceGUI Equivalents
+
+**What goes wrong:**
+`st.session_state['selected_doc_id'] = 123` is a common Streamlit pattern. Developers migrating try to replicate this with `app.storage.user['selected_doc_id']`. It partially works, but `app.storage.user` is persisted to disk as a JSON file, is unavailable outside an active page request context, and raises `RuntimeError: No storage available` when accessed from background tasks (pipeline callbacks, Telegram bot handlers, `app.on_startup`).
+
+**Why it happens:**
+`app.storage.user` requires an active HTTP session context (a browser cookie). Background workers and Telegram handlers have no request context. Streamlit's `st.session_state` was scoped to a single script rerun — a completely different model.
+
+**How to avoid:**
+Match storage to the right scope:
+
+| Use case | Right tool |
+|----------|-----------|
+| Ephemeral UI state within a page (selected row, open tab) | Plain Python variable in `@ui.page` closure |
+| State shared across page components within one session | Pass explicit object references or use a per-session class instance |
+| Background pipeline writing progress to UI | Module-level dict keyed by session ID |
+| Persistent user preferences (API key, default provider) | `app.storage.user` — fine here, it IS persistent by design |
+
+```python
+# Background pipeline can write here without request context:
+_pipeline_progress: dict[str, float] = {}
+
+async def run_pipeline(session_id: str):
+    _pipeline_progress[session_id] = 0.0
+    await run.io_bound(controller.process, session_id,
+                       progress_callback=lambda p: _pipeline_progress.update({session_id: p}))
+```
+
+**Warning signs:**
+- `RuntimeError: No storage available` in logs from a background task
+- `app.storage.user` data survives app restart unexpectedly (because it's on-disk JSON)
+- Telegram callback cannot read or write per-client UI state
+
+**Phase to address:** Phase 1 (state architecture design) — document and enforce the state model before any feature implementation begins.
 
 ---
 
@@ -112,12 +300,12 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Inline deadline check in Streamlit render loop | Fast to demo | Reminders only fire with tab open; silent failure in production | Never — reminders require persistent process |
-| One `ai_extractor.py` function handles all providers with if/elif | No abstraction layer needed | Provider logic tangled with extraction logic; any API change breaks all providers | MVP only — must refactor before third provider is added |
-| Store raw date strings from AI response directly | Skip normalization code | Dates in mixed formats break `ORDER BY date_end`; reminder arithmetic fails | Never — always normalize to ISO 8601 before persistence |
-| `try/except OperationalError` for schema additions | Works for adding columns | Masks errors, no rollback, silent data inconsistency on upgrades | MVP only — must replace before Milestone 1 ships |
-| Hardcode Telegram bot token in config | Quick notification channel | Token in version control; no rotation mechanism; bot becomes attack surface | Never — token must be in environment variable, not config file |
-| Use `datetime.date.today()` without timezone | Simple | Reminder fires at wrong local time for users in non-Moscow timezones | Never if product is distributed; acceptable if strictly single-machine local use |
+| Call `db_service` directly in `async def` callback (no `run.io_bound`) | Faster to write | UI freezes on any real dataset; hard to retrofit across dozens of callbacks | Never — establish the pattern from day one |
+| Module-level variables for per-client state | Simpler code | State leaks between clients; multi-client mode is broken by design | Never if multi-client is a product requirement |
+| `ui.download(bytes_content)` for Excel export | Simple one-liner | Freezes UI for files >10 MB; silent failure >1 GB | Only for files guaranteed <1 MB (e.g., JSON config export) |
+| `reload=True` during development | Hot-reload convenience | Starts llama-server twice per code change; 3–5 sec restart loop | Development only — never in production build or .app bundle |
+| Tailwind dynamic class construction via f-strings | DRY-looking code | Styles silently absent in production | Never — use lookup dict with literal strings |
+| Relying on `app.on_shutdown` alone for llama-server cleanup | Fewer lines of code | Orphaned server process on window close (documented NiceGUI bug) | Never |
 
 ---
 
@@ -125,11 +313,13 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| GLM / ZAI API | Assume OpenAI error codes map 1:1 | GLM returns different HTTP status codes for rate limits and content policy violations; test error handling against GLM specifically, not just OpenAI |
-| OpenRouter fallback | Treat OpenRouter as identical to GLM | OpenRouter adds its own rate limits and may silently route to a different model version; log `model` field from response, not just from request |
-| Local QWEN (future) | Assume Ollama OpenAI-compat layer handles all edge cases | Ollama's streaming and function-calling responses have subtle differences; test the full extraction prompt against Ollama before declaring it "works" |
-| Telegram notifications | Fire Telegram message synchronously in processing loop | Bot API calls block processing thread and can timeout; write to `pending_notifications` table, deliver asynchronously |
-| APScheduler in Streamlit | Start scheduler in module-level code | Streamlit reloads modules on code change; scheduler spawns duplicate threads; must guard with `if 'scheduler_started' not in st.session_state` |
+| `database.py` (SQLite) | Call sync service methods in `async def` callbacks | `await run.io_bound(db_service.method, *args)` for every DB call |
+| llama-server subprocess | Trust `app.on_shutdown` alone for process cleanup | Triple-layer: `app.on_shutdown` + `app.on_disconnect` + `atexit.register` |
+| Telegram bot | Access `app.storage.user` from bot handler thread | Module-level dict keyed by client/user ID; no request context in bot thread |
+| Excel reporter | `ui.download(reporter.generate_excel())` for large registries | FastAPI `FileResponse` route for any output >5 MB |
+| HuggingFace model download | Run at module import time | Run inside `app.on_startup` with a loading progress indicator |
+| File import pipeline | Wire `ui.upload` bytes directly to `scanner.py` | Use native OS file picker in desktop mode; pipeline expects `pathlib.Path` objects |
+| Multi-client DB switching | Single global `DatabaseService` instance | Each client session gets its own `DatabaseService(client_db_path)` instance stored per-session |
 
 ---
 
@@ -137,10 +327,11 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `get_all_results()` on every Streamlit rerender | UI becomes sluggish as contract count grows; database reads on every tab click | `@st.cache_data(ttl=30)` on the query function, invalidate on write | ~500 contracts in SQLite |
-| Checking deadline status in Python loop over all contracts | "Expiring soon" filter takes seconds | Add `status` column maintained by DB trigger or update-on-write; use `WHERE status = 'expiring'` SQL query | ~200 contracts |
-| NER (Natasha) model reload per file | Processing time grows linearly | Already partially addressed (CONCERNS.md); verify model cached at module level, not inside `process_file()` | From first batch — but noticeable only at ~50 files |
-| Scanning full directory tree on every "Refresh" click | Re-hashing large archives is slow | Cache last scan result with modification time check; only re-scan changed files | ~1000 files in source directory |
+| `ui.table` with 500+ rows, no pagination | Table renders slowly; scrolling is janky; memory pressure | Use `ui.table` with `pagination` prop or `virtual-scroll` | >200 rows |
+| Refreshing entire table on every background update | Visible flicker every few seconds | Update only changed rows via `table.update_rows([changed_row])` | >50 rows with periodic background refresh |
+| Running pipeline in main async loop without `run.io_bound` | UI completely unresponsive for entire processing duration | Always `await run.io_bound(controller.process, ...)` | Any dataset >1 file |
+| Loading all document metadata eagerly on page load | Slow initial render; visible delay before first interaction | Paginate DB queries; load document details only on row click | >100 documents |
+| Emitting UI progress update for every single file processed | WebSocket flooded; UI stutters | Batch updates — emit progress every N files or every 500ms | Pipeline with >20 files |
 
 ---
 
@@ -148,11 +339,10 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| No `--local-only` mode | Enterprise client has no way to guarantee data stays on-premise; single security question kills the sale | Implement `LOCAL_ONLY=true` env var that raises an exception if any external HTTP call is attempted; log it |
-| Audit trail is missing | On-premise client cannot answer "who processed what when" to their own security team | Append-only `audit.log` (file, not just database) with: timestamp, filename hash, provider used, whether data left machine |
-| Telegram bot token stored in `config.py` or `.env` committed to git | Token compromise means attacker can send messages to all users | Token only from environment variable; add `TELEGRAM_BOT_TOKEN` to `.gitignore` check; rotate on any accidental exposure |
-| Path traversal via counterparty names in organizer | Malicious filename like `../../etc/passwd` in extracted counterparty field could write outside output_dir | `Path.resolve()` check — verify output path starts with `output_dir.resolve()` before any write |
-| External API called even when `local_only=True` | User believes data is local, but validator L5 or fallback model silently calls external provider | All HTTP calls must check `config.LOCAL_ONLY` at call site; write a test that patches `httpx.Client.send` and asserts it's never called in local-only mode |
+| Binding NiceGUI server to `0.0.0.0` (default in some configs) | Other devices on the local network can access the document database without authentication | Always bind to `127.0.0.1`: `ui.run(host='127.0.0.1')` |
+| Storing API keys in `app.storage.general` (disk JSON in home dir) | Keys visible as plaintext in `~/.local/share/nicegui/` | Use OS keychain via `keyring` library or environment variables |
+| Logging anonymized document content to a file | Personal data leaks to log file | Log only filenames and document IDs; never log extracted text fields |
+| Using `app.add_media_files()` for user-uploaded content | Memory exhaustion DoS — CVE-2026-33332 allows attacker to bypass chunked streaming and force full file into RAM | Avoid `add_media_files` for user content; use FastAPI routes with explicit `Content-Length` validation |
 
 ---
 
@@ -160,22 +350,25 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Reminder shown only in app UI (banner/badge) | Lawyer closes laptop Friday, misses Monday deadline | Default reminder channel: OS notification via `plyer` or `win10toast`; Telegram opt-in for mobile coverage |
-| "Истекает через 30 дней" shown without date | Lawyer cannot verify if the reminder is correct | Always show both relative ("через 14 дней") and absolute ("31 марта 2026") |
-| Status "истёк" shown with no clear action | Lawyer sees a wall of expired contracts and doesn't know what to do | Group by status; for "истёк" show "требует внимания" with a filter to hide acknowledged items |
-| Multi-provider selector exposed as raw API URL input | Non-technical lawyer types wrong URL, gets cryptic connection error | Provider selector is a dropdown (GLM / Claude / Локальная); advanced users get "Свой провайдер" option with URL field |
-| "Обрабатывается..." spinner with no progress for 500-file archive | User thinks app crashed after 2 minutes | Show per-file progress (file N of M), ETA based on rolling average speed |
+| No progress feedback during pipeline run (can take 2–20 min for large archives) | User thinks app froze; force-quits; re-runs; double-processes files | Per-file progress with `ui.linear_progress` + file count label; show elapsed time |
+| Streamlit-style full page reload to "refresh" data | Visible flicker; scroll position reset; any open document card closes | In-place table update: `table.rows = new_data; table.update()` |
+| Raw Python exception messages shown to user | Confuses non-technical lawyers with tracebacks | Catch exceptions in every callback; show localized Russian message; log full traceback to file |
+| NiceGUI native window shows blank/black for 3–5 sec during startup | User clicks the window, sees nothing, assumes crash | Show startup splash via `app.native.main_window.set_title('ЮрТэг — загрузка...')` during server init |
+| File import requires knowing folder path | Non-technical users unsure what to type | Use native OS folder picker dialog — no typing required |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Deadline tracking:** AI extracts `date_end` and it displays in UI — but reminders actually fire with the app closed. Verify by closing the app, waiting past a test deadline, reopening, confirming reminder state.
-- [ ] **Multi-provider switching:** Provider dropdown switches between GLM and OpenRouter — but error handling was only tested against GLM's response format. Verify by intentionally causing a rate limit error on each provider and confirming graceful fallback.
-- [ ] **On-premise mode:** App runs without internet — but the initial startup still pings an external health check or OpenRouter availability check. Verify by starting app with `--local-only` behind a firewall and confirming zero outbound connections.
-- [ ] **Schema migration:** Milestone 1 columns added — but existing MVP databases from pre-release testers fail silently on upgrade. Verify by running migration against a SQLite file created by v0.4 code.
-- [ ] **Telegram reminders:** Notifications appear in Telegram — but only when the Streamlit session is active. Verify by sending a test reminder from a background process with Streamlit not running.
-- [ ] **Status column:** `status` field shows "истекает" — but old contracts processed before the column existed show NULL, not "активен". Verify backfill ran correctly on upgrade.
+- [ ] **llama-server cleanup:** Close app window → run `ps aux | grep llama` → no orphan process. Check again after 30 seconds.
+- [ ] **Multi-client isolation:** Open two browser tabs → switch active client in tab A → tab B must show zero change.
+- [ ] **Async DB calls:** Load 500-document dataset → table renders without any UI freeze or WebSocket timeout error.
+- [ ] **Large file download:** Export Excel with 300 docs → UI remains fully interactive during download → file arrives in browser.
+- [ ] **Tailwind dynamic styles:** Open browser DevTools → Styles panel for any element using computed class names → CSS rules must exist, not just class names in DOM.
+- [ ] **PyInstaller bundle:** Cold-start `.app` bundle on a Mac with no Python installed → app launches normally.
+- [ ] **Telegram + NiceGUI state:** Send document via Telegram bot → confirm it appears in correct client's registry → NiceGUI UI must reflect the change without manual refresh.
+- [ ] **Startup sequence:** Kill app mid-pipeline → relaunch → DB must not be in inconsistent state → pipeline resumes or reports error cleanly.
+- [ ] **`reload=False` in production build:** Confirm only one llama-server process appears in Activity Monitor at startup.
 
 ---
 
@@ -183,11 +376,14 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Reminder fires on hallucinated dates | MEDIUM | Add `confidence_date_end` column; re-run AI extraction with validation prompt on all rows where `confidence_date_end IS NULL`; do not delete old data |
-| Streamlit thread-based scheduler spawning duplicates | LOW | Add `scheduler_started` guard in session state; restart app; duplicate threads are harmless but waste RAM |
-| SQLite migration corrupts existing data | HIGH | Keep automatic backup (`db_backup_{timestamp}.sqlite`) before any migration runs; restore from backup; fix migration script; re-run |
-| LiteLLM (if adopted) causes latency regression | MEDIUM | Remove LiteLLM; revert to direct `openai.OpenAI(base_url=...)` factory; LiteLLM adds no value for this use case |
-| API key leaked in committed config | HIGH | Immediately rotate all keys (GLM, OpenRouter, Telegram); audit git history with `git log --all -S "api_key_value"`; add pre-commit hook checking for key patterns |
+| Global state leaking between clients | HIGH | Audit every module-level variable; refactor all page code to `@ui.page` closures; re-test multi-client |
+| Sync SQLite blocking event loop | MEDIUM | Add `run.io_bound` wrapper around each `database.py` call site in UI layer; no business logic change required |
+| Orphaned llama-server after close | LOW | Add `app.on_disconnect` + `atexit` hooks; test on macOS specifically |
+| Double init with `reload=True` | LOW | Set `reload=False`; move all side-effect code to `app.on_startup` |
+| PyInstaller missing static files | MEDIUM | Add `--add-data` directives to `.spec`; retest on a clean machine without Python |
+| Tailwind dynamic classes not applied | LOW | Replace all `f'class-{var}'` patterns with lookup dicts using literal strings |
+| Large file download freezes UI | MEDIUM | Replace all `ui.download(bytes)` calls with FastAPI `FileResponse` routes |
+| `app.storage.user` used in wrong context | MEDIUM | Audit all background tasks; replace with module-level state dicts keyed by session ID |
 
 ---
 
@@ -195,30 +391,57 @@ Before adding any new columns, replace the `try/except` migration with a version
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| AI date extraction not validated | Milestone 1 — deadline feature design | Integration test: process 20 contracts, assert all `date_end` values are ISO 8601 or NULL |
-| Reminders only fire with app open | Milestone 1 — deadline architecture decision | Close Streamlit, wait 60s past a test deadline, reopen — reminder state must be correct |
-| Custom LLM framework drift | Milestone 1 — multi-provider design | Code review gate: no new file named `router/gateway/manager`; `build_client()` is the only factory |
-| On-premise = installer only | Milestone 1 — architecture phase | Security checklist: `--local-only` flag exists, audit log writes, zero external calls in local-only mode |
-| SQLite migration breaks existing DBs | Milestone 1 — first task | Migration test against v0.4 SQLite file passes before any feature code merges |
-| Path traversal via counterparty names | Milestone 1 — on-premise hardening | Fuzz test: counterparty name `../../etc/passwd` must not write outside output_dir |
-| Telegram token in config | Milestone 1 — notification channel | Pre-commit hook or CI check: no string matching `bot[0-9]+:[A-Za-z0-9_-]{35}` in tracked files |
+| Global UI state shared across clients | Phase 1 — App scaffold & page architecture | Open two browser tabs; confirm fully isolated state |
+| Sync SQLite blocking event loop | Phase 1 — DB integration layer | Load 500-doc dataset; confirm no UI freeze or WebSocket timeout |
+| llama-server orphaned on close | Phase 2 — Local LLM wiring | Close app; `ps aux \| grep llama` shows zero processes |
+| Double initialization with `reload=True` | Phase 1 — App entrypoint | Launch app; Activity Monitor shows exactly one llama-server |
+| `ui.upload` gives no file path | Phase 2 — File import screen | Upload PDF via native picker; pipeline receives `Path` object |
+| Large download freezes UI | Phase 3 — Export features | Export 300-doc Excel; UI stays interactive throughout |
+| Tailwind dynamic classes ignored | Phase 2 — Theming and component library | DevTools Styles panel shows CSS rules for all status-based classes |
+| PyInstaller misses NiceGUI static assets | Phase 4 — DMG packaging | Cold-start `.app` on clean Mac; no "static directory" error |
+| `st.session_state` anti-pattern migration | Phase 1 — State architecture | Grep for `app.storage.user` in background task code; must be zero matches |
+
+---
+
+## Streamlit Patterns That Do Not Translate to NiceGUI
+
+| Streamlit Pattern | What It Does | NiceGUI Replacement | Key Trap |
+|-------------------|--------------|---------------------|----------|
+| `st.rerun()` | Forces full script re-execution to refresh UI | Not needed — update element `.rows`, `.text`, `.value` directly | "Triggering rerun" means clearing all local state |
+| `st.session_state` | Per-session ephemeral dict, any scope | Local variable in `@ui.page` closure; `app.storage.user` for persistence | `app.storage.user` is on-disk JSON, not ephemeral |
+| `@st.cache_data` | Memoizes expensive function results | `functools.lru_cache` or module-level dict | No built-in equivalent in NiceGUI |
+| `st.spinner()` context manager | Blocks script, shows spinner | `ui.linear_progress` shown/hidden explicitly around `await run.io_bound(...)` | NiceGUI spinner must be manually shown and hidden |
+| `st.sidebar` | Auto-collapsible sidebar | `ui.left_drawer()` | Must explicitly manage open/close state |
+| `st.file_uploader` | Upload → returns BytesIO with `.name` | `ui.upload` (bytes only) or native OS file picker (real Path) | Desktop use case → always use native picker |
+| Linear script flow (top to bottom) | Execution order = layout render order | Callback-based: layout defined at load, behavior at event | Entire control flow must be rethought as event handlers |
+| `st.columns([1, 2])` | Creates proportional column layout | `ui.row()` + Tailwind `w-1/3` / `w-2/3` classes | Column sizing syntax is completely different |
 
 ---
 
 ## Sources
 
-- CONCERNS.md codebase analysis (2026-03-19) — HIGH confidence, directly observed
-- PROJECT.md — CustDev findings on security barriers and СЭД PTSD — HIGH confidence
-- [5 Common Document Management Mistakes for Law Firms](https://lexworkplace.com/document-management-mistakes-law-firms/) — MEDIUM confidence
-- [How Poor Document Management Leads to Missed Deadlines](https://www.legalsoft.com/blog/poor-document-management-to-missed-deadlines) — MEDIUM confidence
-- [Six Common Pitfalls In Legal Tech Adoption](https://www.americanbar.org/groups/law_practice/resources/law-technology-today/2025/six-common-pitfalls-in-legal-tech-adoption/) — MEDIUM confidence
-- [Multi-provider LLM orchestration in production: A 2026 Guide](https://dev.to/ash_dubai/multi-provider-llm-orchestration-in-production-a-2026-guide-1g10) — MEDIUM confidence
-- [Why Multi-LLM Provider Support is Critical for Enterprises](https://portkey.ai/blog/multi-llm-support-for-enterprises/) — MEDIUM confidence
-- [LiteLLM Alternatives: Advanced Solutions](https://mljourney.com/litellm-alternatives-advanced-solutions-for-multi-model-llm-integration/) — LOW confidence (single source)
-- [Ten Python datetime pitfalls](https://dev.arie.bovenberg.net/blog/python-datetime-pitfalls/) — HIGH confidence
-- [Securely Deploying Streamlit Apps in Your Company](https://medium.com/snowflake-engineering/practical-solutions-for-securely-deploying-streamlit-applications-within-your-company-68735cbe9db2) — MEDIUM confidence
-- [Streamlit deployment and data security discussion](https://discuss.streamlit.io/t/streamlit-deployment-and-data-security/47013) — MEDIUM confidence
+- [NiceGUI FAQs Wiki — subprocess, reload, blocking, file upload path restriction](https://github.com/zauberzeug/nicegui/wiki/FAQs)
+- [NiceGUI issue #2107 — on_shutdown not called in native mode](https://github.com/zauberzeug/nicegui/issues/2107)
+- [NiceGUI issue #5684 — slow startup and code re-execution in multiprocessing contexts](https://github.com/zauberzeug/nicegui/issues/5684)
+- [NiceGUI issue #3756 — large file download freezes event loop](https://github.com/zauberzeug/nicegui/issues/3756)
+- [NiceGUI discussion #3220 — ui.upload stutters with large files](https://github.com/zauberzeug/nicegui/discussions/3220)
+- [NiceGUI discussion #3568 — how to upload big files that don't fit in memory](https://github.com/zauberzeug/nicegui/discussions/3568)
+- [NiceGUI discussion #836 — running a worker thread in background](https://github.com/zauberzeug/nicegui/discussions/836)
+- [NiceGUI discussion #1888 — using non-async libraries for def endpoints](https://github.com/zauberzeug/nicegui/discussions/1888)
+- [NiceGUI discussion #2082 — multiple clients from one browser](https://github.com/zauberzeug/nicegui/discussions/2082)
+- [NiceGUI discussion #1029 — global data store, per-user UI state](https://github.com/zauberzeug/nicegui/discussions/1029)
+- [NiceGUI issue #3753 — dark mode breaks Tailwind styling since NiceGUI 2.0](https://github.com/zauberzeug/nicegui/issues/3753)
+- [NiceGUI discussion #5240 — NiceGUI v3 removed CSS customization ability](https://github.com/zauberzeug/nicegui/discussions/5240)
+- [NiceGUI discussion #2337 — integrating Tailwind CSS components](https://github.com/zauberzeug/nicegui/discussions/2337)
+- [NiceGUI discussion #1806 — styling methods overview](https://github.com/zauberzeug/nicegui/discussions/1806)
+- [NiceGUI issue #355 — launching as executable with PyInstaller](https://github.com/zauberzeug/nicegui/issues/355)
+- [NiceGUI discussion #1135 — PyInstaller: static directory does not exist](https://github.com/zauberzeug/nicegui/discussions/1135)
+- [NiceGUI discussion #5331 — v3 breaking changes](https://github.com/zauberzeug/nicegui/discussions/5331)
+- [NiceGUI storage documentation](https://nicegui.io/documentation/storage)
+- [NiceGUI discussion #21 — why callbacks instead of Streamlit-like if-statements](https://github.com/zauberzeug/nicegui/discussions/21)
+- [CVE-2026-33332 — NiceGUI media route memory exhaustion vulnerability](https://advisories.gitlab.com/pkg/pypi/nicegui/CVE-2026-33332/)
+- [Oreate AI — NiceGUI page layout best practices](https://www.oreateai.com/blog/comprehensive-analysis-and-best-practices-guide-for-nicegui-page-layout/33d6025a4cc288327f2ed04df616323f)
 
 ---
-*Pitfalls research for: ЮрТэг — Milestone 1 (deadline tracking, multi-provider AI, on-premise readiness)*
-*Researched: 2026-03-19*
+*Pitfalls research for: ЮрТэг v0.6 — Streamlit → NiceGUI migration*
+*Researched: 2026-03-21*
