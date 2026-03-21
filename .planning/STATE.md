@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
-status: roadmap_ready
-stopped_at: null
-last_updated: "2026-03-21T18:30:00.000Z"
+status: unknown
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-21T21:24:58.109Z"
 last_activity: 2026-03-21
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -20,18 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Milestone v0.6 — UI-редизайн (roadmap ready, Phase 7 next)
+**Current focus:** Phase 07 — app-scaffold
 
 ## Current Position
 
-Phase: Phase 7 — App Scaffold + State Architecture (not started)
-Plan: —
-Status: Roadmap approved, ready to plan Phase 7
-Last activity: 2026-03-21 — Roadmap v0.6 created (6 phases, 36 requirements mapped)
-
-```
-Progress: [··········] 0/6 phases  0/0 plans
-```
+Phase: 07 (app-scaffold) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -80,6 +74,7 @@ Progress: [··········] 0/6 phases  0/0 plans
 | Phase 04-server-provider P02 | 2min | 2 tasks | 3 files |
 | Phase 05 P01 | 5min | 2 tasks | 3 files |
 | Phase 06-ai-extractor-wiring P01 | 3min | 2 tasks | 2 files |
+| Phase 07 P01 | 8min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -163,6 +158,7 @@ Recent decisions affecting current work:
 - [v0.6 Roadmap]: Phase 7 устанавливает @ui.page pattern и run.io_bound() до всех фич — иначе дорогой retrofit
 - [v0.6 Roadmap]: Phase 10 зависит от Phase 7 (async patterns), не от Phase 9 — параллельная разработка возможна
 - [v0.6 Roadmap]: Phase 12 (design polish) всегда последняя — полировать нестабильные компоненты = рискованный рефактор
+- [Phase 07]: build() functions take no arguments — call get_state() internally (cleaner sub_pages routing)
 
 ### Pending Todos
 
@@ -183,6 +179,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: v0.6 roadmap created (Phase 7-12)
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
