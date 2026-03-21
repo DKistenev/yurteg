@@ -35,7 +35,7 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 - [x] **Phase 7: App Scaffold + State Architecture** — NiceGUI запускается, AppState определён, архитектурные паттерны зафиксированы (completed 2026-03-21)
 - [x] **Phase 8: Registry View** — Реестр с реальными данными, AG Grid, фильтры, поиск, статус-бейджи (completed 2026-03-21)
 - [x] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией (completed 2026-03-21)
-- [ ] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени
+- [x] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени (completed 2026-03-21)
 - [ ] **Phase 11: Settings + Templates** — Страница настроек, управление шаблонами, переключение клиента
 - [ ] **Phase 12: Onboarding** — Splash screen с wizard, empty states, first-run flow
 - [ ] **Phase 13: Design Polish + Calendar** — Цветовая система, типографика, календарь, анимации
@@ -100,10 +100,10 @@ Plans:
   2. Прогресс-бар обновляется в реальном времени по мере обработки файлов (например «3/12 файлов»); UI не зависает
   3. После завершения обработки таблица реестра автоматически обновляется новыми строками без ручного перезапуска
   4. Ошибка на одном файле не останавливает обработку остальных; в логе виден файл и причина ошибки
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 10-01-PLAN.md — process.py (folder picker + async pipeline runner), upload button in header
-- [ ] 10-02-PLAN.md — Progress section in registry, on_upload wiring, visual verification
+- [x] 10-02-PLAN.md — Progress section in registry, on_upload wiring, visual verification
 
 ### Phase 11: Settings + Templates
 **Goal**: Юрист управляет провайдером AI, настройками анонимизации, Telegram-ботом и шаблонами ревью через отдельные страницы — без редактирования конфигов вручную
@@ -154,7 +154,7 @@ Plans:
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
-| 10. Pipeline Wiring | v0.6 | 1/2 | In Progress|  |
+| 10. Pipeline Wiring | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |
