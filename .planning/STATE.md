@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
-status: Roadmap ready, awaiting plan-phase
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-21T13:55:36.431Z"
-last_activity: 2026-03-21 — Roadmap v0.5 created
+status: unknown
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-21T14:08:10.825Z"
+last_activity: 2026-03-21
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -20,18 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 04 — сервер и провайдер (llama-server + OllamaProvider)
+**Current focus:** Phase 04 — server-provider
 
 ## Current Position
 
-Phase: Phase 4 — Сервер и провайдер (not started)
-Plan: —
-Status: Roadmap ready, awaiting plan-phase
-Last activity: 2026-03-21 — Roadmap v0.5 created
-
-```
-Progress: [░░░░░░░░░░] 0/2 phases
-```
+Phase: 04 (server-provider) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -76,6 +70,7 @@ Progress: [░░░░░░░░░░] 0/2 phases
 | Phase 03-integrations-multitenancy P10 | 74s | 1 tasks | 1 files |
 | Phase 03-integrations-multitenancy P11 | 5min | 1 tasks | 1 files |
 | Phase 03-integrations-multitenancy P09 | 3min | 1 tasks | 1 files |
+| Phase 04-server-provider P01 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -143,6 +138,9 @@ Recent decisions affecting current work:
 - [v0.5 Roadmap]: Анонимизация пропускается только для локального провайдера — ПД не покидают машину
 - [v0.5 Roadmap]: UI-переключатель провайдера — временный, для перехода на облако без перезапуска
 - [v0.5 Roadmap]: DMG/EXE бандлинг отложен — сначала интеграция, доставка отдельной вехой
+- [Phase 04-server-provider]: llama-server binary fetched from GitHub Releases per platform map — no manual install
+- [Phase 04-server-provider]: start() does not raise on failure — logs warning, caller falls back to cloud provider transparently
+- [Phase 04-server-provider]: FIELD_PROFILES pattern: dict mapping ContractMetadata fields to sanitizer profiles (cyrillic_only, cyrillic_latin, enum, date, number, boolean)
 
 ### Pending Todos
 
@@ -162,6 +160,6 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-21 — Roadmap v0.5 создан (2 фазы, 9 требований покрыты)
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-server-provider/04-CONTEXT.md
+Last activity: 2026-03-21
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

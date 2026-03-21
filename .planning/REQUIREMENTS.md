@@ -7,10 +7,10 @@
 
 ### Сервер
 
-- [ ] **SRVR-01**: llama-server запускается как локальный бэкенд для модели
-- [ ] **SRVR-02**: GBNF грамматика ограничивает вывод кириллицей
-- [ ] **SRVR-03**: llama-server стартует автоматически при открытии приложения
-- [ ] **SRVR-04**: GGUF модель скачивается с HuggingFace при первом запуске
+- [x] **SRVR-01**: llama-server запускается как локальный бэкенд для модели
+- [x] **SRVR-02**: GBNF грамматика ограничивает вывод кириллицей
+- [x] **SRVR-03**: llama-server стартует автоматически при открытии приложения
+- [x] **SRVR-04**: GGUF модель скачивается с HuggingFace при первом запуске
 
 ### Провайдер
 
@@ -48,10 +48,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRVR-01 | Phase 4 | Pending |
-| SRVR-02 | Phase 4 | Pending |
-| SRVR-03 | Phase 4 | Pending |
-| SRVR-04 | Phase 4 | Pending |
+| SRVR-01 | Phase 4 | Complete |
+| SRVR-02 | Phase 4 | Complete |
+| SRVR-03 | Phase 4 | Complete |
+| SRVR-04 | Phase 4 | Complete |
 | PROV-01 | Phase 4 | Pending |
 | PROV-02 | Phase 4 | Pending |
 | PROV-03 | Phase 5 | Pending |
