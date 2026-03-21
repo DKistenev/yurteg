@@ -4,7 +4,7 @@ milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
 stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-21T15:09:27.439Z"
+last_updated: "2026-03-21T15:12:57.266Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 3
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 06 (ai-extractor-wiring) — EXECUTING
-Plan: 1 of 1
+Phase: 06
+Plan: Not started
 
 ## Performance Metrics
 
