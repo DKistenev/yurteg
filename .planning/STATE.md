@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.5
-milestone_name: Локальная LLM
-status: unknown
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-21T15:21:59.410Z"
+milestone: v0.6
+milestone_name: UI-редизайн
+status: defining_requirements
+stopped_at: null
+last_updated: "2026-03-21T18:00:00.000Z"
 last_activity: 2026-03-21
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -20,12 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 06 — ai-extractor-wiring
+**Current focus:** Milestone v0.6 — UI-редизайн (defining requirements)
 
 ## Current Position
 
-Phase: 06
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-21 — Milestone v0.6 started
 
 ## Performance Metrics
 
