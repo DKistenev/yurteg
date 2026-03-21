@@ -85,7 +85,21 @@ _STATUS_CSS = """
 </style>
 """
 
+# Hover-actions CSS (Phase 08, Plan 03 — D-12, REG-06)
+# actions-cell скрыт по умолчанию, появляется при наведении на строку
+_ACTIONS_CSS = """
+<style>
+  .actions-cell { opacity: 0; transition: opacity 150ms ease; display: flex; align-items: center; justify-content: center; }
+  .ag-row:hover .actions-cell { opacity: 1; }
+  .action-icon { cursor: pointer; font-size: 18px; color: #6b7280; line-height: 1; }
+  .action-icon:hover { color: #111827; }
+  .expand-icon { color: #9ca3af; font-size: 12px; user-select: none; }
+  .expand-icon:hover { color: #374151; }
+</style>
+"""
+
 ui.add_head_html(_STATUS_CSS)
+ui.add_head_html(_ACTIONS_CSS)
 
 # ── UI root ────────────────────────────────────────────────────────────────────
 
