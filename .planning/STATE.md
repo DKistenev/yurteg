@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-21T22:57:57.326Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-03-21T23:02:13.723Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -80,6 +80,7 @@ Plan: 2 of 2
 | Phase 08-registry-view P02 | 2min | 2 tasks | 2 files |
 | Phase 08-registry-view P03 | 4min | 2 tasks | 4 files |
 | Phase 09-document-detail-card P01 | 4min | 2 tasks | 6 files |
+| Phase 09-document-detail-card P02 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Recent decisions affecting current work:
 - [Phase 08-registry-view]: colId dispatch in _on_cell_clicked: actions → menu, has_children → toggle, else → navigate (D-19)
 - [Phase 09-document-detail-card]: filtered_doc_ids synced in load_table_data on every data load for reliable prev/next navigation
 - [Phase 09-document-detail-card]: get_contract_by_id mirrors get_all_results JSON deserialization — single record same as bulk
+- [Phase 09-document-detail-card]: Redline route использует ClientManager('Основной реестр') как дефолтный клиент
+- [Phase 09-document-detail-card]: Inline style hex colors для diff rendering — не dynamic Tailwind f-strings (Pitfall 4)
 
 ### Pending Todos
 
@@ -192,6 +195,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7

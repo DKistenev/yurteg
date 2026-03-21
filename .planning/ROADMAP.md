@@ -34,7 +34,7 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 
 - [x] **Phase 7: App Scaffold + State Architecture** — NiceGUI запускается, AppState определён, архитектурные паттерны зафиксированы (completed 2026-03-21)
 - [x] **Phase 8: Registry View** — Реестр с реальными данными, AG Grid, фильтры, поиск, статус-бейджи (completed 2026-03-21)
-- [ ] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией
+- [x] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией (completed 2026-03-21)
 - [ ] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени
 - [ ] **Phase 11: Settings + Templates** — Страница настроек, управление шаблонами, переключение клиента
 - [ ] **Phase 12: Onboarding** — Splash screen с wizard, empty states, first-run flow
@@ -85,10 +85,10 @@ Plans:
   3. Кнопки «Предыдущий» / «Следующий» переключают между документами без возврата в реестр
   4. AI-ревью по выбранному шаблону запускается кнопкой и отображает результат с подсветкой отступлений
   5. Заметка юриста автосохраняется при потере фокуса (blur), без кнопки «Сохранить»
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 09-01-PLAN.md — Data layer + card scaffold (header, metadata, status, notes, prev/next)
-- [ ] 09-02-PLAN.md — AI review section, version history, redline download route
+- [x] 09-02-PLAN.md — AI review section, version history, redline download route
 
 ### Phase 10: Pipeline Wiring
 **Goal**: Юрист выбирает папку с документами и видит прогресс обработки в реальном времени — новые документы появляются в реестре автоматически после завершения
@@ -150,7 +150,7 @@ Plans:
 | 6. Проводка ai_extractor | v0.5 | 1/1 | Complete | 2026-03-21 |
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
-| 9. Document Detail Card | v0.6 | 1/2 | In Progress|  |
+| 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 10. Pipeline Wiring | v0.6 | 0/? | Not started | - |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
