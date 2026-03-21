@@ -7,20 +7,20 @@
 
 ### Сервер
 
-- [x] **SRVR-01**: llama-server запускается как локальный бэкенд для модели
-- [x] **SRVR-02**: GBNF грамматика ограничивает вывод кириллицей
+- [ ] **SRVR-01**: llama-server запускается как локальный бэкенд для модели
+- [ ] **SRVR-02**: GBNF грамматика ограничивает вывод кириллицей
 - [x] **SRVR-03**: llama-server стартует автоматически при открытии приложения
 - [x] **SRVR-04**: GGUF модель скачивается с HuggingFace при первом запуске
 
 ### Провайдер
 
-- [x] **PROV-01**: OllamaProvider реализован (вместо stub) для работы с llama-server
+- [ ] **PROV-01**: OllamaProvider реализован (вместо stub) для работы с llama-server
 - [x] **PROV-02**: Локальная модель = провайдер по умолчанию в конфиге
 - [x] **PROV-03**: Временный переключатель в UI для переключения на облачный провайдер
 
 ### Обработка
 
-- [x] **PROC-01**: Post-processing ответов модели ("None" → null, санитайзер)
+- [ ] **PROC-01**: Post-processing ответов модели ("None" → null, санитайзер)
 - [x] **PROC-02**: Анонимизация пропускается для локального провайдера
 
 ## Future Requirements
@@ -48,14 +48,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRVR-01 | Phase 4 | Complete |
-| SRVR-02 | Phase 4 | Complete |
+| SRVR-01 | Phase 6 | Pending |
+| SRVR-02 | Phase 6 | Pending |
 | SRVR-03 | Phase 4 | Complete |
 | SRVR-04 | Phase 4 | Complete |
-| PROV-01 | Phase 4 | Complete |
+| PROV-01 | Phase 6 | Pending |
 | PROV-02 | Phase 4 | Complete |
 | PROV-03 | Phase 5 | Complete |
-| PROC-01 | Phase 5 | Complete |
+| PROC-01 | Phase 6 | Pending |
 | PROC-02 | Phase 5 | Complete |
 
 **Coverage:**
