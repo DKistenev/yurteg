@@ -25,8 +25,13 @@ class Config:
     ai_temperature: float = 0
     ai_max_tokens: int = 2000
     ai_disable_thinking: bool = True  # отключить thinking mode у GLM (5-7x ускорение)
-    active_provider: str = "zai"          # "zai" | "openrouter" | "ollama"
-    fallback_provider: str = "openrouter"  # автофallback при недоступности active_provider
+    active_provider: str = "ollama"        # "zai" | "openrouter" | "ollama"
+    fallback_provider: str = "zai"         # автофallback при недоступности active_provider
+
+    # Локальная LLM (llama-server)
+    llama_server_port: int = 8080
+    llama_model_repo: str = "SuperPuperD/yurteg-1.5b-v3-gguf"
+    llama_model_filename: str = "yurteg-v3-Q4_K_M.gguf"
     max_workers: int = 5  # потоков для параллельных AI-запросов
     warning_days_threshold: int = 30  # порог предупреждения о сроках (дней)
 

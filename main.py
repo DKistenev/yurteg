@@ -59,8 +59,57 @@ try:
 except ImportError:
     _HAS_CALENDAR = False
 
+from services.llama_server import LlamaServerManager
+from modules.postprocessor import get_grammar_path
+
 # Загрузить API-ключи из .env (десктоп; в облаке уже в os.environ)
 load_dotenv()
+
+# ── Автозапуск llama-server для локальной LLM ──────────────────
+
+
+@st.cache_resource
+def _get_llama_manager() -> "LlamaServerManager | None":
+    """Запускает llama-server один раз, переживает Streamlit reruns."""
+    config = Config()
+    if config.active_provider != "ollama":
+        return None
+
+    manager = LlamaServerManager(port=config.llama_server_port)
+
+    # Скачивание модели (~940 МБ, только при первом запуске)
+    try:
+        with st.spinner("Скачивание модели (~940 МБ)..."):
+            manager.ensure_model()
+    except Exception as e:
+        st.warning(f"Не удалось скачать модель: {e}. Переключение на облачный провайдер.")
+        return None
+
+    # Скачивание llama-server бинарника
+    try:
+        with st.spinner("Скачивание llama-server..."):
+            manager.ensure_server_binary()
+    except Exception as e:
+        st.warning(f"Не удалось скачать llama-server: {e}. Переключение на облачный провайдер.")
+        return None
+
+    # Запуск сервера
+    if not manager.is_running():
+        try:
+            grammar = get_grammar_path()
+            manager.start(grammar_path=grammar)
+        except Exception as e:
+            st.warning(f"llama-server не запустился: {e}. Переключение на облачный провайдер.")
+            return None
+
+    return manager
+
+
+# Запустить при загрузке приложения (cache_resource — только один раз)
+_llama = _get_llama_manager()
+if _llama is None and Config().active_provider == "ollama":
+    st.warning("Локальная модель недоступна. Используется облачный провайдер.")
+    # Провайдер упадёт в fallback через ai_extractor verify_key → OllamaProvider.verify_key() == False
 
 # ── Настройка страницы ──────────────────────────────────────────
 
