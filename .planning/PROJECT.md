@@ -60,6 +60,9 @@
 - ✓ Post-processing ответов модели — v0.5
 - ✓ Пропуск анонимизации для локального провайдера — v0.5
 - ✓ UI-переключатель провайдера — v0.5
+- ✓ NiceGUI app scaffold с AppState и SPA-навигацией — v0.6 Phase 7
+- ✓ llama-server тройная защита lifecycle — v0.6 Phase 7
+- ✓ run.io_bound() паттерн для async DB-вызовов — v0.6 Phase 7
 
 ### Active
 
@@ -141,4 +144,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after v0.6 milestone start*
+*Last updated: 2026-03-22 after Phase 7 completion*
