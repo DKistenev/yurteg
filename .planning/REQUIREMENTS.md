@@ -48,21 +48,21 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SRVR-01 | — | Pending |
-| SRVR-02 | — | Pending |
-| SRVR-03 | — | Pending |
-| SRVR-04 | — | Pending |
-| PROV-01 | — | Pending |
-| PROV-02 | — | Pending |
-| PROV-03 | — | Pending |
-| PROC-01 | — | Pending |
-| PROC-02 | — | Pending |
+| SRVR-01 | Phase 4 | Pending |
+| SRVR-02 | Phase 4 | Pending |
+| SRVR-03 | Phase 4 | Pending |
+| SRVR-04 | Phase 4 | Pending |
+| PROV-01 | Phase 4 | Pending |
+| PROV-02 | Phase 4 | Pending |
+| PROV-03 | Phase 5 | Pending |
+| PROC-01 | Phase 5 | Pending |
+| PROC-02 | Phase 5 | Pending |
 
 **Coverage:**
 - v0.5 requirements: 9 total
-- Mapped to phases: 0
-- Unmapped: 9 ⚠️
+- Mapped to phases: 9
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 — traceability filled after roadmap creation*

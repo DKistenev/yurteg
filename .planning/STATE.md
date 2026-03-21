@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
-status: defining_requirements
-stopped_at: Milestone v0.5 started
+status: roadmap_ready
+stopped_at: Roadmap created — ready for Phase 4 planning
 last_updated: "2026-03-21"
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -16,17 +16,21 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-19)
+See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 03 — integrations-multitenancy
+**Current focus:** Phase 04 — сервер и провайдер (llama-server + OllamaProvider)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 4 — Сервер и провайдер (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-21 — Milestone v0.5 started
+Status: Roadmap ready, awaiting plan-phase
+Last activity: 2026-03-21 — Roadmap v0.5 created
+
+```
+Progress: [░░░░░░░░░░] 0/2 phases
+```
 
 ## Performance Metrics
 
@@ -132,6 +136,12 @@ Recent decisions affecting current work:
 - [Phase 03-integrations-multitenancy]: _legacy_mode in ai_extractor.py retained as safe fallback for direct calls without provider (tests, scripts) — not removed as plan specified
 - [Phase 03-integrations-multitenancy]: Confirmation button placed inside bindings guard, nested Database contexts for move_record_to_client, st.rerun() only on successful moves
 - [Phase 03-integrations-multitenancy]: push_deadlines block placed outside tg_queue_fetched guard — runs independently on every app load; try/except NameError used to detect _alerts from toast block; empty list pushed to clear stale server data
+- [v0.5 Roadmap]: llama-server выбран вместо Ollama — GBNF grammar support для кириллицы
+- [v0.5 Roadmap]: Модель SuperPuperD/yurteg-1.5b-v3-gguf (GGUF Q4_K_M, ~940MB) уже обучена, скачивается при первом запуске
+- [v0.5 Roadmap]: OllamaProvider stub будет реализован для работы с llama-server API
+- [v0.5 Roadmap]: Анонимизация пропускается только для локального провайдера — ПД не покидают машину
+- [v0.5 Roadmap]: UI-переключатель провайдера — временный, для перехода на облако без перезапуска
+- [v0.5 Roadmap]: DMG/EXE бандлинг отложен — сначала интеграция, доставка отдельной вехой
 
 ### Pending Todos
 
@@ -145,11 +155,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 3]: APScheduler + Streamlit threading caveats — нужна проверка против текущей версии Streamlit перед реализацией
+- [Phase 4]: llama-server процесс-менеджмент при Streamlit reruns — нужно убедиться что сервер не перезапускается на каждый rerun
+- [Phase 4]: Первый запуск с загрузкой 940MB — нужен прогресс-бар в UI, не молчать
 - [Phase 4]: LOCAL_ONLY блокировка HTTP — нужен spike: достаточно ли патча httpx transport для openai SDK + python-telegram-bot
 
 ## Session Continuity
 
-Last activity: 2026-03-21 — Milestone v0.5 «Локальная LLM» started
-Stopped at: Defining requirements
+Last activity: 2026-03-21 — Roadmap v0.5 создан (2 фазы, 9 требований покрыты)
+Stopped at: Roadmap ready
 Resume file: None
