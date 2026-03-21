@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-21T14:08:10.825Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-21T14:12:05.528Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -71,6 +71,7 @@ Plan: 2 of 2
 | Phase 03-integrations-multitenancy P11 | 5min | 1 tasks | 1 files |
 | Phase 03-integrations-multitenancy P09 | 3min | 1 tasks | 1 files |
 | Phase 04-server-provider P01 | 8min | 2 tasks | 4 files |
+| Phase 04-server-provider P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,9 @@ Recent decisions affecting current work:
 - [Phase 04-server-provider]: llama-server binary fetched from GitHub Releases per platform map — no manual install
 - [Phase 04-server-provider]: start() does not raise on failure — logs warning, caller falls back to cloud provider transparently
 - [Phase 04-server-provider]: FIELD_PROFILES pattern: dict mapping ContractMetadata fields to sanitizer profiles (cyrillic_only, cyrillic_latin, enum, date, number, boolean)
+- [Phase 04-server-provider]: OllamaProvider.complete() возвращает сырой текст — sanitize_metadata применяется в ai_extractor.py (Phase 5)
+- [Phase 04-server-provider]: @st.cache_resource для _get_llama_manager — singleton llama-server, не перезапускается при Streamlit reruns
+- [Phase 04-server-provider]: fallback_provider='zai' вместо 'openrouter' — ZAI основной облачный провайдер
 
 ### Pending Todos
 
@@ -161,5 +165,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 04-01-PLAN.md
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
