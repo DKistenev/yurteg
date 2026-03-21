@@ -85,48 +85,48 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FUND-01 | — | Pending |
-| FUND-02 | — | Pending |
-| FUND-03 | — | Pending |
-| FUND-04 | — | Pending |
-| FUND-05 | — | Pending |
-| REG-01 | — | Pending |
-| REG-02 | — | Pending |
-| REG-03 | — | Pending |
-| REG-04 | — | Pending |
-| REG-05 | — | Pending |
-| REG-06 | — | Pending |
-| REG-07 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
-| DOC-03 | — | Pending |
-| DOC-04 | — | Pending |
-| DOC-05 | — | Pending |
-| DOC-06 | — | Pending |
-| PROC-01 | — | Pending |
-| PROC-02 | — | Pending |
-| PROC-03 | — | Pending |
-| PROC-04 | — | Pending |
-| TMPL-01 | — | Pending |
-| TMPL-02 | — | Pending |
-| TMPL-03 | — | Pending |
-| SETT-01 | — | Pending |
-| SETT-02 | — | Pending |
-| SETT-03 | — | Pending |
-| SETT-04 | — | Pending |
-| SETT-05 | — | Pending |
-| DSGN-01 | — | Pending |
-| DSGN-02 | — | Pending |
-| DSGN-03 | — | Pending |
-| DSGN-04 | — | Pending |
-| DSGN-05 | — | Pending |
-| DSGN-06 | — | Pending |
+| FUND-01 | Phase 7 | Pending |
+| FUND-02 | Phase 7 | Pending |
+| FUND-03 | Phase 7 | Pending |
+| FUND-04 | Phase 7 | Pending |
+| FUND-05 | Phase 7 | Pending |
+| REG-01 | Phase 8 | Pending |
+| REG-02 | Phase 8 | Pending |
+| REG-03 | Phase 8 | Pending |
+| REG-04 | Phase 8 | Pending |
+| REG-05 | Phase 8 | Pending |
+| REG-06 | Phase 8 | Pending |
+| REG-07 | Phase 8 | Pending |
+| DOC-01 | Phase 9 | Pending |
+| DOC-02 | Phase 9 | Pending |
+| DOC-03 | Phase 9 | Pending |
+| DOC-04 | Phase 9 | Pending |
+| DOC-05 | Phase 9 | Pending |
+| DOC-06 | Phase 9 | Pending |
+| PROC-01 | Phase 10 | Pending |
+| PROC-02 | Phase 10 | Pending |
+| PROC-03 | Phase 10 | Pending |
+| PROC-04 | Phase 10 | Pending |
+| TMPL-01 | Phase 11 | Pending |
+| TMPL-02 | Phase 11 | Pending |
+| TMPL-03 | Phase 11 | Pending |
+| SETT-01 | Phase 11 | Pending |
+| SETT-02 | Phase 11 | Pending |
+| SETT-03 | Phase 11 | Pending |
+| SETT-04 | Phase 11 | Pending |
+| SETT-05 | Phase 11 | Pending |
+| DSGN-01 | Phase 12 | Pending |
+| DSGN-02 | Phase 12 | Pending |
+| DSGN-03 | Phase 12 | Pending |
+| DSGN-04 | Phase 12 | Pending |
+| DSGN-05 | Phase 12 | Pending |
+| DSGN-06 | Phase 12 | Pending |
 
 **Coverage:**
 - v0.6 requirements: 36 total
-- Mapped to phases: 0
-- Unmapped: 36 ⚠️
+- Mapped to phases: 36
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-21*
-*Last updated: 2026-03-21 after initial definition*
+*Last updated: 2026-03-21 — traceability mapped to Phases 7-12*

@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
-status: defining_requirements
+status: roadmap_ready
 stopped_at: null
-last_updated: "2026-03-21T18:00:00.000Z"
+last_updated: "2026-03-21T18:30:00.000Z"
 last_activity: 2026-03-21
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,20 +20,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Milestone v0.6 — UI-редизайн (defining requirements)
+**Current focus:** Milestone v0.6 — UI-редизайн (roadmap ready, Phase 7 next)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 7 — App Scaffold + State Architecture (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-21 — Milestone v0.6 started
+Status: Roadmap approved, ready to plan Phase 7
+Last activity: 2026-03-21 — Roadmap v0.6 created (6 phases, 36 requirements mapped)
+
+```
+Progress: [··········] 0/6 phases  0/0 plans
+```
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 0 (v0.6)
 - Average duration: —
 - Total execution time: —
 
@@ -154,6 +158,11 @@ Recent decisions affecting current work:
 - [Phase 05]: Глобальный config = Config() добавлен до sidebar — фикс NameError в Telegram-секции
 - [Phase 06-ai-extractor-wiring]: _try_provider added as separate helper routing through LLMProvider.complete() interface
 - [Phase 06-ai-extractor-wiring]: asdict() + sanitize_metadata() + _json_to_metadata() pipeline for postprocessing ollama responses
+- [v0.6 Roadmap]: NiceGUI выбран вместо Streamlit — SPA navigation, clickable ag-grid, persistent header, native window
+- [v0.6 Roadmap]: Реестр = приложение — одно рабочее пространство вместо 5+ экранов
+- [v0.6 Roadmap]: Phase 7 устанавливает @ui.page pattern и run.io_bound() до всех фич — иначе дорогой retrofit
+- [v0.6 Roadmap]: Phase 10 зависит от Phase 7 (async patterns), не от Phase 9 — параллельная разработка возможна
+- [v0.6 Roadmap]: Phase 12 (design polish) всегда последняя — полировать нестабильные компоненты = рискованный рефактор
 
 ### Pending Todos
 
@@ -167,12 +176,13 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 4]: llama-server процесс-менеджмент при Streamlit reruns — нужно убедиться что сервер не перезапускается на каждый rerun
-- [Phase 4]: Первый запуск с загрузкой 940MB — нужен прогресс-бар в UI, не молчать
-- [Phase 4]: LOCAL_ONLY блокировка HTTP — нужен spike: достаточно ли патча httpx transport для openai SDK + python-telegram-bot
+- [Phase 10]: app.on_disconnect в native=True режиме на macOS — надёжность не подтверждена; тест перед Phase 10
+- [Phase 12]: FullCalendar.js interop через ui.add_head_html — нужен PoC spike перед планированием Phase 12; fallback: кастомный grid layout
+- [Phase 7]: Тройная защита llama-server (on_shutdown + on_disconnect + atexit) требует проверки в native mode
 
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 06-01-PLAN.md
+Stopped at: v0.6 roadmap created (Phase 7-12)
 Resume file: None
+Next: /gsd:plan-phase 7
