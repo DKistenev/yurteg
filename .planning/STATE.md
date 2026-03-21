@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-21T14:37:28.625Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-21T15:09:27.439Z"
 last_activity: 2026-03-21
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 05 — pipeline-local-llm
+**Current focus:** Phase 06 — ai-extractor-wiring
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
+Phase: 06 (ai-extractor-wiring) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Plan: Not started
 | Phase 04-server-provider P01 | 8min | 2 tasks | 4 files |
 | Phase 04-server-provider P02 | 2min | 2 tasks | 3 files |
 | Phase 05 P01 | 5min | 2 tasks | 3 files |
+| Phase 06-ai-extractor-wiring P01 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,8 @@ Recent decisions affecting current work:
 - [Phase 05]: sanitize_metadata вызывается только для ollama — облачные провайдеры возвращают чистые ответы
 - [Phase 05]: Persistence active_provider через ~/.yurteg/settings.json — переживает перезапуск приложения (D-08)
 - [Phase 05]: Глобальный config = Config() добавлен до sidebar — фикс NameError в Telegram-секции
+- [Phase 06-ai-extractor-wiring]: _try_provider added as separate helper routing through LLMProvider.complete() interface
+- [Phase 06-ai-extractor-wiring]: asdict() + sanitize_metadata() + _json_to_metadata() pipeline for postprocessing ollama responses
 
 ### Pending Todos
 
@@ -169,5 +172,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 05-01-PLAN.md
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

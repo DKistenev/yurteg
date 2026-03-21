@@ -25,7 +25,7 @@ Full details: `.planning/milestones/v0.4-ROADMAP.md`
 
 - [x] **Phase 4: Сервер и провайдер** — llama-server запускается и подключён как дефолтный AI-провайдер (completed 2026-03-21)
 - [x] **Phase 5: Пайплайн с локальной моделью** — документы обрабатываются end-to-end через локальную LLM (completed 2026-03-21)
-- [ ] **Phase 6: Проводка ai_extractor через провайдер** — рефакторинг extract_metadata для маршрутизации через provider.complete() (gap closure)
+- [x] **Phase 6: Проводка ai_extractor через провайдер** — рефакторинг extract_metadata для маршрутизации через provider.complete() (gap closure) (completed 2026-03-21)
 
 ## Phase Details
 
@@ -66,10 +66,10 @@ Plans:
   1. Документ обработан через OllamaProvider.complete() — запрос идёт на localhost:8080, не на ZAI/OpenRouter
   2. GBNF грамматика применяется — вывод модели ограничен JSON-схемой
   3. sanitize_metadata получает dict, возвращает dict, результат используется — метаданные чистые
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
-- [ ] 06-01-PLAN.md — Provider routing fix + sanitize_metadata wiring
+- [x] 06-01-PLAN.md — Provider routing fix + sanitize_metadata wiring
 
 ## Progress
 
@@ -80,4 +80,4 @@ Plans:
 | 3. Интеграции | v0.4 | 12/12 | Complete | 2026-03-20 |
 | 4. Сервер и провайдер | v0.5 | 2/2 | Complete   | 2026-03-21 |
 | 5. Пайплайн с локальной LLM | v0.5 | 1/1 | Complete   | 2026-03-21 |
-| 6. Проводка ai_extractor | v0.5 | 0/1 | Not started | — |
+| 6. Проводка ai_extractor | v0.5 | 1/1 | Complete   | 2026-03-21 |
