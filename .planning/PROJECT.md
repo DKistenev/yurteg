@@ -63,6 +63,8 @@
 - ✓ NiceGUI app scaffold с AppState и SPA-навигацией — v0.6 Phase 7
 - ✓ llama-server тройная защита lifecycle — v0.6 Phase 7
 - ✓ run.io_bound() паттерн для async DB-вызовов — v0.6 Phase 7
+- ✓ AG Grid реестр с fuzzy search, статус-бейджами, hover-actions, версиями — v0.6 Phase 8
+- ✓ Переключение клиента через header dropdown — v0.6 Phase 8
 
 ### Active
 
@@ -144,4 +146,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 7 completion*
+*Last updated: 2026-03-22 after Phase 8 completion*
