@@ -66,6 +66,7 @@
 - ✓ AG Grid реестр с fuzzy search, статус-бейджами, hover-actions, версиями — v0.6 Phase 8
 - ✓ Переключение клиента через header dropdown — v0.6 Phase 8
 - ✓ Full-page карточка документа с AI-ревью, версиями, diff, заметками — v0.6 Phase 9
+- ✓ Pipeline wiring: нативный folder picker, async обработка, real-time прогресс — v0.6 Phase 10
 
 ### Active
 
@@ -147,4 +148,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 9 completion*
+*Last updated: 2026-03-22 after Phase 10 completion*
