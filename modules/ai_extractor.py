@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import time
+from dataclasses import asdict
 from typing import TYPE_CHECKING, Optional
 
 from openai import OpenAI, APIError, APITimeoutError, RateLimitError
@@ -302,11 +303,23 @@ def extract_metadata(
     ]
 
     # Этап 1: Основная модель
-    result = _try_model(config, messages, config.active_model, use_fallback=False)
+    if provider is not None:
+        # Маршрутизация через провайдер (OllamaProvider, ZAIProvider, etc.)
+        try:
+            raw_text = _try_provider(provider, messages, config.ai_max_retries)
+            json_data = _parse_json_response(raw_text)
+            result: ContractMetadata | Exception = _json_to_metadata(json_data)
+        except Exception as e:
+            result = e
+    else:
+        # Legacy путь для обратной совместимости (прямые вызовы без провайдера)
+        result = _try_model(config, messages, config.active_model, use_fallback=False)
+
     if isinstance(result, ContractMetadata):
         # Post-processing для локальной модели: очистить мусор и строки None
         if config.active_provider == "ollama":
-            sanitize_metadata(result)
+            sanitized = sanitize_metadata(asdict(result))
+            result = _json_to_metadata(sanitized)
         # Проверка: если все ключевые поля пустые — пробуем упрощённый промпт
         if not result.contract_type and not result.counterparty and not result.subject:
             logger.info("Все ключевые поля пустые, пробую упрощённый промпт...")
@@ -314,17 +327,38 @@ def extract_metadata(
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": FALLBACK_PROMPT_TEMPLATE.format(text=text[:3000])},
             ]
-            fb = _try_model(config, fallback_msgs, config.active_model, use_fallback=False)
+            if provider is not None:
+                try:
+                    fb_raw = _try_provider(provider, fallback_msgs, config.ai_max_retries)
+                    fb_json = _parse_json_response(fb_raw)
+                    fb: ContractMetadata | Exception = _json_to_metadata(fb_json)
+                except Exception as fb_e:
+                    fb = fb_e
+            else:
+                fb = _try_model(config, fallback_msgs, config.active_model, use_fallback=False)
             if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
                 if config.active_provider == "ollama":
-                    sanitize_metadata(fb)
+                    sanitized = sanitize_metadata(asdict(fb))
+                    fb = _json_to_metadata(sanitized)
                 return fb
         return result
 
     last_error = result
 
-    # Этап 2: Fallback модель (OpenRouter)
-    if config.model_fallback and os.environ.get("OPENROUTER_API_KEY"):
+    # Этап 2: Fallback провайдер или fallback модель (OpenRouter)
+    if fallback_provider is not None:
+        logger.info("Основной провайдер недоступен, пробую fallback_provider: %s", fallback_provider.name)
+        try:
+            fallback_messages = _merge_system_into_user(messages)
+            fb_raw = _try_provider(fallback_provider, fallback_messages, config.ai_max_retries)
+            fb_json = _parse_json_response(fb_raw)
+            fallback_result: ContractMetadata | Exception = _json_to_metadata(fb_json)
+        except Exception as e:
+            fallback_result = e
+        if isinstance(fallback_result, ContractMetadata):
+            return fallback_result
+        last_error = fallback_result
+    elif config.model_fallback and os.environ.get("OPENROUTER_API_KEY"):
         logger.info("Основная модель недоступна, пробую fallback: %s", config.model_fallback)
         # Некоторые бесплатные модели не поддерживают system role —
         # вклеиваем system prompt в начало user-сообщения для надёжности
@@ -338,6 +372,63 @@ def extract_metadata(
 
     raise RuntimeError(
         f"Не удалось извлечь метаданные после всех попыток. "
+        f"Последняя ошибка: {last_error}"
+    )
+
+
+def _try_provider(
+    provider: "LLMProvider",
+    messages: list[dict],
+    max_retries: int,
+) -> str:
+    """Вызывает provider.complete() с retry-логикой. Возвращает сырой текст.
+
+    Args:
+        provider: реализация LLMProvider (OllamaProvider, ZAIProvider, etc.)
+        messages: список сообщений в формате OpenAI
+        max_retries: максимальное число попыток
+
+    Returns:
+        Сырой текстовый ответ от провайдера.
+
+    Raises:
+        RuntimeError: если все попытки исчерпаны.
+    """
+    last_error: Exception = RuntimeError("Нет попыток")
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(
+                "AI-запрос через провайдер %s: попытка %d/%d",
+                provider.name, attempt + 1, max_retries,
+            )
+            raw_text = provider.complete(messages)
+            if not raw_text:
+                raise ValueError("Пустой ответ от провайдера")
+            logger.debug("Ответ провайдера %s (первые 500 символов): %s", provider.name, raw_text[:500])
+            return raw_text
+
+        except (json.JSONDecodeError, ValueError) as e:
+            last_error = e
+            logger.warning(
+                "Попытка %d/%d (провайдер %s): невалидный ответ — %s",
+                attempt + 1, max_retries, provider.name, e,
+            )
+            if attempt < max_retries - 1:
+                time.sleep(1)
+
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "Попытка %d/%d (провайдер %s): ошибка — %s",
+                attempt + 1, max_retries, provider.name, e,
+            )
+            if attempt < max_retries - 1:
+                time.sleep(1)
+
+    logger.warning("Все попытки исчерпаны для провайдера %s", provider.name)
+    raise RuntimeError(
+        f"Провайдер {provider.name} не ответил после {max_retries} попыток. "
         f"Последняя ошибка: {last_error}"
     )
 

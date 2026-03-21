@@ -57,7 +57,7 @@ def _make_provider(name: str = "ollama", response: str = _VALID_JSON) -> MagicMo
 
 # ── Tests ──────────────────────────────────────────────────────────────────────
 
-@pytest.mark.xfail(strict=False, reason="Fix not applied yet — Task 2 will make this pass")
+
 def test_provider_route_called():
     """When provider is passed, provider.complete() must be called (not _try_model)."""
     from modules.ai_extractor import extract_metadata
@@ -73,7 +73,7 @@ def test_provider_route_called():
     assert isinstance(result, ContractMetadata)
 
 
-@pytest.mark.xfail(strict=False, reason="Fix not applied yet — Task 2 will make this pass")
+
 def test_legacy_route_when_no_provider():
     """When provider=None, _try_model is used (backward compat)."""
     from modules.ai_extractor import extract_metadata
@@ -89,7 +89,7 @@ def test_legacy_route_when_no_provider():
     assert result.contract_type == "Договор поставки"
 
 
-@pytest.mark.xfail(strict=False, reason="Fix not applied yet — Task 2 will make this pass")
+
 def test_sanitize_receives_dict_not_dataclass():
     """sanitize_metadata must receive a dict, not a ContractMetadata instance."""
     from modules.ai_extractor import extract_metadata
@@ -123,7 +123,7 @@ def test_sanitize_receives_dict_not_dataclass():
     )
 
 
-@pytest.mark.xfail(strict=False, reason="Fix not applied yet — Task 2 will make this pass")
+
 def test_sanitize_return_value_used():
     """Return value of sanitize_metadata must be used to build the final ContractMetadata."""
     from modules.ai_extractor import extract_metadata
@@ -152,7 +152,7 @@ def test_sanitize_return_value_used():
     )
 
 
-@pytest.mark.xfail(strict=False, reason="Fix not applied yet — Task 2 will make this pass")
+
 def test_fallback_provider_used_on_failure():
     """When primary provider raises RuntimeError, fallback_provider.complete() is called."""
     from modules.ai_extractor import extract_metadata
