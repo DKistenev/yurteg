@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-03-21T22:26:34.974Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-21T22:57:57.326Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 08 — registry-view
+**Current focus:** Phase 09 — document-detail-card
 
 ## Current Position
 
-Phase: 9
-Plan: Not started
+Phase: 09 (document-detail-card) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Plan: Not started
 | Phase 08-registry-view P01 | 10min | 2 tasks | 4 files |
 | Phase 08-registry-view P02 | 2min | 2 tasks | 2 files |
 | Phase 08-registry-view P03 | 4min | 2 tasks | 4 files |
+| Phase 09-document-detail-card P01 | 4min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -169,6 +170,8 @@ Recent decisions affecting current work:
 - [Phase 08-registry-view]: _switch_client вызывает navigate.to('/') — простейший способ перезагрузить реестр с данными нового клиента
 - [Phase 08-registry-view]: Lazy child loading: build_version_rows marks parents only, children loaded on expand click — avoids N+1 queries
 - [Phase 08-registry-view]: colId dispatch in _on_cell_clicked: actions → menu, has_children → toggle, else → navigate (D-19)
+- [Phase 09-document-detail-card]: filtered_doc_ids synced in load_table_data on every data load for reliable prev/next navigation
+- [Phase 09-document-detail-card]: get_contract_by_id mirrors get_all_results JSON deserialization — single record same as bulk
 
 ### Pending Todos
 
@@ -189,6 +192,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 08-03-PLAN.md
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7

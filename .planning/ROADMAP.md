@@ -85,9 +85,9 @@ Plans:
   3. Кнопки «Предыдущий» / «Следующий» переключают между документами без возврата в реестр
   4. AI-ревью по выбранному шаблону запускается кнопкой и отображает результат с подсветкой отступлений
   5. Заметка юриста автосохраняется при потере фокуса (blur), без кнопки «Сохранить»
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 09-01-PLAN.md — Data layer + card scaffold (header, metadata, status, notes, prev/next)
+- [x] 09-01-PLAN.md — Data layer + card scaffold (header, metadata, status, notes, prev/next)
 - [ ] 09-02-PLAN.md — AI review section, version history, redline download route
 
 ### Phase 10: Pipeline Wiring
@@ -150,7 +150,7 @@ Plans:
 | 6. Проводка ai_extractor | v0.5 | 1/1 | Complete | 2026-03-21 |
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
-| 9. Document Detail Card | v0.6 | 0/2 | Planning complete | - |
+| 9. Document Detail Card | v0.6 | 1/2 | In Progress|  |
 | 10. Pipeline Wiring | v0.6 | 0/? | Not started | - |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
