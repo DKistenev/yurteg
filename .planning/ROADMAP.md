@@ -154,7 +154,7 @@ Plans:
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
-| 10. Pipeline Wiring | v0.6 | 2/2 | Complete   | 2026-03-21 |
+| 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |
