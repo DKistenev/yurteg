@@ -68,7 +68,11 @@ Plans:
   3. Текстовый поиск сужает список в реальном времени (с debounce); фильтры по типу и контрагенту работают совместно
   4. Строки с истекающими/истёкшими договорами визуально выделены цветом статус-бейджа
   5. Переключение клиента через иконку профиля меняет набор документов без перезапуска
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 08-01-PLAN.md — Data layer (_fetch_rows, _fuzzy_filter), AG Grid table с status badges
+- [ ] 08-02-PLAN.md — Search bar, segmented filter, row click navigation, client switching
+- [ ] 08-03-PLAN.md — Hover-actions, version grouping, visual verification
 
 ### Phase 9: Document Detail Card
 **Goal**: Карточка документа содержит всю информацию и действия — юрист может просмотреть метаданные, запустить AI-ревью, посмотреть версии и оставить заметку, не возвращаясь в реестр
@@ -142,7 +146,7 @@ Plans:
 | 5. Пайплайн с локальной LLM | v0.5 | 1/1 | Complete | 2026-03-21 |
 | 6. Проводка ai_extractor | v0.5 | 1/1 | Complete | 2026-03-21 |
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
-| 8. Registry View | v0.6 | 0/? | Not started | - |
+| 8. Registry View | v0.6 | 0/3 | Planned | - |
 | 9. Document Detail Card | v0.6 | 0/? | Not started | - |
 | 10. Pipeline Wiring | v0.6 | 0/? | Not started | - |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
