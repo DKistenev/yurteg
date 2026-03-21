@@ -11,8 +11,12 @@ Per D-15, D-16, D-17: версии документов с expand/collapse ▶/�
 Per D-18: клик по строке → navigate to /document/{doc_id}.
 Per D-19: клики actions не триггерят навигацию.
 """
+from pathlib import Path
+
 from nicegui import ui
 
+from app.components.header import _header_refs
+from app.components.process import start_pipeline
 from app.components.registry_table import (
     load_table_data,
     load_version_children,
@@ -58,7 +62,28 @@ def build() -> None:
                     btn.classes(_SEG_ACTIVE if key == "all" else _SEG_INACTIVE)
                     seg_buttons[key] = btn
 
+        # Progress section — hidden by default (D-12)
+        progress_section = ui.column().classes("w-full px-6 py-3 gap-2")
+        progress_section.set_visibility(False)
+
+        with progress_section:
+            with ui.row().classes("items-center gap-3 w-full"):
+                progress_bar = ui.linear_progress(value=0).classes("flex-1")
+                count_label = ui.label("0/0 файлов").classes("text-sm text-gray-500 shrink-0")
+            file_label = ui.label("").classes("text-xs text-gray-400")
+            error_col = ui.column().classes("gap-1")
+
         grid_container = ui.column().classes("w-full")
+
+    # Build ui_refs for start_pipeline (D-06, D-07, D-08)
+    ui_refs: dict = {
+        "section": progress_section,
+        "bar": progress_bar,
+        "count": count_label,
+        "file_label": file_label,
+        "error_col": error_col,
+        "upload_btn": _header_refs.get("upload_btn"),
+    }
 
     # ── Inner helpers ──────────────────────────────────────────────────────────
 
@@ -194,6 +219,18 @@ def build() -> None:
         doc_id = data.get("id")
         if doc_id and not data.get("is_child"):
             ui.navigate.to(f"/document/{doc_id}")
+
+    async def _on_upload(source_dir: Path) -> None:
+        """Callback triggered by header upload button (D-06, D-07, D-08, D-11)."""
+        # Re-grab upload_btn ref (may not be set at module init time)
+        ui_refs["upload_btn"] = _header_refs.get("upload_btn")
+        stats = await start_pipeline(source_dir, state, ui_refs)
+        # After pipeline: refresh table (D-11)
+        if grid_ref["grid"]:
+            await load_table_data(grid_ref["grid"], state, active_segment["value"])
+
+    # Store callback on state so main.py can delegate to it
+    state._on_upload = _on_upload  # type: ignore[attr-defined]
 
     async def _init() -> None:
         with grid_container:

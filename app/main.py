@@ -109,7 +109,13 @@ def root() -> None:
     """Single root page — header is persistent, content area switches via sub_pages."""
     ui.dark_mode(value=False)
     state = get_state()
-    render_header(state)
+
+    async def _handle_upload(path):
+        """Delegate upload to registry page's on_upload callback (stored on state)."""
+        if hasattr(state, "_on_upload") and state._on_upload:
+            await state._on_upload(path)
+
+    render_header(state, on_upload=_handle_upload)
     ui.sub_pages({
         "/": registry.build,
         "/document/{doc_id}": document.build,
