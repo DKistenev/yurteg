@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-21T14:15:16.295Z"
+stopped_at: Phase 5 context gathered
+last_updated: "2026-03-21T14:20:56.465Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 2
@@ -165,5 +165,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 04-02-PLAN.md
-Resume file: None
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-pipeline-local-llm/05-CONTEXT.md
