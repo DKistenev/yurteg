@@ -34,8 +34,8 @@
 
 ### Обработка
 
-- [ ] **PROC-01**: Загрузка файлов через нативный file picker (поддержка выбора папки)
-- [ ] **PROC-02**: Pipeline обработки запускается async через `run.io_bound()`
+- [x] **PROC-01**: Загрузка файлов через нативный file picker (поддержка выбора папки)
+- [x] **PROC-02**: Pipeline обработки запускается async через `run.io_bound()`
 - [ ] **PROC-03**: Прогресс обработки отображается в реальном времени (прогресс-бар + лог файлов)
 - [ ] **PROC-04**: После обработки новые документы автоматически появляются в реестре
 
@@ -109,8 +109,8 @@
 | DOC-04 | Phase 9 | Complete |
 | DOC-05 | Phase 9 | Complete |
 | DOC-06 | Phase 9 | Complete |
-| PROC-01 | Phase 10 | Pending |
-| PROC-02 | Phase 10 | Pending |
+| PROC-01 | Phase 10 | Complete |
+| PROC-02 | Phase 10 | Complete |
 | PROC-03 | Phase 10 | Pending |
 | PROC-04 | Phase 10 | Pending |
 | TMPL-01 | Phase 11 | Pending |

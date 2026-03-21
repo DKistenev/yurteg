@@ -100,9 +100,9 @@ Plans:
   2. Прогресс-бар обновляется в реальном времени по мере обработки файлов (например «3/12 файлов»); UI не зависает
   3. После завершения обработки таблица реестра автоматически обновляется новыми строками без ручного перезапуска
   4. Ошибка на одном файле не останавливает обработку остальных; в логе виден файл и причина ошибки
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 10-01-PLAN.md — process.py (folder picker + async pipeline runner), upload button in header
+- [x] 10-01-PLAN.md — process.py (folder picker + async pipeline runner), upload button in header
 - [ ] 10-02-PLAN.md — Progress section in registry, on_upload wiring, visual verification
 
 ### Phase 11: Settings + Templates
@@ -154,7 +154,7 @@ Plans:
 | 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
-| 10. Pipeline Wiring | v0.6 | 0/2 | Planned | - |
+| 10. Pipeline Wiring | v0.6 | 1/2 | In Progress|  |
 | 11. Settings + Templates | v0.6 | 0/? | Not started | - |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |

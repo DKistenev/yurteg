@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-03-21T23:06:29.393Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-21T23:27:28.740Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 09 — document-detail-card
+**Current focus:** Phase 10 — pipeline-wiring
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
+Phase: 10 (pipeline-wiring) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Plan: Not started
 | Phase 08-registry-view P03 | 4min | 2 tasks | 4 files |
 | Phase 09-document-detail-card P01 | 4min | 2 tasks | 6 files |
 | Phase 09-document-detail-card P02 | 1min | 2 tasks | 2 files |
+| Phase 10-pipeline-wiring P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -175,6 +176,8 @@ Recent decisions affecting current work:
 - [Phase 09-document-detail-card]: get_contract_by_id mirrors get_all_results JSON deserialization — single record same as bulk
 - [Phase 09-document-detail-card]: Redline route использует ClientManager('Основной реестр') как дефолтный клиент
 - [Phase 09-document-detail-card]: Inline style hex colors для diff rendering — не dynamic Tailwind f-strings (Pitfall 4)
+- [Phase 10-pipeline-wiring]: on_upload passed as render_header() argument (not stored in AppState) — cleaner typing, no mutable callback in dataclass
+- [Phase 10-pipeline-wiring]: Table refresh deferred to pipeline completion (not per-file) — avoids WebSocket flood at 20+ files
 
 ### Pending Todos
 
@@ -195,6 +198,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 09-02-PLAN.md
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
