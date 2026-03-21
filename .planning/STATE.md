@@ -4,7 +4,7 @@ milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
 stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-21T14:34:50.772Z"
+last_updated: "2026-03-21T14:37:28.625Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 2
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 05 (pipeline-local-llm) — EXECUTING
-Plan: 1 of 1
+Phase: 05
+Plan: Not started
 
 ## Performance Metrics
 
