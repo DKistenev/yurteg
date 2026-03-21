@@ -4,7 +4,7 @@ milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
 stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-03-21T22:23:12.088Z"
+last_updated: "2026-03-21T22:26:34.974Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 08 (registry-view) — EXECUTING
-Plan: 3 of 3
+Phase: 9
+Plan: Not started
 
 ## Performance Metrics
 
