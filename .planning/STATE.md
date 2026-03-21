@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-03-21T22:16:48.695Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-03-21T22:23:12.088Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -78,6 +78,7 @@ Plan: 3 of 3
 | Phase 07 P02 | 2min | 2 tasks | 2 files |
 | Phase 08-registry-view P01 | 10min | 2 tasks | 4 files |
 | Phase 08-registry-view P02 | 2min | 2 tasks | 2 files |
+| Phase 08-registry-view P03 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,8 @@ Recent decisions affecting current work:
 - [Phase 08-registry-view]: Segment + fuzzy filter Python-side после SQL fetch — простой SQL, тесты без SQL fixtures
 - [Phase 08-registry-view]: active_segment и seg_buttons как dict в build() — per-connection состояние без module-level mutable state
 - [Phase 08-registry-view]: _switch_client вызывает navigate.to('/') — простейший способ перезагрузить реестр с данными нового клиента
+- [Phase 08-registry-view]: Lazy child loading: build_version_rows marks parents only, children loaded on expand click — avoids N+1 queries
+- [Phase 08-registry-view]: colId dispatch in _on_cell_clicked: actions → menu, has_children → toggle, else → navigate (D-19)
 
 ### Pending Todos
 
@@ -186,6 +189,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Completed 08-02-PLAN.md
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
