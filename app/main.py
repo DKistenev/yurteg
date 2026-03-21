@@ -118,6 +118,34 @@ def root() -> None:
     })
 
 
+# ── Redline download route (Phase 9, D-18) ────────────────────────────────────
+# FastAPI route вместо ui.download — не блокирует event loop (Pitfall 1 from RESEARCH)
+from fastapi.responses import Response as FastAPIResponse
+
+
+@app.get('/download/redline/{contract_id}/{other_id}')
+async def download_redline(contract_id: int, other_id: int):
+    """Скачивает redline .docx сравнивая два документа-версии."""
+    from services.version_service import generate_redline_docx as _gen_redline
+    from services.client_manager import ClientManager as _CM
+
+    cm = _CM()
+    db = cm.get_db("Основной реестр")
+    c1 = await run.io_bound(db.get_contract_by_id, contract_id)
+    c2 = await run.io_bound(db.get_contract_by_id, other_id)
+    if c1 is None or c2 is None:
+        return FastAPIResponse(content="Документ не найден", status_code=404)
+    text_old = c1.get('subject', '') or ''
+    text_new = c2.get('subject', '') or ''
+    title = f"Redline: {c1.get('contract_type', '')} vs {c2.get('contract_type', '')}"
+    docx_bytes = await run.io_bound(_gen_redline, text_old, text_new, title)
+    return FastAPIResponse(
+        content=docx_bytes,
+        media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={'Content-Disposition': f'attachment; filename="redline_{contract_id}_vs_{other_id}.docx"'},
+    )
+
+
 # ── Entry point ────────────────────────────────────────────────────────────────
 # Note: ui.run() is at module level, NOT inside if __name__ == '__main__'.
 # native=True subprocess bypasses main guard (Research Pitfall 5).
