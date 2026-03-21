@@ -608,6 +608,48 @@ _ANON_HELP = {
 # ── Мультиклиентский режим ───────────────────────────────────────
 client_manager = ClientManager()
 
+# ── Глобальный объект настроек ────────────────────────────────────
+# Используется в sidebar и передаётся в Controller при обработке.
+# active_provider персистируется в JSON-файле (D-08) — переживает перезапуск.
+
+_SETTINGS_FILE = Path.home() / ".yurteg" / "settings.json"
+
+
+def _load_settings() -> dict:
+    """Загружает персистентные настройки из JSON-файла."""
+    try:
+        if _SETTINGS_FILE.exists():
+            import json as _json
+            return _json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def _save_settings(settings: dict) -> None:
+    """Сохраняет персистентные настройки в JSON-файл."""
+    try:
+        import json as _json
+        _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _SETTINGS_FILE.write_text(
+            _json.dumps(settings, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+    except Exception as _e:
+        import logging as _logging
+        _logging.getLogger(__name__).warning("Не удалось сохранить настройки: %s", _e)
+
+
+_persisted = _load_settings()
+config = Config()
+# Восстановить active_provider из файла (если был сохранён ранее)
+if "active_provider" in _persisted:
+    config.active_provider = _persisted["active_provider"]
+if "telegram_server_url" in _persisted:
+    config.telegram_server_url = _persisted["telegram_server_url"]
+if "telegram_chat_id" in _persisted:
+    config.telegram_chat_id = _persisted["telegram_chat_id"]
+
 with st.sidebar:
     # --- Клиент ---
     st.markdown("### Клиент")
@@ -624,6 +666,42 @@ with st.sidebar:
         _new_name = st.text_input("Название нового клиента", key="new_client_name")
         if st.button("Создать", key="create_client_btn") and _new_name:
             client_manager.add_client(_new_name)
+            st.rerun()
+
+    st.markdown("---")
+
+    with st.sidebar.expander("Провайдер", expanded=False):
+        _provider_options = {
+            "Локальная модель (QWEN 1.5B)": "ollama",
+            "ZAI (GLM-4.7, облако)": "zai",
+            "OpenRouter (облако)": "openrouter",
+        }
+        _current_idx = list(_provider_options.values()).index(config.active_provider) \
+            if config.active_provider in _provider_options.values() else 0
+        _selected_provider_label = st.selectbox(
+            "AI-провайдер",
+            list(_provider_options.keys()),
+            index=_current_idx,
+            key="provider_select",
+            label_visibility="collapsed",
+        )
+        _new_provider = _provider_options[_selected_provider_label]
+        if _new_provider != config.active_provider:
+            config.active_provider = _new_provider
+            # Сохранить выбор в файл — переживает перезапуск приложения (D-08)
+            _cur_settings = _load_settings()
+            _cur_settings["active_provider"] = _new_provider
+            _save_settings(_cur_settings)
+            # Предупреждение об отсутствии API-ключа для облачных провайдеров
+            if _new_provider in ("zai", "openrouter"):
+                import os as _os_prov
+                _has_key = bool(
+                    _os_prov.environ.get("ZHIPU_API_KEY", "")
+                    or _os_prov.environ.get("ZAI_API_KEY", "")
+                    or _os_prov.environ.get("OPENROUTER_API_KEY", "")
+                )
+                if not _has_key:
+                    st.warning("API-ключ не найден. Установите ZHIPU_API_KEY или OPENROUTER_API_KEY.")
             st.rerun()
 
     st.markdown("---")
@@ -956,6 +1034,8 @@ if not api_key and dir_valid and file_count > 0:
 
 if st.button("Начать обработку", type="primary", disabled=not can_start):
     config = Config()
+    # Применить выбранный провайдер из sidebar (персистируется в settings.json)
+    config.active_provider = _persisted.get("active_provider", config.active_provider)
     # Настройки анонимизации из sidebar
     if len(anon_enabled) < len(ENTITY_TYPES):
         config.anonymize_types = anon_enabled
