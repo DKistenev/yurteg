@@ -4,7 +4,7 @@ milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
 stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-21T21:28:38.969Z"
+last_updated: "2026-03-21T21:31:40.644Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 7
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 07 (app-scaffold) — EXECUTING
-Plan: 2 of 2
+Phase: 8
+Plan: Not started
 
 ## Performance Metrics
 
