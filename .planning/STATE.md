@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.5
 milestone_name: Локальная LLM
 status: unknown
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-21T14:20:56.465Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-21T14:34:50.772Z"
 last_activity: 2026-03-21
 progress:
   total_phases: 2
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 04 — server-provider
+**Current focus:** Phase 05 — pipeline-local-llm
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
+Phase: 05 (pipeline-local-llm) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Plan: Not started
 | Phase 03-integrations-multitenancy P09 | 3min | 1 tasks | 1 files |
 | Phase 04-server-provider P01 | 8min | 2 tasks | 4 files |
 | Phase 04-server-provider P02 | 2min | 2 tasks | 3 files |
+| Phase 05 P01 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,9 @@ Recent decisions affecting current work:
 - [Phase 04-server-provider]: OllamaProvider.complete() возвращает сырой текст — sanitize_metadata применяется в ai_extractor.py (Phase 5)
 - [Phase 04-server-provider]: @st.cache_resource для _get_llama_manager — singleton llama-server, не перезапускается при Streamlit reruns
 - [Phase 04-server-provider]: fallback_provider='zai' вместо 'openrouter' — ZAI основной облачный провайдер
+- [Phase 05]: sanitize_metadata вызывается только для ollama — облачные провайдеры возвращают чистые ответы
+- [Phase 05]: Persistence active_provider через ~/.yurteg/settings.json — переживает перезапуск приложения (D-08)
+- [Phase 05]: Глобальный config = Config() добавлен до sidebar — фикс NameError в Telegram-секции
 
 ### Pending Todos
 
@@ -165,5 +169,5 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-21
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-pipeline-local-llm/05-CONTEXT.md
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None

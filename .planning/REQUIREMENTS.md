@@ -14,14 +14,14 @@
 
 ### Провайдер
 
-- [ ] **PROV-01**: OllamaProvider реализован (вместо stub) для работы с llama-server
-- [ ] **PROV-02**: Локальная модель = провайдер по умолчанию в конфиге
-- [ ] **PROV-03**: Временный переключатель в UI для переключения на облачный провайдер
+- [x] **PROV-01**: OllamaProvider реализован (вместо stub) для работы с llama-server
+- [x] **PROV-02**: Локальная модель = провайдер по умолчанию в конфиге
+- [x] **PROV-03**: Временный переключатель в UI для переключения на облачный провайдер
 
 ### Обработка
 
-- [ ] **PROC-01**: Post-processing ответов модели ("None" → null, санитайзер)
-- [ ] **PROC-02**: Анонимизация пропускается для локального провайдера
+- [x] **PROC-01**: Post-processing ответов модели ("None" → null, санитайзер)
+- [x] **PROC-02**: Анонимизация пропускается для локального провайдера
 
 ## Future Requirements
 
@@ -52,11 +52,11 @@
 | SRVR-02 | Phase 4 | Complete |
 | SRVR-03 | Phase 4 | Complete |
 | SRVR-04 | Phase 4 | Complete |
-| PROV-01 | Phase 4 | Pending |
-| PROV-02 | Phase 4 | Pending |
-| PROV-03 | Phase 5 | Pending |
-| PROC-01 | Phase 5 | Pending |
-| PROC-02 | Phase 5 | Pending |
+| PROV-01 | Phase 4 | Complete |
+| PROV-02 | Phase 4 | Complete |
+| PROV-03 | Phase 5 | Complete |
+| PROC-01 | Phase 5 | Complete |
+| PROC-02 | Phase 5 | Complete |
 
 **Coverage:**
 - v0.5 requirements: 9 total
