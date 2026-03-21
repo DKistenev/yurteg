@@ -32,7 +32,7 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 
 ### v0.6 UI-редизайн (Phases 7-13)
 
-- [ ] **Phase 7: App Scaffold + State Architecture** — NiceGUI запускается, AppState определён, архитектурные паттерны зафиксированы
+- [x] **Phase 7: App Scaffold + State Architecture** — NiceGUI запускается, AppState определён, архитектурные паттерны зафиксированы (completed 2026-03-21)
 - [ ] **Phase 8: Registry View** — Реестр с реальными данными, AG Grid, фильтры, поиск, статус-бейджи
 - [ ] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией
 - [ ] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени
@@ -52,10 +52,10 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
   2. Переключение между тремя табами работает без перезагрузки страницы — заголовок остаётся на месте
   3. llama-server запускается при старте приложения и корректно останавливается при закрытии окна (процесс не остаётся висеть в Activity Monitor)
   4. Повторный запуск приложения не создаёт второй экземпляр llama-server на том же порту
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 07-01-PLAN.md — AppState dataclass, page stubs, header, test scaffold
-- [ ] 07-02-PLAN.md — NiceGUI entrypoint, llama-server lifecycle, requirements.txt
+- [x] 07-02-PLAN.md — NiceGUI entrypoint, llama-server lifecycle, requirements.txt
 
 ### Phase 8: Registry View
 **Goal**: Реестр документов показывает реальные данные из SQLite через AG Grid — юрист видит все свои документы, может фильтровать и искать без зависания UI
@@ -141,7 +141,7 @@ Plans:
 | 4. Сервер и провайдер | v0.5 | 2/2 | Complete | 2026-03-21 |
 | 5. Пайплайн с локальной LLM | v0.5 | 1/1 | Complete | 2026-03-21 |
 | 6. Проводка ai_extractor | v0.5 | 1/1 | Complete | 2026-03-21 |
-| 7. App Scaffold + State | v0.6 | 1/2 | In Progress|  |
+| 7. App Scaffold + State | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 8. Registry View | v0.6 | 0/? | Not started | - |
 | 9. Document Detail Card | v0.6 | 0/? | Not started | - |
 | 10. Pipeline Wiring | v0.6 | 0/? | Not started | - |

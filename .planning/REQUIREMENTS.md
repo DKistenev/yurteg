@@ -7,11 +7,11 @@
 
 ### Фундамент
 
-- [ ] **FUND-01**: Приложение запускается на NiceGUI с `app/` структурой и `@ui.page` архитектурой
-- [ ] **FUND-02**: Состояние управляется через typed `AppState` dataclass (замена 45 `st.session_state` ключей)
-- [ ] **FUND-03**: Все DB-вызовы из UI обёрнуты в `run.io_bound()` (не блокируют event loop)
-- [ ] **FUND-04**: llama-server запускается через `app.on_startup`, останавливается через тройную защиту (`on_shutdown` + `on_disconnect` + `atexit`)
-- [ ] **FUND-05**: Приложение запускается с `reload=False` в production entrypoint
+- [x] **FUND-01**: Приложение запускается на NiceGUI с `app/` структурой и `@ui.page` архитектурой
+- [x] **FUND-02**: Состояние управляется через typed `AppState` dataclass (замена 45 `st.session_state` ключей)
+- [x] **FUND-03**: Все DB-вызовы из UI обёрнуты в `run.io_bound()` (не блокируют event loop)
+- [x] **FUND-04**: llama-server запускается через `app.on_startup`, останавливается через тройную защиту (`on_shutdown` + `on_disconnect` + `atexit`)
+- [x] **FUND-05**: Приложение запускается с `reload=False` в production entrypoint
 
 ### Реестр
 
@@ -91,11 +91,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FUND-01 | Phase 7 | Pending |
-| FUND-02 | Phase 7 | Pending |
-| FUND-03 | Phase 7 | Pending |
-| FUND-04 | Phase 7 | Pending |
-| FUND-05 | Phase 7 | Pending |
+| FUND-01 | Phase 7 | Complete |
+| FUND-02 | Phase 7 | Complete |
+| FUND-03 | Phase 7 | Complete |
+| FUND-04 | Phase 7 | Complete |
+| FUND-05 | Phase 7 | Complete |
 | REG-01 | Phase 8 | Pending |
 | REG-02 | Phase 8 | Pending |
 | REG-03 | Phase 8 | Pending |
