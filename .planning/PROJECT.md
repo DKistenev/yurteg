@@ -50,10 +50,10 @@
 
 ### Active
 
-- [ ] Интеграция локальной QWEN 1.5B как провайдера по умолчанию (v0.5)
-- [ ] llama-server + GBNF грамматика (кириллица-only)
-- [ ] Post-processing ответов локальной модели
-- [ ] Пропуск анонимизации для локального провайдера
+- [x] Интеграция локальной QWEN 1.5B как провайдера по умолчанию (v0.5, Phase 4)
+- [x] llama-server + GBNF грамматика (v0.5, Phase 4)
+- [x] Post-processing ответов локальной модели (v0.5, Phase 4)
+- [ ] Пропуск анонимизации для локального провайдера (v0.5, Phase 5)
 - [ ] UI-редизайн — уйти от AI-like интерфейса (веха будущая)
 - [ ] Сборка DMG/EXE для конечных пользователей
 
@@ -130,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-21 after milestone v0.5 started*
+*Last updated: 2026-03-21 after Phase 4 completion*
