@@ -93,7 +93,7 @@ def _render_empty_state(container, state) -> None:
             ui.button(
                 "Выбрать папку",
                 on_click=_on_pick_folder,
-            ).classes(BTN_ACCENT_FILLED + " text-base px-8 py-3")
+            ).classes(BTN_ACCENT_FILLED + " text-base px-8 py-3").props('aria-label="Выбрать папку с документами"')
 
             # ── Три карточки возможностей ─────────────────────────────────────
             with ui.row().classes("gap-4 w-full max-w-2xl justify-center flex-wrap"):
@@ -118,24 +118,22 @@ def build() -> None:
     seg_buttons: dict = {}
     _timer: list = [None]
 
-    with ui.column().classes("w-full"):
+    with ui.column().classes("w-full max-w-6xl mx-auto"):
         # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
-        stats_row = ui.row().classes(STATS_BAR)
-        total_num = ui.label("—")
-        expiring_num = ui.label("—")
-        attention_num = ui.label("—")
-
-        with stats_row:
+        # CRITICAL: all labels created INSIDE with-block so NiceGUI places them in DOM
+        # inside the flex container, not outside it (NiceGUI DOM creation order bug)
+        with ui.row().classes(STATS_BAR.replace("bg-white", "bg-transparent")) as stats_row:
+            stats_row.props('role="region" aria-label="Статистика реестра"')
             with ui.column().classes(STATS_ITEM):
-                total_num.classes(STAT_NUMBER + " text-slate-900")
+                total_num = ui.label("—").classes(STAT_NUMBER + " text-slate-900").props('aria-label="Всего документов"')
                 ui.label("документов").classes(STAT_LABEL + " text-slate-500")
-            ui.label("·").classes("text-slate-300 text-xl font-light")
+            ui.label("·").classes("text-slate-300 text-xl font-light self-center")
             with ui.column().classes(STATS_ITEM):
-                expiring_num.classes(STAT_NUMBER + " text-amber-600")
+                expiring_num = ui.label("—").classes(STAT_NUMBER + " text-amber-600").props('aria-label="Документов истекает"')
                 ui.label("истекают").classes(STAT_LABEL + " text-slate-500")
-            ui.label("·").classes("text-slate-300 text-xl font-light")
+            ui.label("·").classes("text-slate-300 text-xl font-light self-center")
             with ui.column().classes(STATS_ITEM):
-                attention_num.classes(STAT_NUMBER + " text-red-600")
+                attention_num = ui.label("—").classes(STAT_NUMBER + " text-red-600").props('aria-label="Требуют внимания"')
                 ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
 
         # ── Page heading + controls row ──────────────────────────────────────────
@@ -144,18 +142,18 @@ def build() -> None:
             ui.label("Реестр").classes("text-2xl font-semibold text-slate-900 mr-auto")
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
-            with ui.row().classes("items-center gap-1.5"):
-                list_btn = ui.button("≡").props("flat no-caps").classes(TOGGLE_ACTIVE)
-                list_btn.props('title="Список" aria-label="Вид списком"')
-                cal_btn = ui.button("⊞").props("flat no-caps").classes(TOGGLE_INACTIVE)
-                cal_btn.props('title="Календарь" aria-label="Вид календарём"')
+            with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg"):
+                list_btn = ui.button("≡ Список").props("flat no-caps").classes(TOGGLE_ACTIVE + " text-xs px-3 py-1")
+                list_btn.props('aria-label="Вид списком"')
+                cal_btn = ui.button("⊞ Календарь").props("flat no-caps").classes(TOGGLE_INACTIVE + " text-xs px-3 py-1")
+                cal_btn.props('aria-label="Вид календарём"')
 
         # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
         with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row"):
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")
-                .classes("flex-1 max-w-md")
+                .classes("flex-1 max-w-lg")
             )
 
             # REGI-06: Filter bar с filled active state
