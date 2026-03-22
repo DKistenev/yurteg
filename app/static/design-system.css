@@ -223,3 +223,62 @@ p, li, label { line-height: 1.5; }
 .status-extended    { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#dbeafe; color:#1d4ed8; }
 .status-negotiation { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#ede9fe; color:#6d28d9; }
 .status-suspended   { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#f3f4f6; color:#4b5563; }
+
+/* ── Skeleton loader (ANIM-04) ─────────────────────────────────────────────── */
+/* GitHub-style: серые блоки с pulse. Без backdrop-filter (CPU spikes macOS pywebview) */
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@layer components {
+  .skeleton-row {
+    height: 44px;           /* AG Grid row height из --ag-row-height */
+    background: var(--yt-p-slate-200);
+    border-radius: var(--yt-radius-sm);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    margin-bottom: 2px;
+  }
+  .skeleton-row:nth-child(2) { animation-delay: 150ms; opacity: 0.85; }
+  .skeleton-row:nth-child(3) { animation-delay: 300ms; opacity: 0.7;  }
+  .skeleton-row:nth-child(4) { animation-delay: 450ms; opacity: 0.6;  }
+  .skeleton-row:nth-child(5) { animation-delay: 600ms; opacity: 0.5;  }
+}
+
+/* ── Template card stagger (ANIM-02) ──────────────────────────────────────── */
+/* .card-enter применяется на каждую карточку в grid (аналогично .hero-enter) */
+
+@layer components {
+  .card-enter {
+    animation: hero-slide-up var(--yt-duration-slow) var(--yt-ease-out) both;
+  }
+  .card-enter:nth-child(1) { animation-delay: 0ms;   }
+  .card-enter:nth-child(2) { animation-delay: 60ms;  }
+  .card-enter:nth-child(3) { animation-delay: 120ms; }
+  .card-enter:nth-child(4) { animation-delay: 180ms; }
+  .card-enter:nth-child(5) { animation-delay: 240ms; }
+  .card-enter:nth-child(6) { animation-delay: 300ms; }
+  .card-enter:nth-child(n+7) { animation-delay: 360ms; }
+}
+
+/* ── Hover states audit (XCUT-02) ─────────────────────────────────────────── */
+/* Закрываем случаи где hover не определён */
+
+@layer components {
+  /* Nav sidebar items в settings — hover если нет active */
+  .settings-nav-item:not(.settings-nav-active):hover {
+    background: var(--yt-p-slate-100);
+  }
+
+  /* Stats bar items — subtle highlight */
+  .stats-item-clickable:hover {
+    background: var(--yt-color-accent-subtle);
+    border-radius: var(--yt-radius-md);
+  }
+
+  /* Breadcrumb link hover (уже есть indigo color в styles.py, добавим underline) */
+  .breadcrumb-link:hover {
+    text-decoration: underline;
+  }
+}
