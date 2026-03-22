@@ -1,5 +1,20 @@
 # Milestones
 
+## v0.7.1 UI Polish & Fixes (Shipped: 2026-03-22)
+
+**Phases completed:** 2 phases, 6 plans, 7 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- Logo upgraded to «Юр» in indigo rect + «Тэг» wordmark; add-workspace dialog restyled with indigo header band; templates/settings pages centered and no longer locked to viewport height
+- One-liner:
+- One-liner:
+- One-liner:
+- pick_folder() and _pick_file() protected with try/except (ImportError, AttributeError) — app no longer crashes in web mode without pywebview
+
+---
+
 ## v0.7 Визуальный продукт (Shipped: 2026-03-22)
 
 **Phases completed:** 4 phases, 10 plans, 3 tasks
