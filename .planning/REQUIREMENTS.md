@@ -24,9 +24,9 @@
 
 ### Splash
 
-- [ ] **SPLS-01**: Hero-секция на весь экран с крупной типографикой и визуальной уверенностью
-- [ ] **SPLS-02**: Dark accent surface для hero-зоны
-- [ ] **SPLS-03**: Staggered entrance анимация элементов *(stretch — cut first if phase slips)*
+- [x] **SPLS-01**: Hero-секция на весь экран с крупной типографикой и визуальной уверенностью
+- [x] **SPLS-02**: Dark accent surface для hero-зоны
+- [x] **SPLS-03**: Staggered entrance анимация элементов *(stretch — cut first if phase slips)*
 
 ### Registry
 
@@ -99,9 +99,9 @@
 | HEAD-02 | Phase 14 | Complete |
 | HEAD-03 | Phase 14 | Complete |
 | HEAD-04 | Phase 14 | Complete |
-| SPLS-01 | Phase 15 | Pending |
-| SPLS-02 | Phase 15 | Pending |
-| SPLS-03 | Phase 15 | Pending |
+| SPLS-01 | Phase 15 | Complete |
+| SPLS-02 | Phase 15 | Complete |
+| SPLS-03 | Phase 15 | Complete |
 | REGI-01 | Phase 16 | Pending |
 | REGI-02 | Phase 16 | Pending |
 | REGI-03 | Phase 16 | Pending |

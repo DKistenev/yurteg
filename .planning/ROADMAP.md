@@ -51,7 +51,7 @@ Full details: `.planning/milestones/v0.6-ROADMAP.md`
 **Milestone Goal:** Полная переработка визуального слоя — из wireframe в дерзкий, уверенный продукт с характером
 
 - [x] **Phase 14: Фундамент — дизайн-система + header** — tokens.css, app.colors(), типографика, фон, тёмный chrome header (completed 2026-03-22)
-- [ ] **Phase 15: Splash** — hero full-screen, dark surface, staggered entrance (валидация паттерна)
+- [x] **Phase 15: Splash** — hero full-screen, dark surface, staggered entrance (валидация паттерна) (completed 2026-03-22)
 - [ ] **Phase 16: Registry + Card** — stats bar, AG Grid theming, фильтр-бар, breadcrumbs, секции
 - [ ] **Phase 17: Полировка — templates, settings, анимации, сквозное** — карточки, секции, transitions, footer, visual seam
 
@@ -87,7 +87,7 @@ Plans:
   4. *(stretch)* Staggered entrance анимация элементов
 **Plans**: 1 plan
 Plans:
-- [ ] 15-01-PLAN.md — полный рерайт splash.py: dark hero-zone, TEXT_HERO, BTN_ACCENT_FILLED, stagger .hero-enter
+- [x] 15-01-PLAN.md — полный рерайт splash.py: dark hero-zone, TEXT_HERO, BTN_ACCENT_FILLED, stagger .hero-enter
 **UI hint**: yes
 **Note**: Изолированный компонент, нет data dependencies — валидирует паттерн до сложного registry
 
@@ -140,6 +140,6 @@ Plans:
 | 12. Onboarding | v0.6 | 2/2 | Complete | 2026-03-22 |
 | 13. Design Polish + Calendar | v0.6 | 4/4 | Complete | 2026-03-22 |
 | 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
-| 15. Splash | v0.7 | 0/1 | Not started | - |
+| 15. Splash | v0.7 | 1/1 | Complete   | 2026-03-22 |
 | 16. Registry + Card | v0.7 | 0/TBD | Not started | - |
 | 17. Полировка: templates, settings, анимации | v0.7 | 0/TBD | Not started | - |

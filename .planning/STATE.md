@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
-status: Ready to plan
-stopped_at: Completed 14-header/14-02-PLAN.md
-last_updated: "2026-03-22T19:15:07.184Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 15-splash/15-01-PLAN.md
+last_updated: "2026-03-22T19:27:06.280Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 14 — Фундамент — дизайн-система + header
+**Current focus:** Phase 15 — Splash
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
+Phase: 15 (Splash) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Plan: Not started
 *Updated after each plan completion*
 | Phase 14-header P01 | 5 | 2 tasks | 4 files |
 | Phase 14-header P02 | 5 | 1 tasks | 1 files |
+| Phase 15-splash P01 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting current work:
 - [Phase 14-header]: @layer discipline: overrides для Quasar, components для карточек/ссылок, AG Grid вне layer
 - [Phase 14-header]: Logo mark via ui.html() — NiceGUI ui.element().text не работает напрямую для inline content
 - [Phase 14-header]: CTA filled через .classes('bg-indigo-600 text-white') без Quasar color prop (Pitfall 2 — !important)
+- [Phase 15-splash]: hero-zone через ui.element('div') — structural wrapper, не padding inflation (провалидировано на splash, готов для Phase 16)
+- [Phase 15-splash]: NiceGUI текст в произвольных HTML-тегах — через ui.html() внутри with-блока, не .text атрибут
 
 ### Pending Todos
 
@@ -95,6 +98,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 14-header/14-02-PLAN.md
+Stopped at: Completed 15-splash/15-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14
