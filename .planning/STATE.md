@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: UI Polish & Fixes
 status: Phase complete — ready for verification
-stopped_at: Completed 18-layout-fixes/18-03-PLAN.md
-last_updated: "2026-03-22T20:48:28.167Z"
+stopped_at: Completed 18-layout-fixes/18-02-PLAN.md
+last_updated: "2026-03-22T20:48:36.751Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 2
@@ -53,6 +53,7 @@ Plan: 3 of 3
 | Phase 17-polish P03 | 5 | 2 tasks | 4 files |
 | Phase 18-layout-fixes P01 | 5 | 2 tasks | 2 files |
 | Phase 18 P03 | 5 | 2 tasks | 4 files |
+| Phase 18-layout-fixes P02 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,9 @@ Recent decisions affecting current work:
 - [Phase 18-layout-fixes]: STATS_BAR bg-white override via .replace() — avoids touching shared styles.py constant
 - [Phase 18-03]: SEG_INACTIVE hover softened to slate-50 for cleaner appearance on white background
 - [Phase 18-03]: Calendar toggle wrapped in pill container bg-slate-100 matching segment bar pattern
+- [Phase 18-layout-fixes]: Logo: width:32px height:28px rect to fit «Юр» without clipping
+- [Phase 18-layout-fixes]: Dialog: card p-0 + overflow-hidden + ui.element div for indigo header band
+- [Phase 18-layout-fixes]: Settings height: flex-1 on row + self-stretch on sidebar (not min-h-screen)
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 18-layout-fixes/18-03-PLAN.md
+Stopped at: Completed 18-layout-fixes/18-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14
