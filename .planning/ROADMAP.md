@@ -87,4 +87,4 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 18. Layout + Visual Fixes | v0.7.1 | 3/3 | Complete    | 2026-03-22 |
-| 19. Onboarding + Demo Data | v0.7.1 | 3/3 | Complete   | 2026-03-22 |
+| 19. Onboarding + Demo Data | v0.7.1 | 3/3 | Complete    | 2026-03-22 |
