@@ -145,5 +145,5 @@ Plans:
 | 13. Design Polish + Calendar | v0.6 | 4/4 | Complete | 2026-03-22 |
 | 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
 | 15. Splash | v0.7 | 1/1 | Complete    | 2026-03-22 |
-| 16. Registry + Card | v0.7 | 3/3 | Complete   | 2026-03-22 |
+| 16. Registry + Card | v0.7 | 3/3 | Complete    | 2026-03-22 |
 | 17. Полировка: templates, settings, анимации | v0.7 | 0/TBD | Not started | - |
