@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: UI Polish & Fixes
-status: Ready to execute
-stopped_at: Completed 19-onboarding-demo/19-01-PLAN.md
-last_updated: "2026-03-22T20:58:44.750Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 19-onboarding-demo/19-02-PLAN.md
+last_updated: "2026-03-22T21:00:11.951Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -56,6 +56,7 @@ Plan: 3 of 3
 | Phase 18-layout-fixes P02 | 5 | 2 tasks | 3 files |
 | Phase 19-onboarding-demo P03 | 5 | 1 tasks | 2 files |
 | Phase 19-onboarding-demo P01 | 5 | 2 tasks | 3 files |
+| Phase 19 P02 | 8 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,7 @@ Recent decisions affecting current work:
 - [Phase 19-01]: TOUR_STEPS expanded 3→5: upload → nav tabs → search/filters → calendar-toggle → client dropdown
 - [Phase 19-01]: Tooltip visual: box-shadow 20/60px, radius 12px, max-width 300px, progress bar + step dots
 - [Phase 19-01]: «? Гид» button: flat subtle text-xs slate-400 between upload CTA and client dropdown
+- [Phase 19]: amount хранится как TEXT в схеме — insert_demo_contracts использует строковый формат «1 200 000 ₽»
 
 ### Pending Todos
 
@@ -132,6 +134,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 19-onboarding-demo/19-01-PLAN.md
+Stopped at: Completed 19-onboarding-demo/19-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14

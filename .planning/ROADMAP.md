@@ -43,7 +43,7 @@ Full details: `.planning/milestones/v0.7-ROADMAP.md`
 **Milestone Goal:** Починить все проблемы из аудита v0.7 — layout, onboarding, demo-данные, баги
 
 - [x] **Phase 18: Layout + Visual Fixes** — stats bar, центрирование, лого, footer, segments, CSS cleanup (completed 2026-03-22)
-- [ ] **Phase 19: Onboarding + Demo Data** — guided tour, кнопка тура, demo-данные, web mode fallback
+- [x] **Phase 19: Onboarding + Demo Data** — guided tour, кнопка тура, demo-данные, web mode fallback (completed 2026-03-22)
 
 ## Phase Details
 
@@ -78,7 +78,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 19-01-PLAN.md — Tour 5 шагов + кнопка «? Гид» в header
-- [ ] 19-02-PLAN.md — Demo data (app/demo_data.py) + demo карточка в templates
+- [x] 19-02-PLAN.md — Demo data (app/demo_data.py) + demo карточка в templates
 - [x] 19-03-PLAN.md — Web mode fallback для pick_folder и _pick_file
 **UI hint**: yes
 
@@ -87,4 +87,4 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 18. Layout + Visual Fixes | v0.7.1 | 3/3 | Complete    | 2026-03-22 |
-| 19. Onboarding + Demo Data | v0.7.1 | 2/3 | In Progress|  |
+| 19. Onboarding + Demo Data | v0.7.1 | 3/3 | Complete   | 2026-03-22 |

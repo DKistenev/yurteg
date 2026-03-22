@@ -27,7 +27,7 @@ Bugfix/polish milestone — починить все проблемы из ауд
 
 - [x] **ONBR-01**: Guided tour при первом открытии — spotlight на кнопки, карточки с описанием, кнопка «Продолжить»
 - [x] **ONBR-02**: Кнопка «Начать тур» для повторного запуска guided tour в любой момент
-- [ ] **ONBR-03**: Demo-данные — кнопка «Загрузить тестовые документы» в empty state для демонстрации реестра
+- [x] **ONBR-03**: Demo-данные — кнопка «Загрузить тестовые документы» в empty state для демонстрации реестра
 
 ### Polish
 
@@ -35,7 +35,7 @@ Bugfix/polish milestone — починить все проблемы из ауд
 - [x] **PLSH-02**: Templates empty state — уменьшить py-20, поднять контент к заголовку
 - [x] **PLSH-03**: hero-enter:nth-child(5) — добавить animation-delay: 400ms в design-system.css
 - [x] **PLSH-04**: Dead CSS cleanup — удалить settings-nav-item, stats-item-clickable rules
-- [ ] **PLSH-05**: Шаблоны empty state — показать demo-карточку как пример
+- [x] **PLSH-05**: Шаблоны empty state — показать demo-карточку как пример
 
 ### Robustness
 
@@ -67,12 +67,12 @@ Bugfix/polish milestone — починить все проблемы из ауд
 | BRND-03 | Phase 18 | Complete |
 | ONBR-01 | Phase 19 | Complete |
 | ONBR-02 | Phase 19 | Complete |
-| ONBR-03 | Phase 19 | Pending |
+| ONBR-03 | Phase 19 | Complete |
 | PLSH-01 | Phase 18 | Complete |
 | PLSH-02 | Phase 18 | Complete |
 | PLSH-03 | Phase 18 | Complete |
 | PLSH-04 | Phase 18 | Complete |
-| PLSH-05 | Phase 19 | Pending |
+| PLSH-05 | Phase 19 | Complete |
 | RBST-01 | Phase 19 | Complete |
 | RBST-02 | Phase 18 | Complete |
 | RBST-03 | Phase 18 | Complete |
