@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 13-design-polish-calendar 13-01-PLAN.md
-last_updated: "2026-03-22T12:53:42.984Z"
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-22T12:56:39.347Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 13 (design-polish-calendar) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -89,6 +89,7 @@ Plan: 2 of 4
 | Phase 12-onboarding P01 | 2min | 2 tasks | 3 files |
 | Phase 12-onboarding P02 | 3min | 2 tasks | 2 files |
 | Phase 13-design-polish-calendar P01 | 3min | 2 tasks | 3 files |
+| Phase 13 P02 | 6min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,8 @@ Recent decisions affecting current work:
 - [Phase 12-onboarding]: Tour JS-Python bridge: hidden NiceGUI button clicked by endTour() JS
 - [Phase 13-design-polish-calendar]: Font injection order: _FONT_CSS must be first add_head_html call — ensures IBM Plex Sans loads before any element renders
 - [Phase 13-design-polish-calendar]: Source-level test inspection: read main.py as text via pathlib to avoid ui.run() side-effect during pytest
+- [Phase 13]: process.py gray migration deferred — outside plan 13-02 scope
+- [Phase 13]: Tour spotlight outline migrated to indigo-600 — spotlight ring treated as accent element
 
 ### Pending Todos
 
@@ -217,6 +220,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 13-design-polish-calendar 13-01-PLAN.md
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
