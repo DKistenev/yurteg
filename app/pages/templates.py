@@ -17,7 +17,16 @@ import modules.extractor as extractor
 import services.review_service as review_service
 from app.components.ui_helpers import confirm_dialog
 from app.state import get_state
-from app.styles import TEXT_HEADING_2XL, TEXT_MUTED
+from app.styles import (
+    TEXT_HEADING_2XL,
+    TEXT_MUTED,
+    TMPL_TYPE_COLORS,
+    TMPL_TYPE_DEFAULT,
+    BTN_ACCENT_FILLED,
+    TMPL_EMPTY_ICON,
+    TMPL_EMPTY_TITLE,
+    TMPL_EMPTY_BODY,
+)
 from config import Config
 from modules.models import FileInfo
 from services.client_manager import ClientManager
@@ -37,7 +46,7 @@ async def _pick_file() -> Optional[Path]:
     return Path(result[0])
 
 
-def _render_cards(container: ui.column) -> None:
+def _render_cards(container: ui.column, on_add: callable = None) -> None:
     """Рендерит карточки шаблонов в двухколоночной сетке."""
     state = get_state()
     db = ClientManager().get_db(state.current_client)
@@ -46,48 +55,72 @@ def _render_cards(container: ui.column) -> None:
     container.clear()
     with container:
         if not templates:
-            # Empty state
-            with ui.column().classes("w-full items-center justify-center py-16"):
-                ui.label("Нет шаблонов").classes("text-slate-400 text-lg")
+            # Rich empty state (TMPL-03)
+            with ui.column().classes("w-full items-center justify-center py-20"):
+                ui.icon(TMPL_EMPTY_ICON).props("size=64px").classes("text-slate-300")
+                ui.label("Шаблоны не добавлены").classes(TMPL_EMPTY_TITLE)
                 ui.label(
-                    "Добавьте первый образец — он пригодится для проверки договоров"
-                ).classes("text-slate-300 text-sm mt-1")
+                    "Добавьте образец договора — система будет использовать его как эталон при проверке новых документов"
+                ).classes(TMPL_EMPTY_BODY + " mb-6")
+                if on_add:
+                    ui.button(
+                        "Добавить первый шаблон", on_click=on_add
+                    ).classes(BTN_ACCENT_FILLED).props("no-caps")
             return
 
         with ui.grid(columns=2).classes("w-full gap-4"):
             for tmpl in templates:
-                _render_card(tmpl, container)
+                _render_card(tmpl, container, on_add=on_add)
 
 
-def _render_card(tmpl, cards_container: ui.column) -> None:
-    """Рендерит одну карточку шаблона."""
+def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
+    """Рендерит одну карточку шаблона с color-coded левой полосой и type badge."""
+    colors = TMPL_TYPE_COLORS.get(tmpl.contract_type, TMPL_TYPE_DEFAULT)
+    preview = (tmpl.content_text or "")[:200]
+
+    badge_html = (
+        f'<span style="display:inline-flex;align-items:center;padding:2px 8px;'
+        f'border-radius:9999px;font-size:0.7rem;font-weight:600;'
+        f'background:{colors["badge_bg"]};color:{colors["badge_text"]}">'
+        f'{colors["icon"]} {tmpl.contract_type}</span>'
+    )
+
     with ui.card().classes(
-        "p-5 cursor-default hover:shadow-md transition-shadow transition-colors duration-150 hover:bg-slate-100"
-    ):
-        # Имя
-        ui.label(tmpl.name).classes("font-semibold text-slate-900 text-sm")
-        # Тип документа
-        ui.label(tmpl.contract_type).classes("text-xs text-slate-500 mt-1")
-        # Preview первых ~200 символов
-        preview = (tmpl.content_text or "")[:200]
-        ui.label(preview).classes(
-            "text-xs text-slate-400 mt-2 line-clamp-3 overflow-hidden"
-        )
-        # Дата создания
-        ui.label(tmpl.created_at or "").classes("text-xs text-slate-300 mt-2")
-        # Кнопки действий
-        with ui.row().classes("mt-3 gap-1"):
-            ui.button(
-                "Изменить",
-                on_click=lambda t=tmpl: _open_edit_dialog(t, cards_container),
-            ).props("flat no-caps dense color=primary").classes("text-xs")
-            ui.button(
-                "Удалить",
-                on_click=lambda t=tmpl: _open_delete_dialog(t, cards_container),
-            ).props("flat no-caps dense color=negative").classes("text-xs")
+        "overflow-hidden cursor-default border border-slate-200 shadow-none rounded-xl"
+    ).style("padding:0"):
+        with ui.row().classes("w-full gap-0").style("min-height:100%"):
+            # 4px color-coded left bar
+            with ui.element("div").style(
+                f"width:4px;background:{colors['border']};border-radius:12px 0 0 12px;flex-shrink:0"
+            ):
+                pass
+            # Card content
+            with ui.column().classes("p-5 gap-1 flex-1"):
+                # Header row: icon + name
+                with ui.row().classes("items-center gap-2 mb-1"):
+                    ui.html(f'<span style="font-size:1.1rem">{colors["icon"]}</span>')
+                    ui.label(tmpl.name).classes("font-semibold text-slate-900 text-sm")
+                # Type badge
+                ui.html(badge_html)
+                # Preview
+                ui.label(preview).classes(
+                    "text-xs text-slate-400 mt-2 line-clamp-3 overflow-hidden"
+                )
+                # Date
+                ui.label(tmpl.created_at or "").classes("text-xs text-slate-300 mt-1")
+                # Action buttons
+                with ui.row().classes("mt-3 gap-1"):
+                    ui.button(
+                        "Изменить",
+                        on_click=lambda t=tmpl: _open_edit_dialog(t, cards_container, on_add=on_add),
+                    ).props("flat no-caps dense color=primary").classes("text-xs")
+                    ui.button(
+                        "Удалить",
+                        on_click=lambda t=tmpl: _open_delete_dialog(t, cards_container, on_add=on_add),
+                    ).props("flat no-caps dense color=negative").classes("text-xs")
 
 
-def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
+def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
     """Диалог редактирования имени и типа шаблона."""
     with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[400px]"):
         ui.label("Изменить шаблон").classes("text-lg font-semibold text-slate-900 mb-4")
@@ -121,7 +154,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
                     ui.notify("Не удалось сохранить изменения. Попробуйте ещё раз.", type="negative")
                     return
                 dlg.close()
-                _render_cards(cards_container)
+                _render_cards(cards_container, on_add=on_add)
             finally:
                 save_btn.enable()
 
@@ -132,7 +165,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
     dlg.open()
 
 
-def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
+def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
     """Диалог подтверждения удаления шаблона."""
 
     async def _do_delete():
@@ -143,7 +176,7 @@ def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
         except Exception:
             ui.notify("Не удалось удалить шаблон. Попробуйте ещё раз.", type="negative")
             return
-        _render_cards(cards_container)
+        _render_cards(cards_container, on_add=on_add)
 
     confirm_dialog(
         title="Удалить шаблон?",
@@ -152,7 +185,7 @@ def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
     )
 
 
-async def _add_template_flow(cards_container: ui.column) -> None:
+async def _add_template_flow(cards_container: ui.column, on_add: callable = None) -> None:
     """Поток добавления шаблона: file picker → диалог имени+типа → extract → save.
 
     Per D-14, D-16:
@@ -227,7 +260,7 @@ async def _add_template_flow(cards_container: ui.column) -> None:
                     return
 
                 dlg.close()
-                _render_cards(cards_container)
+                _render_cards(cards_container, on_add=on_add)
                 ui.notify(f"Шаблон «{new_name}» добавлен", type="positive")
             finally:
                 add_btn.enable()
@@ -244,6 +277,13 @@ async def _add_template_flow(cards_container: ui.column) -> None:
 def build() -> None:
     """Страница «Шаблоны» — управление шаблонами-эталонами."""
     with ui.column().classes("w-full p-8"):
+        # cards_ref используется через closure — заполняется после создания заголовка
+        cards_ref: list[ui.column] = []
+
+        # on_add: общий callback для кнопки в заголовке и CTA в empty state
+        def _on_add() -> None:
+            _add_template_flow(cards_ref[0], on_add=_on_add)
+
         # Заголовок
         with ui.row().classes("w-full items-start justify-between mb-6"):
             with ui.column().classes("gap-0"):
@@ -252,11 +292,9 @@ def build() -> None:
                     "Образцы документов для проверки договоров"
                 ).classes("text-sm text-slate-400 mb-4")
 
-            cards_ref: list[ui.column] = []
-
             ui.button(
                 "+ Добавить шаблон",
-                on_click=lambda: _add_template_flow(cards_ref[0]),
+                on_click=_on_add,
             ).props("flat no-caps color=primary")
 
         # Контейнер для карточек
@@ -264,4 +302,4 @@ def build() -> None:
         cards_ref.append(cards_container)
 
         # Первоначальный рендер карточек
-        _render_cards(cards_container)
+        _render_cards(cards_container, on_add=_on_add)
