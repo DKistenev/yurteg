@@ -1,298 +1,252 @@
 # Pitfalls Research
 
-**Domain:** Streamlit → NiceGUI migration, desktop Python app (legal document processing)
-**Researched:** 2026-03-21
-**Confidence:** HIGH (most pitfalls confirmed via official NiceGUI GitHub issues, FAQs, and verified bug reports)
+**Domain:** Visual overhaul of existing NiceGUI 3.x desktop app (NiceGUI 3.9.0, Tailwind 4, AG Grid, FullCalendar)
+**Researched:** 2026-03-22
+**Confidence:** HIGH — all critical pitfalls confirmed via official NiceGUI GitHub issues, release notes, and v3.0 migration docs
 
-> This file replaces the v0.4/v0.5 pitfalls doc and focuses on the v0.6 UI migration.
-> Previous milestone pitfalls (deadline tracking, multi-provider AI) remain valid as business logic is unchanged.
+> This file focuses on v0.7 "Визуальный продукт" — adding a full design-system overhaul on top of the working v0.6 codebase.
+> Previous migration pitfalls (Pitfall 1–8 from v0.6 PITFALLS.md) remain valid for the business logic layer.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Global Scope UI Elements Shared Across All Clients
+### Pitfall 1: Custom CSS Without @layer — Silently Ignored by Quasar
 
 **What goes wrong:**
-Any `ui.*` element created at module level (outside a `@ui.page`-decorated function) is shared across all browser connections. In multi-client mode — one NiceGUI server serving several lawyers — client A sees client B's document registry. The registry becomes a shared mutable blob.
+Custom CSS added via `ui.add_css()` or `ui.add_head_html('<style>...')` doesn't override Quasar/NiceGUI component styles. Buttons, cards, inputs look unchanged despite correct CSS being in the DOM. Symptoms: no visual error, but the style simply doesn't apply.
 
 **Why it happens:**
-Developers coming from Streamlit assume script-level code is per-session, because Streamlit reruns the entire script per user. NiceGUI is the opposite: module-level elements live once, globally, across all connections. There is no per-connection "rerun" model.
+NiceGUI 3.x (including 3.9.0) moved all Tailwind and Quasar CSS into CSS `@layer` blocks. Layer hierarchy (highest to lowest priority): `overrides → utilities → components → nicegui → quasar → base → theme`. CSS written outside any `@layer` declaration loses cascade priority to layered framework styles. Previously (v2.x), unlayered CSS would win by default — this changed in v3.0.0 and broke existing style overrides silently.
 
 **How to avoid:**
-Every page must be wrapped in a `@ui.page('/')` decorated function. All state — selected client DB, current document, filter values — must live in `app.storage.user` or inside the page function's local scope, never in module-level Python variables.
+All custom CSS overrides must be wrapped in the appropriate `@layer`:
 
-```python
-# WRONG — shared across all clients
-table = ui.table(columns=..., rows=...)
-
-# RIGHT — isolated per client connection
-@ui.page('/')
-def index():
-    table = ui.table(columns=..., rows=...)
-```
-
-**Warning signs:**
-- One user's filter change affects another user's view in a different tab
-- Multi-client mode shows one lawyer's documents to another
-
-**Phase to address:** Phase 1 (app scaffold) — establish the `@ui.page` architecture before building any screens.
-
----
-
-### Pitfall 2: Blocking the Async Event Loop with Synchronous SQLite Calls
-
-**What goes wrong:**
-Standard `sqlite3` is synchronous. Calling it directly inside an `async def` page handler or any async UI callback blocks the entire NiceGUI event loop. The UI freezes — no spinner, no button response — until the query finishes. With 500+ documents even a simple `SELECT *` causes a noticeable pause for all connected clients simultaneously.
-
-**Why it happens:**
-NiceGUI runs on FastAPI/Starlette's asyncio event loop. Any blocking call that takes >10ms stalls every connected client. The existing ЮрТэг codebase uses plain `sqlite3`, which was fine for Streamlit (which spawns a new OS thread per session) but breaks NiceGUI's single-threaded async model.
-
-**How to avoid:**
-Wrap every database call in `run.io_bound()`:
-
-```python
-from nicegui import run
-
-async def load_documents(client_id: str):
-    rows = await run.io_bound(db_service.get_all_documents, client_id)
-    table.rows = rows
-    table.update()
-```
-
-Alternatively migrate to `aiosqlite` for native async SQLite. For ЮрТэг, wrapping the existing `database.py` service calls with `run.io_bound()` is the lower-risk path — business logic remains unchanged.
-
-**Warning signs:**
-- UI becomes unresponsive during any data load
-- NiceGUI WebSocket timeout errors appear in browser DevTools console
-- Spinner component never animates (event loop blocked before it can render)
-
-**Phase to address:** Phase 1 (DB integration layer) — establish the async wrapper pattern before wiring any UI element to data.
-
----
-
-### Pitfall 3: llama-server Subprocess Leaked on App Close
-
-**What goes wrong:**
-`llama-server` is started as a `subprocess.Popen()` child. When the NiceGUI window closes in native mode, `app.on_shutdown()` is **not reliably called** — this is a confirmed, documented NiceGUI bug (issue #2107). The llama-server process keeps running in the background, consuming ~1.5 GB RAM and a CPU core indefinitely after the user has "closed" the app.
-
-**Why it happens:**
-`native=True` uses pywebview. When the OS window closes, the webview quits, but the underlying asyncio/FastAPI server does not always trigger the full shutdown lifecycle on macOS. This is a NiceGUI issue, not a user error.
-
-**How to avoid:**
-Register cleanup on both shutdown and disconnect hooks, plus `atexit` as a final safety net:
-
-```python
-app.on_disconnect(provider_manager.stop_local_server)
-app.on_shutdown(provider_manager.stop_local_server)
-
-import atexit
-atexit.register(provider_manager.stop_local_server)
-```
-
-On macOS, also handle `signal.SIGTERM` since PyInstaller-packaged apps may receive SIGTERM instead of a graceful shutdown event.
-
-**Warning signs:**
-- `ps aux | grep llama` shows server running after the app window was closed
-- RAM usage does not drop after closing the app
-- Second app launch fails with "port already in use" on llama-server's port (default 8080)
-
-**Phase to address:** Phase 2 (local LLM wiring) — implement triple-layer cleanup from day one, not as a post-launch fix.
-
----
-
-### Pitfall 4: Double Initialization on Startup Launches llama-server Twice
-
-**What goes wrong:**
-With `reload=True` (NiceGUI's default setting), the main module runs twice: once in the parent process, once in the child subprocess. Any code at module level — including `subprocess.Popen(llama_server)`, HuggingFace model downloads, and DB schema initialization — executes twice. Two llama-server processes start simultaneously on the same port. The second one crashes and the error is silent.
-
-**Why it happens:**
-NiceGUI's hot-reload spawns a subprocess where `__name__ == '__mp_main__'`, bypassing the standard `if __name__ == '__main__'` guard. Import-time side effects in NiceGUI itself (FastAPI init, ~200 element class loading) also double-run (issue #5684).
-
-**How to avoid:**
-Always use `reload=False` in production. Wrap all startup side effects in `app.on_startup()`:
-
-```python
-app.on_startup(provider_manager.autostart_local_server)
-ui.run(reload=False, native=True, host='127.0.0.1', port=8888)
-```
-
-**Warning signs:**
-- Two llama-server processes visible in Activity Monitor immediately after launch
-- "Address already in use" error on llama-server port in logs
-- DB migration runs twice causing SQLite constraint errors in logs
-
-**Phase to address:** Phase 1 (app entrypoint scaffolding) — set `reload=False` and move all startup logic to `app.on_startup` before any feature code is added.
-
----
-
-### Pitfall 5: `ui.upload` Provides No File Path — Only Bytes in Memory
-
-**What goes wrong:**
-`ui.upload` does not expose the original file's path on disk. It delivers file content as bytes via the `on_upload` callback. The existing ЮрТэг pipeline (`scanner.py`, `extractor.py`, `controller.py`) works with `pathlib.Path` objects throughout. Wiring `ui.upload` directly to the pipeline breaks immediately at the type boundary.
-
-**Why it happens:**
-Browser security prevents JavaScript from accessing real filesystem paths, and NiceGUI's `ui.upload` follows browser semantics even in native desktop mode.
-
-**How to avoid:**
-Use the native OS file picker instead of `ui.upload` for the batch import use case:
-
-```python
-# Native file dialog — returns actual Path objects
-result = await app.native.main_window.create_file_dialog(
-    allow_multiple=True,
-    file_types=['PDF files (*.pdf)', 'Word files (*.docx)']
-)
-paths = [Path(p) for p in result]
-await run.io_bound(controller.process_files, paths)
-```
-
-For individual file drop scenarios, save bytes to `tempfile.NamedTemporaryFile` and pass the temp path to the pipeline.
-
-**Warning signs:**
-- `e.name` gives the filename but `e.content.read()` gives bytes with no path attribute
-- Pipeline errors: `TypeError: expected str, bytes or os.PathLike object`
-
-**Phase to address:** Phase 2 (file import screen) — choose native picker vs. upload widget as an explicit architecture decision before any import UI is built.
-
----
-
-### Pitfall 6: Large File Downloads Block the Event Loop
-
-**What goes wrong:**
-`ui.download(content, filename)` where `content` is a large bytes object (Excel export of 300+ documents can reach 50–200 MB) freezes the entire NiceGUI event loop before the download starts. All other UI interactions halt. For files ≥1 GB (e.g., bulk PDF archive exports) the download silently fails with no error message shown (issue #3756).
-
-**Why it happens:**
-`ui.download()` serializes the full content synchronously in the async event loop before streaming to the browser. This is a known NiceGUI limitation with no built-in workaround.
-
-**How to avoid:**
-Serve large files via a FastAPI route. NiceGUI exposes its underlying FastAPI app as `app`:
-
-```python
-from fastapi.responses import FileResponse
-from nicegui import app as nicegui_app
-
-@nicegui_app.get('/export/registry')
-async def export_registry(client_id: str):
-    path = await run.io_bound(reporter.generate_excel, client_id)
-    return FileResponse(str(path), filename='registry.xlsx',
-                        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-
-# In UI:
-ui.link('Скачать реестр', '/export/registry?client_id=...')
-```
-
-**Warning signs:**
-- UI hangs for 5–10 seconds after clicking "Export to Excel" with a large dataset
-- Browser shows no download progress bar, then file appears suddenly
-- With very large datasets, browser tab shows "Waiting for response…" indefinitely
-
-**Phase to address:** Phase 3 (export/reporting features) — always route file downloads through FastAPI `FileResponse`, never through `ui.download` for any file that could exceed 5 MB.
-
----
-
-### Pitfall 7: Tailwind Dynamic Class Names Silently Ignored
-
-**What goes wrong:**
-NiceGUI uses Tailwind CSS in JIT mode. Class names constructed dynamically in Python (e.g., `f'bg-{color}-500'`) are not present in the initial HTML, so Tailwind's JIT purger excludes them from the generated CSS. The class appears in the DOM via DevTools but has zero CSS rules attached — the style is silently not applied.
-
-**Why it happens:**
-Tailwind JIT scans source files for class name strings at build/startup time. Dynamically constructed strings are invisible to the scanner. This is documented Tailwind behavior that surprises Python developers who are not familiar with Tailwind's compilation model.
-
-**How to avoid:**
-Never construct Tailwind class names dynamically via string interpolation. Always use full, literal class name strings:
-
-```python
-# WRONG
-status = 'expiring'
-row.classes(f'bg-{status}-100')  # Tailwind never sees 'bg-expiring-100'
-
-# RIGHT — use a lookup dict with literal strings
-STATUS_COLORS = {
-    'active':   'bg-green-50 text-green-700',
-    'expiring': 'bg-yellow-50 text-yellow-700',
-    'expired':  'bg-red-50 text-red-700',
+```css
+/* RIGHT — survives cascade */
+@layer components {
+  .my-card { background: #f8fafc; border-radius: 12px; }
 }
-row.classes(STATUS_COLORS[status])
+
+@layer overrides {
+  /* For overriding Quasar !important declarations */
+  .q-btn.accent-cta { background: #4f46e5; }
+}
+
+/* WRONG — silently overridden by Quasar's layered CSS */
+.my-card { background: #f8fafc; }
 ```
 
-For reusable component styles, define them via `ui.add_head_html('<style type="text/tailwindcss">@layer components { .doc-card { @apply rounded-lg border ... } }</style>')`.
+For `app/static/design-system.css`, wrap section by section in `@layer components` unless targeting AG Grid (which lives outside NiceGUI's layer system — see Pitfall 3).
 
 **Warning signs:**
-- Element has the expected class name in browser DevTools inspector
-- No visual change — class has no associated CSS rule in the Styles panel
-- Works with hardcoded class strings, breaks when class name is computed from a variable
+- Style added to CSS file, visible in DevTools DOM, but element looks wrong
+- Works with `!important` but fails without it
+- Only affects Quasar components (`.q-btn`, `.q-card`, `.q-header`), not plain HTML divs
 
-**Phase to address:** Phase 2 (theming and component library) — document the styling conventions including this constraint before any screen is built.
+**Phase to address:** Phase 1 (Design system foundation) — establish layer convention before writing any new CSS.
 
 ---
 
-### Pitfall 8: PyInstaller Misses NiceGUI Static Assets — App Crashes on Launch
+### Pitfall 2: Quasar Color Palette !important Pollution
 
 **What goes wrong:**
-PyInstaller-bundled app crashes on launch with `RuntimeError: Static directory does not exist` or shows blank pages. NiceGUI copies its `static/` and `templates/` directories (~15 MB of JS/CSS/font assets) to a temp path at startup, but PyInstaller doesn't include them unless explicitly told to (discussion #1135, issue #355).
+All Quasar semantic color classes (`.text-primary`, `.bg-primary`, `.text-negative`, `.text-dark`, etc.) are generated with `!important` on every property. Trying to override them with custom CSS creates a specificity war — your CSS needs `!important` too, which then bleeds into other elements and creates cascading !important pollution across the stylesheet.
 
 **Why it happens:**
-PyInstaller traces Python imports but ignores data files accessed via `__file__`-relative paths. NiceGUI's assets are non-Python files.
+NiceGUI maintainers intentionally do not modify `quasar.prod.css`. Issue #4415 was closed as "not planned." The `@layer` system partially neuters this by wrapping Quasar's `!important` in a lower-priority layer, but Quasar-prop-based colors (set via `.props('color=primary')`) still emit `!important` inline-style equivalents in v3.
 
 **How to avoid:**
-Add explicit `datas` entries to the `.spec` file:
+Do not use Quasar semantic color props for elements that need custom overrides. Instead use Tailwind utility classes directly (`bg-indigo-600`, `text-white`) via `.classes()`:
 
 ```python
-import nicegui
-datas = [
-    (str(Path(nicegui.__file__).parent / 'static'), 'nicegui/static'),
-    (str(Path(nicegui.__file__).parent / 'templates'), 'nicegui/templates'),
-]
+# WRONG — bg-primary is !important, hard to override
+ui.button("CTA").props("color=primary")
+
+# RIGHT — Tailwind class, overridable, in design system
+ui.button("CTA").classes("bg-indigo-600 text-white hover:bg-indigo-700")
 ```
 
-Also: never use `--noconsole` / `--windowed` flags with NiceGUI unless the server is explicitly started outside the console process — it will silently fail to bind without any visible error.
-
-For macOS DMG: consider `briefcase` as an alternative to PyInstaller; it has better data-file handling and native macOS app bundle conventions. If staying with PyInstaller, test the `.app` bundle on a **clean machine without Python installed** before declaring packaging done.
+In `app/styles.py`, make sure `BTN_PRIMARY` and similar tokens only use Tailwind, not Quasar props.
 
 **Warning signs:**
-- App works with `python main.py` but crashes after PyInstaller build
-- Error message mentions "static" or "templates" paths not found
-- NiceGUI page loads completely blank (missing JS/CSS)
+- Attempting to override button colors by adding CSS class that Quasar's color prop also touches
+- DevTools shows `!important` on color/background rules you didn't write
+- Only happens on Quasar-prop-colored components, not plain-styled elements
 
-**Phase to address:** Phase 4 (DMG packaging milestone v0.7) — dedicate a full phase to packaging. Do not treat it as a last step that takes an hour.
+**Phase to address:** Phase 1 (Design system) — audit `styles.py` tokens. Phase 2 (Header/CTA) — header uses Quasar button props.
 
 ---
 
-### Pitfall 9: Streamlit State Patterns Mapped Wrong to NiceGUI Equivalents
+### Pitfall 3: AG Grid CSS Needs Theme Scope Prefix, Not Tailwind Layer
 
 **What goes wrong:**
-`st.session_state['selected_doc_id'] = 123` is a common Streamlit pattern. Developers migrating try to replicate this with `app.storage.user['selected_doc_id']`. It partially works, but `app.storage.user` is persisted to disk as a JSON file, is unavailable outside an active page request context, and raises `RuntimeError: No storage available` when accessed from background tasks (pipeline callbacks, Telegram bot handlers, `app.on_startup`).
+Attempts to restyle AG Grid (row height, header background, cell padding, border colors) either do nothing or require `!important` on every rule. The AG Grid table looks like the default alpine theme regardless of what CSS is written.
 
 **Why it happens:**
-`app.storage.user` requires an active HTTP session context (a browser cookie). Background workers and Telegram handlers have no request context. Streamlit's `st.session_state` was scoped to a single script rerun — a completely different model.
+AG Grid's CSS specificity system requires selectors scoped to the theme class. Without the prefix, AG Grid's bundled CSS wins. For example:
+
+```css
+/* WRONG — too low specificity */
+.ag-header-cell { background: #f8fafc; }
+
+/* RIGHT — theme-scoped */
+.ag-theme-alpine .ag-header-cell { background: #f8fafc; }
+/* or if using Quartz theme: */
+.ag-theme-quartz .ag-header-cell { background: #f8fafc; }
+```
+
+Additionally, AG Grid styles live completely outside NiceGUI's `@layer` system — they're injected by AG Grid's own JS bundle. So `@layer components { .ag-row { ... } }` has no effect on AG Grid's internal cascade.
 
 **How to avoid:**
-Match storage to the right scope:
+- Write all AG Grid CSS outside any `@layer` (in `design-system.css`) with `.ag-theme-alpine` prefix
+- Use `!important` only where AG Grid's bundled CSS uses `!important` internally (row hover backgrounds, focus rings)
+- Check which theme is active: `ui.aggrid` in NiceGUI 3.x defaults to `ag-theme-quartz` — verify with DevTools
+- CSS custom properties (`--ag-*`) are the official way to restyle AG Grid without specificity fights:
 
-| Use case | Right tool |
-|----------|-----------|
-| Ephemeral UI state within a page (selected row, open tab) | Plain Python variable in `@ui.page` closure |
-| State shared across page components within one session | Pass explicit object references or use a per-session class instance |
-| Background pipeline writing progress to UI | Module-level dict keyed by session ID |
-| Persistent user preferences (API key, default provider) | `app.storage.user` — fine here, it IS persistent by design |
-
-```python
-# Background pipeline can write here without request context:
-_pipeline_progress: dict[str, float] = {}
-
-async def run_pipeline(session_id: str):
-    _pipeline_progress[session_id] = 0.0
-    await run.io_bound(controller.process, session_id,
-                       progress_callback=lambda p: _pipeline_progress.update({session_id: p}))
+```css
+.ag-theme-quartz {
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: transparent;
+  --ag-row-hover-color: #f1f5f9;
+  --ag-border-color: #e2e8f0;
+  --ag-font-family: 'IBM Plex Sans', sans-serif;
+  --ag-font-size: 13px;
+}
 ```
 
 **Warning signs:**
-- `RuntimeError: No storage available` in logs from a background task
-- `app.storage.user` data survives app restart unexpectedly (because it's on-disk JSON)
-- Telegram callback cannot read or write per-client UI state
+- AG Grid CSS changes seemingly random — sometimes works, sometimes doesn't
+- Styles apply in browser DevTools when typed manually but don't apply from stylesheet
+- Row hover color different from rest of grid theme
 
-**Phase to address:** Phase 1 (state architecture design) — document and enforce the state model before any feature implementation begins.
+**Phase to address:** Phase 3 (Registry visual rework) — AG Grid is the core component here.
+
+---
+
+### Pitfall 4: Dark Mode Tailwind Classes Break in Specific Component Trees
+
+**What goes wrong:**
+This project uses `dark=False` (light mode only), but Quasar's `body--dark` class can be toggled accidentally or bleed from OS-level dark mode detection. When this happens, Tailwind `dark:` variant classes activate while your custom Tailwind light-mode classes remain — producing a half-dark, half-light visual state with broken colors.
+
+More specifically: since NiceGUI 2.0, there is a verified race condition (Issue #3753) where Tailwind dynamic styles don't populate into the `<style>` tag before elements render. Classes are present in the DOM but their CSS rules are missing from the stylesheet. The symptom is that `w-1/2` or `bg-slate-50` classes appear on elements but have no visual effect.
+
+**Why it happens:**
+NiceGUI renders the initial DOM before Tailwind's JIT engine has finished scanning for class names and emitting CSS rules. With `dark=False` set at `ui.run()` level, the risk is lower but not zero — especially when Quasar's storage-persisted dark mode setting conflicts with the hardcoded `dark=False`.
+
+**How to avoid:**
+1. Keep `dark=False` at `ui.run()` AND also call `ui.dark_mode(value=False)` inside the `@ui.page('/')` function (belt-and-suspenders). Already done in v0.6, keep it.
+2. For new design-system CSS: prefer inline `style=` attributes or `.classes()` with Tailwind for layout-critical properties (width, height, flex). These are applied synchronously.
+3. Avoid `dark:` Tailwind variant classes entirely — this is a light-mode-only product.
+4. If a Tailwind class seems to have no effect: add a one-off `style="background: red"` inline to confirm the element is being targeted, then diagnose why the class isn't emitting.
+
+**Warning signs:**
+- Colors correct in one run, wrong in another (non-deterministic)
+- `asyncio.sleep()` workarounds making CSS "work"
+- DevTools shows class name on element but no matching CSS rule in Styles panel
+
+**Phase to address:** Phase 1 (Design system) — establish the "no dark: variants" rule upfront.
+
+---
+
+### Pitfall 5: FullCalendar Styles Bleed Into the Rest of the App
+
+**What goes wrong:**
+FullCalendar's CDN bundle injects its own CSS globally. Generic selectors like `.fc button`, `.fc table`, `.fc td` can conflict with Tailwind's base reset or your custom CSS if class names overlap. More critically: FullCalendar's theme relies on CSS custom properties (`--fc-*`) which can be overridden by `body` or `:root` level CSS variables you add to the design system.
+
+**Why it happens:**
+FullCalendar is loaded via `<script>` tag injected by NiceGUI (lazy-loaded in the current codebase on first calendar toggle). Its CSS is not scoped — it targets generic element selectors with `.fc` parent scope. Any CSS custom property you define on `:root` that shares a name pattern with `--fc-*` variables can accidentally override calendar behavior.
+
+**How to avoid:**
+- Always scope FullCalendar overrides to `.fc { ... }` — already done in `design-system.css`
+- When adding CSS variables for the design system, use a project-specific prefix: `--yt-*` (юртэг) instead of bare `--color-*` or `--spacing-*`
+- After any CSS variable addition, visually check the calendar view in the app — it's the most fragile integration
+- Keep FullCalendar CSS overrides in a dedicated `/* FullCalendar theme overrides */` block at the bottom of `design-system.css` — already done, maintain this discipline
+
+**Warning signs:**
+- Calendar toolbar buttons lose styling after design-system changes
+- Calendar day cells get unexpected backgrounds
+- `.fc-button-primary` color reverts to FullCalendar blue after you change indigo palette
+
+**Phase to address:** Phase 5 (Cross-cutting polish) — CSS variable additions happen here and need calendar smoke-test.
+
+---
+
+### Pitfall 6: Breaking Functional Code by Changing Classes That Drive JS Logic
+
+**What goes wrong:**
+Renaming or removing Tailwind/custom CSS classes from Python components breaks JavaScript cell renderers and event handlers in AG Grid that target those class names. In this codebase: `actions-cell`, `action-icon`, `expand-icon`, and `status-*` classes are referenced directly in the `STATUS_CELL_RENDERER`, `_ACTIONS_CELL_RENDERER`, and `_EXPAND_CELL_RENDERER` JS strings in `registry_table.py`. Remove or rename any of these and the AG Grid interactivity silently breaks.
+
+**Why it happens:**
+In NiceGUI, Python generates both HTML structure and the JS string literals injected into AG Grid cellRenderers. These JS strings use `className` assignments that reference CSS class names. There is no type-checking or IDE warning if a class name drifts between the Python/CSS and the JS string.
+
+**How to avoid:**
+- Before renaming any CSS class in `design-system.css` or `styles.py`: grep the entire `app/` directory for that class name string
+- Classes that must be treated as a stable API (do not rename without finding all usages):
+  - `actions-cell` — `.ag-row:hover .actions-cell` in CSS + JS cellRenderer
+  - `action-icon` — JS cellRenderer + CSS
+  - `expand-icon` — JS cellRenderer + CSS
+  - `status-active`, `status-expiring`, `status-expired`, `status-unknown`, `status-terminated`, `status-extended`, `status-negotiation`, `status-suspended` — used in AG Grid JS AND defined via `@layer components` Tailwind block in `main.py`
+- During visual overhaul: add new classes for new visual treatments, never mutate existing functional class names
+
+**Warning signs:**
+- AG Grid action column (⋯) disappears or stops responding to hover
+- Status badges revert to plain text after CSS changes
+- Expand/collapse arrows (▶/▼) in version rows stop working
+
+**Phase to address:** Phase 3 (Registry) — highest risk. Establish "functional class freeze" rule before editing anything in `registry_table.py`.
+
+---
+
+### Pitfall 7: Staggered Row Animation Doubles on Grid Refresh
+
+**What goes wrong:**
+The `.ag-row:nth-child()` stagger animation defined in `design-system.css` triggers on every AG Grid `grid.update()` call. In a heavy visual overhaul where design tokens change spacing, fonts, or colors, the grid may refresh multiple times (initial load, data update, column resize). Each refresh re-fires the animation, causing a distracting flash-and-stagger loop visible to the user.
+
+**Why it happens:**
+CSS `animation` on `.ag-row` is re-triggered whenever AG Grid re-renders the row DOM (which happens on any `grid.options["rowData"] = ...; grid.update()` call). The animation has no `animation-fill-mode: none` guard and is applied unconditionally via a tag selector.
+
+**How to avoid:**
+- Cap total animation duration: current implementation has `animation-delay` up to 640ms for rows 9+. With large datasets, this means the last row animates 640ms after load — acceptable for first load but jarring for rapid refreshes
+- Consider adding a CSS class guard: only apply the animation when a special `.animate-initial` class is present on the grid wrapper, and remove it after first load
+- After design-system changes: test grid with 50+ rows and trigger a filter change to verify animation doesn't double-fire
+- If animateRows causes performance issues on macOS native (pywebview/WebKit): set `animateRows: false` in AG Grid options as a fallback
+
+**Warning signs:**
+- Rows flash/blink when switching filter segments (Все / Истекают / Внимание)
+- Animation plays during search input typing
+- Performance degradation with 200+ rows on macOS (pywebview uses WebKit which is less GPU-optimized than Chrome)
+
+**Phase to address:** Phase 3 (Registry) — animation is part of registry. Phase 5 (Polish) — performance pass.
+
+---
+
+### Pitfall 8: NiceGUI Default Padding Variables Override Tailwind Spacing Classes
+
+**What goes wrong:**
+NiceGUI defines `--nicegui-default-padding` and `--nicegui-default-gap` CSS variables applied to `.nicegui-content`, `.nicegui-card`, `.nicegui-row`, `.nicegui-column`. These override Tailwind padding classes (`p-4`, `px-6`, etc.) when the Tailwind class loads into a lower-priority `@layer`. The result: you set `p-6` on a card, it visually shows the NiceGUI default padding instead.
+
+**Why it happens:**
+NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility classes are in the `utilities` layer. The interaction between these two layers can produce unexpected results depending on exactly how NiceGUI's framework CSS is ordered relative to your additions. Confirmed in Issue #5408 where Quasar's `q-pa-xs` was silently overridden by `.nicegui-header { padding: var(--nicegui-default-padding) }`.
+
+**How to avoid:**
+- Override NiceGUI spacing variables at the `:root` level when needed:
+  ```css
+  :root {
+    --nicegui-default-padding: 0;
+    --nicegui-default-gap: 0;
+  }
+  ```
+- Or use `.classes('nicegui-card-tight')` to zero out padding before adding custom spacing
+- When adding spacing to design system cards/containers, test visually with DevTools rather than assuming the Tailwind class wins
+- Prefer inline `.style('padding: 20px')` on critical layout elements if Tailwind class is unreliable
+
+**Warning signs:**
+- Padding looks wrong even though correct Tailwind class is in DevTools DOM
+- Spacing inconsistency between different card components using the same Tailwind class
+- DevTools shows correct class but `Computed` tab shows a different padding value (from CSS variable)
+
+**Phase to address:** Phase 1 (Design system foundation) — set variable overrides at root level from the start.
 
 ---
 
@@ -300,12 +254,12 @@ async def run_pipeline(session_id: str):
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Call `db_service` directly in `async def` callback (no `run.io_bound`) | Faster to write | UI freezes on any real dataset; hard to retrofit across dozens of callbacks | Never — establish the pattern from day one |
-| Module-level variables for per-client state | Simpler code | State leaks between clients; multi-client mode is broken by design | Never if multi-client is a product requirement |
-| `ui.download(bytes_content)` for Excel export | Simple one-liner | Freezes UI for files >10 MB; silent failure >1 GB | Only for files guaranteed <1 MB (e.g., JSON config export) |
-| `reload=True` during development | Hot-reload convenience | Starts llama-server twice per code change; 3–5 sec restart loop | Development only — never in production build or .app bundle |
-| Tailwind dynamic class construction via f-strings | DRY-looking code | Styles silently absent in production | Never — use lookup dict with literal strings |
-| Relying on `app.on_shutdown` alone for llama-server cleanup | Fewer lines of code | Orphaned server process on window close (documented NiceGUI bug) | Never |
+| Hardcode hex colors inline instead of design tokens | Fast iteration | Colors drift, impossible to theme consistently | Never — defeats the point of a design system |
+| Use `!important` to "fix" a CSS specificity issue | Solves the immediate problem | Creates !important chains, makes future overrides impossible | Only as last resort for AG Grid internal overrides |
+| Rename functional CSS classes (actions-cell etc.) without grep | Cleaner naming | Silently breaks AG Grid JS renderers | Never |
+| Add CSS outside `@layer` | Simpler code | Silently loses to Quasar/NiceGUI layered CSS | Never in NiceGUI 3.x |
+| Use Quasar color props (`color=primary`) instead of Tailwind classes | Less verbose | Cannot be overridden without !important war | Only for elements you'll never need to restyle |
+| Inline all styles instead of CSS file | Always works, no layer confusion | 2800 LOC of app code gets polluted with style strings | Only for truly one-off critical elements |
 
 ---
 
@@ -313,13 +267,14 @@ async def run_pipeline(session_id: str):
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| `database.py` (SQLite) | Call sync service methods in `async def` callbacks | `await run.io_bound(db_service.method, *args)` for every DB call |
-| llama-server subprocess | Trust `app.on_shutdown` alone for process cleanup | Triple-layer: `app.on_shutdown` + `app.on_disconnect` + `atexit.register` |
-| Telegram bot | Access `app.storage.user` from bot handler thread | Module-level dict keyed by client/user ID; no request context in bot thread |
-| Excel reporter | `ui.download(reporter.generate_excel())` for large registries | FastAPI `FileResponse` route for any output >5 MB |
-| HuggingFace model download | Run at module import time | Run inside `app.on_startup` with a loading progress indicator |
-| File import pipeline | Wire `ui.upload` bytes directly to `scanner.py` | Use native OS file picker in desktop mode; pipeline expects `pathlib.Path` objects |
-| Multi-client DB switching | Single global `DatabaseService` instance | Each client session gets its own `DatabaseService(client_db_path)` instance stored per-session |
+| AG Grid | Writing CSS without `.ag-theme-quartz` prefix | Always scope: `.ag-theme-quartz .ag-row { ... }` |
+| AG Grid | Using Tailwind classes in cellRenderer JS strings | Use plain CSS classes defined outside @layer, or inline `style=""` in the JS string |
+| AG Grid | Setting `domLayout: autoHeight` for variable-height grid | Use `domLayout: normal` + `paginationAutoPageSize` — already fixed in v0.6, don't revert |
+| FullCalendar | Modifying `:root` CSS variables with names conflicting with `--fc-*` | Use `--yt-` prefix for all project-level CSS variables |
+| FullCalendar | Eager loading CDN script | Already lazy-loaded on calendar toggle — do not change to eager without measuring startup time |
+| Quasar buttons | Using `.props('color=indigo-600')` | Use `.classes('bg-indigo-600 text-white')` — Tailwind class is overridable, Quasar prop is not |
+| NiceGUI header | Adding custom `ui.header()` styles | Styles must be in `@layer components` or NiceGUI's default header padding overrides them |
+| pywebview / native | Testing only in browser, not native window | Always do final visual check in native mode — fonts, shadows, backdrop-filter may render differently in WebKit vs. Chrome |
 
 ---
 
@@ -327,22 +282,11 @@ async def run_pipeline(session_id: str):
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| `ui.table` with 500+ rows, no pagination | Table renders slowly; scrolling is janky; memory pressure | Use `ui.table` with `pagination` prop or `virtual-scroll` | >200 rows |
-| Refreshing entire table on every background update | Visible flicker every few seconds | Update only changed rows via `table.update_rows([changed_row])` | >50 rows with periodic background refresh |
-| Running pipeline in main async loop without `run.io_bound` | UI completely unresponsive for entire processing duration | Always `await run.io_bound(controller.process, ...)` | Any dataset >1 file |
-| Loading all document metadata eagerly on page load | Slow initial render; visible delay before first interaction | Paginate DB queries; load document details only on row click | >100 documents |
-| Emitting UI progress update for every single file processed | WebSocket flooded; UI stutters | Batch updates — emit progress every N files or every 500ms | Pipeline with >20 files |
-
----
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Binding NiceGUI server to `0.0.0.0` (default in some configs) | Other devices on the local network can access the document database without authentication | Always bind to `127.0.0.1`: `ui.run(host='127.0.0.1')` |
-| Storing API keys in `app.storage.general` (disk JSON in home dir) | Keys visible as plaintext in `~/.local/share/nicegui/` | Use OS keychain via `keyring` library or environment variables |
-| Logging anonymized document content to a file | Personal data leaks to log file | Log only filenames and document IDs; never log extracted text fields |
-| Using `app.add_media_files()` for user-uploaded content | Memory exhaustion DoS — CVE-2026-33332 allows attacker to bypass chunked streaming and force full file into RAM | Avoid `add_media_files` for user content; use FastAPI routes with explicit `Content-Length` validation |
+| CSS `animation` on `.ag-row` firing on every grid.update() | Row flash on filter/search change | Add class guard or use `animation-play-state` | Any grid refresh — low threshold |
+| `box-shadow` + `transform` on every card on hover | Jank on hover in grids with 50+ cards | Use `will-change: transform` on template cards, not globally | 20+ animated elements simultaneously |
+| Google Fonts CDN load on startup | 200-400ms delay before IBM Plex Sans renders (FOUT) | Already preconnect-loaded in main.py — don't move or reorder the link tag | Every startup if link tag order changes |
+| `backdrop-filter: blur()` in native pywebview/WebKit | Significant CPU spike on macOS | Avoid backdrop-filter entirely — WebKit on macOS is not GPU-accelerated the same as Chrome | Immediately on any blur usage |
+| Heavy `@keyframes` animation on page-level containers | Stuttering on slow machines | Test on lowest-spec target machine; keep `page-fade-in` under 200ms | Low-end hardware |
 
 ---
 
@@ -350,25 +294,24 @@ async def run_pipeline(session_id: str):
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| No progress feedback during pipeline run (can take 2–20 min for large archives) | User thinks app froze; force-quits; re-runs; double-processes files | Per-file progress with `ui.linear_progress` + file count label; show elapsed time |
-| Streamlit-style full page reload to "refresh" data | Visible flicker; scroll position reset; any open document card closes | In-place table update: `table.rows = new_data; table.update()` |
-| Raw Python exception messages shown to user | Confuses non-technical lawyers with tracebacks | Catch exceptions in every callback; show localized Russian message; log full traceback to file |
-| NiceGUI native window shows blank/black for 3–5 sec during startup | User clicks the window, sees nothing, assumes crash | Show startup splash via `app.native.main_window.set_title('ЮрТэг — загрузка...')` during server init |
-| File import requires knowing folder path | Non-technical users unsure what to type | Use native OS folder picker dialog — no typing required |
+| Removing padding from AG Grid rows during visual overhaul | Rows become too dense, content truncates | Increase `--ag-row-height` via CSS variable instead of removing padding |
+| Making header visually heavier (taller, more elements) | Reduces vertical space for the registry table — core of the app | Keep header at 48px (h-12) — any increase must be deliberate and tested with full registry visible |
+| Adding decorative animations to functional status badges | Distracts from status reading during rapid scanning | Status badge `badge-in` animation already exists; don't add persistent pulse/glow to status badges |
+| Hiding AG Grid floating filters during redesign | Users lose column-level filter capability they may rely on | Keep `floatingFilter: True` on contract_type and counterparty columns |
+| Using low-contrast accent colors to look "subtle" | Юрист пропустит срочный статус (expired/expiring) | Status color contrast must meet WCAG AA minimum even if overall palette is muted |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **llama-server cleanup:** Close app window → run `ps aux | grep llama` → no orphan process. Check again after 30 seconds.
-- [ ] **Multi-client isolation:** Open two browser tabs → switch active client in tab A → tab B must show zero change.
-- [ ] **Async DB calls:** Load 500-document dataset → table renders without any UI freeze or WebSocket timeout error.
-- [ ] **Large file download:** Export Excel with 300 docs → UI remains fully interactive during download → file arrives in browser.
-- [ ] **Tailwind dynamic styles:** Open browser DevTools → Styles panel for any element using computed class names → CSS rules must exist, not just class names in DOM.
-- [ ] **PyInstaller bundle:** Cold-start `.app` bundle on a Mac with no Python installed → app launches normally.
-- [ ] **Telegram + NiceGUI state:** Send document via Telegram bot → confirm it appears in correct client's registry → NiceGUI UI must reflect the change without manual refresh.
-- [ ] **Startup sequence:** Kill app mid-pipeline → relaunch → DB must not be in inconsistent state → pipeline resumes or reports error cleanly.
-- [ ] **`reload=False` in production build:** Confirm only one llama-server process appears in Activity Monitor at startup.
+- [ ] **Splash hero section:** Check that the CTA button routes correctly to wizard flow — visual change may accidentally remove the `on_click` handler if the button is rebuilt from scratch
+- [ ] **AG Grid after theme rework:** Test all 8 status badges render correctly (active/expiring/expired/unknown/terminated/extended/negotiation/suspended) — `status-*` classes must remain in `@layer components` block in `main.py`
+- [ ] **Header CTA button:** Confirm `+ Загрузить документы` still triggers `pick_folder()` after header is rebuilt — structural changes to `render_header()` can lose the callback binding
+- [ ] **Settings page:** Verify provider radio buttons still save to config correctly after visual sectioning — visual refactors often re-wrap inputs in new containers that break `bind_value` targets
+- [ ] **FullCalendar after palette change:** Open calendar view and verify events still render with correct colors — `--fc-button-bg-color` and `--fc-event-bg-color` may need manual sync with new palette
+- [ ] **Document card breadcrumbs:** After typography overhaul, confirm breadcrumb nav links still fire `ui.navigate.to()` correctly — don't confuse `.classes()` changes with `.props()` or event handler changes
+- [ ] **Animations under reduced-motion:** macOS Accessibility setting "Reduce Motion" must suppress all animations — `@media (prefers-reduced-motion: reduce)` block already exists in `design-system.css`, keep it intact after adding new animations
+- [ ] **Template card CRUD:** After visual card rebuild, confirm Delete/Edit dialogs still open correctly — `.on('click')` handlers on card children can be swallowed by parent click events if event propagation changes
 
 ---
 
@@ -376,14 +319,13 @@ async def run_pipeline(session_id: str):
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Global state leaking between clients | HIGH | Audit every module-level variable; refactor all page code to `@ui.page` closures; re-test multi-client |
-| Sync SQLite blocking event loop | MEDIUM | Add `run.io_bound` wrapper around each `database.py` call site in UI layer; no business logic change required |
-| Orphaned llama-server after close | LOW | Add `app.on_disconnect` + `atexit` hooks; test on macOS specifically |
-| Double init with `reload=True` | LOW | Set `reload=False`; move all side-effect code to `app.on_startup` |
-| PyInstaller missing static files | MEDIUM | Add `--add-data` directives to `.spec`; retest on a clean machine without Python |
-| Tailwind dynamic classes not applied | LOW | Replace all `f'class-{var}'` patterns with lookup dicts using literal strings |
-| Large file download freezes UI | MEDIUM | Replace all `ui.download(bytes)` calls with FastAPI `FileResponse` routes |
-| `app.storage.user` used in wrong context | MEDIUM | Audit all background tasks; replace with module-level state dicts keyed by session ID |
+| CSS silently not applying (layer issue) | LOW | Wrap offending CSS in `@layer components { }`, clear browser cache in pywebview |
+| Quasar !important war | MEDIUM | Switch component from Quasar prop-based color to Tailwind class; remove !important from both sides |
+| Functional class renamed, AG Grid JS broken | MEDIUM | Restore old class name in CSS + JS cellRenderer string simultaneously; grep for all usages first |
+| FullCalendar broken after CSS variable addition | LOW | Rename CSS variable to use `--yt-` prefix; smoke-test calendar after every `:root` variable change |
+| Animation double-fire on grid refresh | LOW | Add `animation: none` override scoped to a `.loaded` class; apply class after first data load |
+| NiceGUI default padding overriding Tailwind | LOW | Add `--nicegui-default-padding: 0` to `:root` at top of design-system.css |
+| Breaking splash/onboarding flow during visual rebuild | HIGH | Keep functional logic separate: rebuild visual wrapper, preserve all event handlers and callbacks; test first-run flow end-to-end after each phase |
 
 ---
 
@@ -391,57 +333,31 @@ async def run_pipeline(session_id: str):
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| Global UI state shared across clients | Phase 1 — App scaffold & page architecture | Open two browser tabs; confirm fully isolated state |
-| Sync SQLite blocking event loop | Phase 1 — DB integration layer | Load 500-doc dataset; confirm no UI freeze or WebSocket timeout |
-| llama-server orphaned on close | Phase 2 — Local LLM wiring | Close app; `ps aux \| grep llama` shows zero processes |
-| Double initialization with `reload=True` | Phase 1 — App entrypoint | Launch app; Activity Monitor shows exactly one llama-server |
-| `ui.upload` gives no file path | Phase 2 — File import screen | Upload PDF via native picker; pipeline receives `Path` object |
-| Large download freezes UI | Phase 3 — Export features | Export 300-doc Excel; UI stays interactive throughout |
-| Tailwind dynamic classes ignored | Phase 2 — Theming and component library | DevTools Styles panel shows CSS rules for all status-based classes |
-| PyInstaller misses NiceGUI static assets | Phase 4 — DMG packaging | Cold-start `.app` on clean Mac; no "static directory" error |
-| `st.session_state` anti-pattern migration | Phase 1 — State architecture | Grep for `app.storage.user` in background task code; must be zero matches |
-
----
-
-## Streamlit Patterns That Do Not Translate to NiceGUI
-
-| Streamlit Pattern | What It Does | NiceGUI Replacement | Key Trap |
-|-------------------|--------------|---------------------|----------|
-| `st.rerun()` | Forces full script re-execution to refresh UI | Not needed — update element `.rows`, `.text`, `.value` directly | "Triggering rerun" means clearing all local state |
-| `st.session_state` | Per-session ephemeral dict, any scope | Local variable in `@ui.page` closure; `app.storage.user` for persistence | `app.storage.user` is on-disk JSON, not ephemeral |
-| `@st.cache_data` | Memoizes expensive function results | `functools.lru_cache` or module-level dict | No built-in equivalent in NiceGUI |
-| `st.spinner()` context manager | Blocks script, shows spinner | `ui.linear_progress` shown/hidden explicitly around `await run.io_bound(...)` | NiceGUI spinner must be manually shown and hidden |
-| `st.sidebar` | Auto-collapsible sidebar | `ui.left_drawer()` | Must explicitly manage open/close state |
-| `st.file_uploader` | Upload → returns BytesIO with `.name` | `ui.upload` (bytes only) or native OS file picker (real Path) | Desktop use case → always use native picker |
-| Linear script flow (top to bottom) | Execution order = layout render order | Callback-based: layout defined at load, behavior at event | Entire control flow must be rethought as event handlers |
-| `st.columns([1, 2])` | Creates proportional column layout | `ui.row()` + Tailwind `w-1/3` / `w-2/3` classes | Column sizing syntax is completely different |
+| CSS @layer ignored (Pitfall 1) | Phase 1: Design system foundation | Every CSS rule in new design system must be in `@layer components` or `@layer overrides` |
+| Quasar !important pollution (Pitfall 2) | Phase 1: Design system / Phase 2: Header | Audit `styles.py` tokens; replace any Quasar props with Tailwind classes before building new components |
+| AG Grid theme scoping (Pitfall 3) | Phase 3: Registry visual rework | AG Grid DevTools inspection — confirm `.ag-theme-quartz` prefix on all AG Grid CSS |
+| Dark mode race condition (Pitfall 4) | Phase 1: Design system | Establish "no dark: variants" rule; confirm `ui.dark_mode(value=False)` persists |
+| FullCalendar CSS bleed (Pitfall 5) | Phase 5: Cross-cutting polish | Visual smoke-test of calendar view after every `:root` CSS variable addition |
+| Functional class breakage (Pitfall 6) | Phase 3: Registry | Grep `app/` for class name before any rename; test AG Grid actions and status badges after every change |
+| Animation double-fire (Pitfall 7) | Phase 3: Registry / Phase 5: Polish | Trigger filter segment switch and search while watching for animation replay |
+| NiceGUI padding variable override (Pitfall 8) | Phase 1: Design system | Set `--nicegui-default-padding: 0` at `:root` at the start of design-system.css |
 
 ---
 
 ## Sources
 
-- [NiceGUI FAQs Wiki — subprocess, reload, blocking, file upload path restriction](https://github.com/zauberzeug/nicegui/wiki/FAQs)
-- [NiceGUI issue #2107 — on_shutdown not called in native mode](https://github.com/zauberzeug/nicegui/issues/2107)
-- [NiceGUI issue #5684 — slow startup and code re-execution in multiprocessing contexts](https://github.com/zauberzeug/nicegui/issues/5684)
-- [NiceGUI issue #3756 — large file download freezes event loop](https://github.com/zauberzeug/nicegui/issues/3756)
-- [NiceGUI discussion #3220 — ui.upload stutters with large files](https://github.com/zauberzeug/nicegui/discussions/3220)
-- [NiceGUI discussion #3568 — how to upload big files that don't fit in memory](https://github.com/zauberzeug/nicegui/discussions/3568)
-- [NiceGUI discussion #836 — running a worker thread in background](https://github.com/zauberzeug/nicegui/discussions/836)
-- [NiceGUI discussion #1888 — using non-async libraries for def endpoints](https://github.com/zauberzeug/nicegui/discussions/1888)
-- [NiceGUI discussion #2082 — multiple clients from one browser](https://github.com/zauberzeug/nicegui/discussions/2082)
-- [NiceGUI discussion #1029 — global data store, per-user UI state](https://github.com/zauberzeug/nicegui/discussions/1029)
-- [NiceGUI issue #3753 — dark mode breaks Tailwind styling since NiceGUI 2.0](https://github.com/zauberzeug/nicegui/issues/3753)
-- [NiceGUI discussion #5240 — NiceGUI v3 removed CSS customization ability](https://github.com/zauberzeug/nicegui/discussions/5240)
-- [NiceGUI discussion #2337 — integrating Tailwind CSS components](https://github.com/zauberzeug/nicegui/discussions/2337)
-- [NiceGUI discussion #1806 — styling methods overview](https://github.com/zauberzeug/nicegui/discussions/1806)
-- [NiceGUI issue #355 — launching as executable with PyInstaller](https://github.com/zauberzeug/nicegui/issues/355)
-- [NiceGUI discussion #1135 — PyInstaller: static directory does not exist](https://github.com/zauberzeug/nicegui/discussions/1135)
-- [NiceGUI discussion #5331 — v3 breaking changes](https://github.com/zauberzeug/nicegui/discussions/5331)
-- [NiceGUI storage documentation](https://nicegui.io/documentation/storage)
-- [NiceGUI discussion #21 — why callbacks instead of Streamlit-like if-statements](https://github.com/zauberzeug/nicegui/discussions/21)
-- [CVE-2026-33332 — NiceGUI media route memory exhaustion vulnerability](https://advisories.gitlab.com/pkg/pypi/nicegui/CVE-2026-33332/)
-- [Oreate AI — NiceGUI page layout best practices](https://www.oreateai.com/blog/comprehensive-analysis-and-best-practices-guide-for-nicegui-page-layout/33d6025a4cc288327f2ed04df616323f)
+- [Dark mode breaks Tailwind styling since NiceGUI 2.0 — Issue #3753](https://github.com/zauberzeug/nicegui/issues/3753)
+- [NiceGUI v3 CSS customization broken — Discussion #5240](https://github.com/zauberzeug/nicegui/discussions/5240)
+- [NiceGUI v3.0.0 Release Notes — CSS layers breaking change](https://github.com/zauberzeug/nicegui/releases/tag/v3.0.0)
+- [Quasar color palette !important pollution — Issue #4415](https://github.com/zauberzeug/nicegui/issues/4415)
+- [Quasar padding classes ignored — Issue #5408](https://github.com/zauberzeug/nicegui/issues/5408)
+- [AG Grid styling with CSS properties — Issue #4743](https://github.com/zauberzeug/nicegui/issues/4743)
+- [AG Grid dark theme in NiceGUI — Discussion #3611](https://github.com/zauberzeug/nicegui/discussions/3611)
+- [AG Grid performance in Electron/desktop — Medium](https://medium.com/swlh/ag-grid-performance-optimization-memory-usage-and-speed-slowness-considerations-for-enterprise-72b4b5e9e64d)
+- [NiceGUI styling methods overview — Discussion #1806](https://github.com/zauberzeug/nicegui/discussions/1806)
+- [NiceGUI Styling and Theming — DeepWiki](https://deepwiki.com/zauberzeug/nicegui/7.2-styling-and-theming)
+- [NiceGUI warning on classes being lost — Discussion #3204](https://github.com/zauberzeug/nicegui/discussions/3204)
 
 ---
-*Pitfalls research for: ЮрТэг v0.6 — Streamlit → NiceGUI migration*
-*Researched: 2026-03-21*
+*Pitfalls research for: NiceGUI 3.x visual overhaul — ЮрТэг v0.7*
+*Researched: 2026-03-22*

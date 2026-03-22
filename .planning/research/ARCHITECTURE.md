@@ -1,564 +1,361 @@
 # Architecture Research
 
-**Domain:** Legal document processing pipeline — NiceGUI migration from Streamlit
-**Researched:** 2026-03-21
-**Confidence:** HIGH (codebase analyzed directly + verified from NiceGUI official docs)
+**Domain:** Visual design system overhaul — NiceGUI desktop app theming (v0.7)
+**Researched:** 2026-03-22
+**Confidence:** HIGH
 
----
+## Standard Architecture
 
-## Context: What We Are Migrating
-
-`main.py` is a 2247-line Streamlit monolith with 262 `st.*` calls. It is the ONLY file with Streamlit imports. All business logic lives in clean service/module layers with no Streamlit dependency. The migration scope is:
-
-- **Delete:** `main.py` (Streamlit), `streamlit-calendar` dependency
-- **Create:** NiceGUI UI layer (new `main.py` or `app/` directory)
-- **Preserve unchanged:** `controller.py`, `modules/`, `services/`, `providers/`, `config.py`, SQLite DB
-
-Key Streamlit APIs used and their NiceGUI equivalents:
-| Streamlit | Count | NiceGUI equivalent |
-|-----------|-------|--------------------|
-| `st.session_state` | 45 | `app.storage.client` (in-memory per-connection) |
-| `st.button` | 19 | `ui.button(on_click=...)` |
-| `st.selectbox` | 12 | `ui.select(on_change=...)` |
-| `st.rerun` | 11 | `ui.navigate.to('/')` or reactive binding — no equivalent needed |
-| `st.columns` | 11 | `ui.row()` + CSS classes |
-| `st.text_input` | 7 | `ui.input(on_change=...)` |
-| `st.sidebar` | 5 | `ui.left_drawer()` |
-| `st.expander` | 4 | `ui.expansion()` |
-| `st.tabs` | 3 | `ui.tabs()` + `ui.tab_panels()` |
-| `st.spinner` | 3 | `ui.spinner()` inside `async` handler |
-| `st.metric` | 3 | `ui.label()` + typography classes |
-| `st.checkbox` | 3 | `ui.checkbox(on_change=...)` |
-| `st.cache_resource` | 1 | module-level singleton (see llama-server section) |
-| `st.dataframe` | 1 | `ui.aggrid(...)` |
-
----
-
-## System Overview (Target State After Migration)
+### System Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         NiceGUI UI Layer                            │
-│  app/                                                               │
-│  ├── main.py          ui.run() entry, app.on_startup hooks          │
-│  ├── state.py         AppState dataclass — single source of truth   │
-│  ├── pages/                                                         │
-│  │   ├── registry.py  Реестр (default view)                         │
-│  │   ├── document.py  Full-page карточка документа                  │
-│  │   ├── templates.py Шаблоны                                       │
-│  │   └── settings.py  Настройки                                     │
-│  └── components/                                                    │
-│      ├── header.py    Верхняя навигация                             │
-│      ├── table.py     ui.aggrid wrapper + row click handler         │
-│      └── process.py  Кнопка запуска + прогресс-бар                 │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │ Direct Python calls (same process)
-┌──────────────────────────▼──────────────────────────────────────────┐
-│                      Service Layer (unchanged)                      │
-│  services/pipeline_service.py  — process_archive()                 │
-│  services/lifecycle_service.py — статусы, MANUAL_STATUSES           │
-│  services/version_service.py  — версионирование                    │
-│  services/payment_service.py  — платёжный календарь                │
-│  services/review_service.py   — ревью против шаблонов              │
-│  services/client_manager.py   — мультиклиент                       │
-│  services/telegram_sync.py    — Telegram очередь                   │
-│  services/llama_server.py     — LlamaServerManager (singleton)     │
-└──────────────────────────┬──────────────────────────────────────────┘
-                           │
-         ┌─────────────────┴─────────────────┐
-         │                                   │
-┌────────▼──────────┐             ┌──────────▼───────────┐
-│  Processing Modules│             │   Data Layer          │
-│  controller.py     │             │   SQLite (yurteg.db)  │
-│  modules/*         │             │   File system         │
-└───────────────────┘             └───────────────────────┘
+│                        THEME LAYER                                  │
+│                                                                     │
+│  app/static/tokens.css          app/static/design-system.css        │
+│  (:root { --color-* ... })      (animations, AG Grid, FullCalendar) │
+│           │                                  │                      │
+│           └──────────────────┬───────────────┘                      │
+│                              │ loaded via ui.add_head_html           │
+├──────────────────────────────▼──────────────────────────────────────┤
+│                        COMPONENT LAYER                               │
+│                                                                     │
+│  app/styles.py         app/components/header.py                     │
+│  (Python token refs)   app/components/registry_table.py             │
+│  TEXT_HEADING etc.     app/pages/registry.py                        │
+│                        app/pages/settings.py                        │
+│                        app/pages/templates.py                       │
+│                        app/pages/document.py                        │
+│                        app/components/onboarding/splash.py          │
+├─────────────────────────────────────────────────────────────────────┤
+│                        QUASAR LAYER                                  │
+│                                                                     │
+│  ui.colors(primary='#...') in root() → sets --q-primary on body     │
+│  body.body--light class (Quasar managed, applied automatically)     │
+│  Tailwind JIT (NiceGUI built-in) for utility classes                │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### Component Responsibilities
 
-## Component Responsibilities
-
-| Component | Responsibility | Notes |
-|-----------|---------------|-------|
-| `app/main.py` | `ui.run()` entry, app.on_startup (llama-server, TG sync), layout root | Replaces old main.py |
-| `app/state.py` | `AppState` dataclass: current_client, results, filters, selected_doc_id | Instantiated once per connection in `app.storage.client` |
-| `app/pages/registry.py` | Таблица реестра, фильтры, поиск, открытие карточки | Core view |
-| `app/pages/document.py` | Full-page карточка: метаданные, версии, ревью, пометки | Receives doc_id as URL param |
-| `app/pages/templates.py` | Список шаблонов, добавление, удаление | Calls review_service |
-| `app/pages/settings.py` | Провайдер, анонимизация, Telegram, предупреждения | Saves to settings.json |
-| `app/components/header.py` | Топ-навигация: три таба + имя клиента | Shared across pages via sub_pages |
-| `app/components/table.py` | `ui.aggrid` wrapper: колонки, фильтры, обработка rowClicked | Encapsulates AG Grid config |
-| `app/components/process.py` | Выбор папки, кнопка запуска, прогресс-бар | Calls pipeline_service |
-
----
+| Component | Responsibility | Current State |
+|-----------|----------------|---------------|
+| `app/static/tokens.css` | CSS custom properties — single source of truth for all colors, type scale, spacing, radii, shadows | Does not exist — values are hardcoded in Tailwind classes and HEX dict |
+| `app/static/design-system.css` | Animations, AG Grid overrides, FullCalendar theme, Quasar component tweaks | Exists, animation-heavy, hardcoded hex values throughout |
+| `app/styles.py` | Python-side token constants for Tailwind class strings used by pages and components | Exists — HEX dict + Tailwind class strings, all hardcoded |
+| `app/main.py` | Loads CSS files into page head, calls ui.colors(), configures dark=False | Exists — inline font CSS, badge CSS, loads design-system.css |
+| `app/pages/*.py` | Page layout and content rendering | Exist — Tailwind classes hardcoded inline throughout |
+| `app/components/header.py` | Persistent top nav across all sub-pages | Exists — hardcoded slate/indigo Tailwind classes |
+| `app/components/registry_table.py` | AG Grid registry table, column defs, JS cell renderers | Exists — inline hex in JS cell renderers |
 
 ## Recommended Project Structure
 
 ```
-yurteg/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # ui.run() entry point, on_startup hooks
-│   ├── state.py             # AppState dataclass definition
-│   ├── pages/
-│   │   ├── __init__.py
-│   │   ├── registry.py      # /  (default)
-│   │   ├── document.py      # /document/{doc_id}
-│   │   ├── templates.py     # /templates
-│   │   └── settings.py      # /settings
-│   └── components/
-│       ├── __init__.py
-│       ├── header.py        # shared top navigation
-│       ├── table.py         # ag-grid registry wrapper
-│       └── process.py       # folder picker + process button + progress
-│
-├── controller.py            # unchanged
-├── config.py                # unchanged
-├── modules/                 # unchanged
-├── providers/               # unchanged
-├── services/                # unchanged
-├── tests/                   # unchanged
-└── requirements.txt         # streamlit → nicegui
+app/
+├── static/
+│   ├── tokens.css          # NEW — CSS custom properties (:root { --* })
+│   ├── design-system.css   # MODIFY — replace hardcoded hex with var(--)
+│   └── calendar.js         # unchanged
+├── styles.py               # MODIFY — add semantic aliases, keep HEX for AG Grid JS
+├── main.py                 # MODIFY — load tokens.css first, call ui.colors()
+├── pages/
+│   ├── registry.py         # MODIFY — hero stats bar, filter zone, visual density
+│   ├── document.py         # MODIFY — breadcrumbs, structured blocks, visual hierarchy
+│   ├── settings.py         # MODIFY — section headers, dividers, visual structure
+│   └── templates.py        # MODIFY — card shadows, color badges, visual weight
+└── components/
+    ├── header.py           # MODIFY — visual weight, logo mark, accent CTA
+    ├── registry_table.py   # MODIFY — table density, column visual treatment
+    └── onboarding/
+        └── splash.py       # MODIFY — hero section, full-screen, large typography
 ```
 
 ### Structure Rationale
 
-- **`app/` subdirectory** — isolates new UI code from existing backend; a new developer sees immediately what is new and what is not touched.
-- **`pages/` separation** — each page is a module with `def build(state: AppState)` function. Pages don't know about each other — they get state injected, not import each other.
-- **`components/` extraction** — the header and table are reused across multiple pages; keeping them in separate modules prevents duplication.
-- **`state.py` separate module** — imported by pages and components without circular imports. Single definition, easy to extend.
-
----
+- **tokens.css separate from design-system.css:** Tokens are the palette (values). design-system.css is the behavior layer (animations, transitions, hover states). Mixing them makes future palette updates require reading through behavior rules to find values to change.
+- **tokens.css loaded first:** CSS custom properties must be defined before any element renders. Load order in `main.py` is: `tokens.css` first, then `design-system.css`, then Tailwind `@layer components` (status badges).
+- **styles.py stays with HEX dict:** AG Grid cell renderers are JavaScript strings. They cannot read CSS custom properties at runtime. The HEX dict in `styles.py` remains the source for any hex values injected into JS strings.
 
 ## Architectural Patterns
 
-### Pattern 1: AppState via `app.storage.client`
+### Pattern 1: Two-Layer Token System
 
-**What:** Define a dataclass `AppState` holding all mutable UI state. On each page load, store/retrieve it from `app.storage.client['state']`. This replaces Streamlit's 45 `session_state` keys with one typed object.
+**What:** Primitive tokens define the raw palette (`--color-indigo-600: #4f46e5`). Semantic tokens map intent to primitives (`--color-accent: var(--color-indigo-600)`). Components reference semantic tokens only, never primitives.
 
-**When to use:** Always — this is the NiceGUI equivalent of `st.session_state`. `app.storage.client` is in-memory, per-connection, disappears on page reload (same semantics as session_state). For state that must persist between sessions (e.g., active provider, warning_days), use the existing `~/.yurteg/settings.json` file (same as current).
+**When to use:** Every value that appears in more than one context. The semantic layer is the public API that pages and components consume. The primitive layer is the palette that can be swapped.
 
-**Trade-offs:** Slightly more boilerplate than bare dict, but type-checking catches bugs early.
+**Trade-offs:** One extra indirection in CSS. Worth it — changing the accent color in v0.8 from indigo to another color is a one-line change in tokens.css instead of a grep across 15 files.
+
+**Example:**
+```css
+/* app/static/tokens.css */
+:root {
+  /* Primitives */
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-50:  #eef2ff;
+  --color-slate-900:  #0f172a;
+  --color-slate-700:  #334155;
+  --color-slate-600:  #475569;
+  --color-slate-500:  #64748b;
+  --color-slate-400:  #94a3b8;
+  --color-slate-300:  #cbd5e1;
+  --color-slate-200:  #e2e8f0;
+  --color-slate-100:  #f1f5f9;
+  --color-slate-50:   #f8fafc;
+
+  /* Semantic colors */
+  --color-accent:         var(--color-indigo-600);
+  --color-accent-hover:   var(--color-indigo-700);
+  --color-accent-subtle:  var(--color-indigo-50);
+  --color-text-primary:   var(--color-slate-900);
+  --color-text-secondary: var(--color-slate-600);
+  --color-text-muted:     var(--color-slate-400);
+  --color-surface:        #ffffff;
+  --color-surface-raised: var(--color-slate-50);
+  --color-border:         var(--color-slate-200);
+  --color-border-strong:  var(--color-slate-300);
+
+  /* Typography scale */
+  --font-size-hero:   2.5rem;
+  --font-size-h1:     1.75rem;
+  --font-size-h2:     1.25rem;
+  --font-weight-bold: 700;
+  --font-weight-semi: 600;
+  --line-height-tight: 1.2;
+
+  /* Spatial scale */
+  --space-hero:    64px;
+  --space-section: 48px;
+  --space-block:   24px;
+  --space-item:    12px;
+
+  /* Surfaces */
+  --radius-card:   12px;
+  --radius-badge:  6px;
+  --shadow-card:   0 4px 16px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.05);
+  --shadow-card-hover: 0 8px 24px -4px rgba(0,0,0,0.12), 0 2px 8px -2px rgba(0,0,0,0.06);
+  --shadow-header: 0 1px 3px rgba(0,0,0,0.04);
+}
+```
+
+### Pattern 2: Quasar Color Bridge
+
+**What:** NiceGUI exposes `ui.colors()` which sets Quasar CSS variables (`--q-primary`, `--q-accent`, etc.) on `document.body`. All Quasar interactive components (buttons, chips, dialogs, menus) read these variables. Without calling `ui.colors()`, buttons remain default Quasar blue regardless of Tailwind overrides.
+
+**When to use:** Mandatory. Called once in `root()` before `render_header()`. Uses the same hex value as `--color-accent` in tokens.css — keeps Quasar and the token system synchronized.
+
+**Trade-offs:** `ui.colors()` is per-page (called in `root()`), not globally at module level. In this SPA with a single `@ui.page('/')`, that is fine. Do not call it inside page builders — it injects a `<style>` tag on every navigation, accumulating duplicates.
 
 **Example:**
 ```python
-# app/state.py
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional
-
-@dataclass
-class AppState:
-    # Client/registry
-    current_client: str = "Основной реестр"
-    output_dir: Optional[Path] = None
-    results: list = field(default_factory=list)
-    # Filters
-    filter_type: str = ""
-    filter_status: str = ""
-    filter_search: str = ""
-    # UI navigation
-    selected_doc_id: Optional[int] = None
-    show_results: bool = False
-    # Processing
-    processing: bool = False
-    source_dir: str = ""
-    force_reprocess: bool = False
-
-# app/main.py — getting/setting state
-def get_state() -> AppState:
-    if 'state' not in app.storage.client:
-        app.storage.client['state'] = AppState()
-    return app.storage.client['state']
+# app/main.py — inside root(), before render_header()
+ui.colors(primary='#4f46e5', secondary='#475569')
 ```
 
----
+### Pattern 3: body--light Scoped Quasar Overrides
 
-### Pattern 2: `ui.sub_pages` for SPA Navigation
+**What:** Quasar automatically applies `body.body--light` class when dark mode is off. Scoping overrides of Quasar defaults to this class prevents conflicts if dark mode is added later in v0.8.
 
-**What:** Use `ui.sub_pages({'/': registry, '/document/{doc_id}': document_page, '/templates': templates, '/settings': settings})` inside a shared root function that also renders the header. Navigation happens via `ui.navigate.to('/document/42')` — URL updates, header stays, only content area re-renders.
+**When to use:** Any rule that overrides Quasar component backgrounds, borders, or colors — headers, dialogs, menus, cards. Animation rules targeting `.q-btn`, `.q-card` stay unscoped since they apply in both modes.
 
-**When to use:** This is the right pattern for the "реестр = приложение" architecture. Full page reloads would lose state and feel sluggish. `ui.sub_pages` is the NiceGUI SPA primitive.
+**Trade-offs:** Adds CSS specificity. Necessary for future-proofing dark mode.
 
-**Trade-offs:** `ui.sub_pages` is newer API (introduced ~2024). Nested sub_pages (sub_pages inside sub_pages) are not supported — keep routing flat.
+**Example:**
+```css
+/* design-system.css */
+body.body--light .q-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-header);
+}
+```
+
+### Pattern 4: Hero Section as Structural Zone
+
+**What:** Full-width sections with an explicit background, vertical rhythm, large typographic anchors, and visual weight. Not padding inflation on an existing column — an intentional structural wrapper with its own CSS class.
+
+**When to use:** Splash page (full-screen hero). Registry page top area (heading + stats bar + filters as a cohesive zone). Document card header zone.
+
+**Trade-offs:** Requires replacing the existing `p-8 gap-6` patterns on page entry points with explicit zone containers. Cannot be bolted onto existing layout structure.
 
 **Example:**
 ```python
-# app/main.py
-from nicegui import ui, app
-from app.components.header import render_header
-from app.pages import registry, document, templates, settings
-
-@ui.page('/')
-def root():
-    render_header()  # stays across all sub-page navigations
-    ui.sub_pages({
-        '/': registry.build,
-        '/document/{doc_id}': document.build,
-        '/templates': templates.build,
-        '/settings': settings.build,
-    })
-
-ui.run(
-    title='ЮрТэг',
-    native=True,
-    window_size=(1400, 900),
-    storage_secret='yurteg-desktop-secret',
-    dark=False,
-    reload=False,
-)
+# Registry page hero zone
+with ui.element('div').classes('hero-zone w-full'):
+    with ui.column().classes('gap-2'):
+        ui.label('Реестр документов').style(
+            'font-size: var(--font-size-h1);'
+            'font-weight: var(--font-weight-bold);'
+            'color: var(--color-text-primary);'
+            'line-height: var(--line-height-tight);'
+        )
 ```
 
----
-
-### Pattern 3: Singleton LlamaServerManager via `app.on_startup`
-
-**What:** Replace `@st.cache_resource` with a module-level singleton initialized in `app.on_startup`. `app.on_startup` runs once when the NiceGUI server starts, before any client connects. Store the `LlamaServerManager` instance in a module-level variable, not in per-client storage.
-
-**When to use:** For any resource that should survive between page navigations and be shared across all connections — exactly what `@st.cache_resource` was doing.
-
-**Trade-offs:** `ensure_model()` may block for several minutes on first run (model download). This must run in a background thread/task to avoid blocking the event loop. Use `asyncio.get_event_loop().run_in_executor(None, manager.ensure_model)` or `app.on_startup` with `run.io_bound`.
-
-**Example:**
-```python
-# app/main.py
-from nicegui import app, run
-from services.llama_server import LlamaServerManager
-from modules.postprocessor import get_grammar_path
-from config import Config
-
-_llama_manager: LlamaServerManager | None = None
-
-async def _start_llama():
-    global _llama_manager
-    config = Config()
-    if config.active_provider != "ollama":
-        return
-    manager = LlamaServerManager(port=config.llama_server_port)
-    try:
-        # run blocking I/O (model download + server start) off the event loop
-        await run.io_bound(manager.ensure_model)
-        await run.io_bound(manager.start, get_grammar_path())
-        _llama_manager = manager
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"llama-server failed to start: {e}")
-
-async def _stop_llama():
-    if _llama_manager:
-        _llama_manager.stop()
-
-app.on_startup(_start_llama)
-app.on_shutdown(_stop_llama)
-
-def get_llama_manager() -> LlamaServerManager | None:
-    return _llama_manager
+```css
+/* tokens.css */
+.hero-zone {
+  padding: var(--space-hero) var(--space-section);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
 ```
-
----
-
-### Pattern 4: Blocking Pipeline in Background Thread
-
-**What:** `pipeline_service.process_archive()` is CPU/IO-bound and runs synchronously (uses ThreadPoolExecutor internally). Call it via `await run.io_bound(...)` from an async NiceGUI event handler. Update UI progress via `ui.notify()` or a bound `ui.linear_progress` inside the `on_progress` callback — but callbacks must post updates to the event loop via `loop.call_soon_threadsafe`.
-
-**When to use:** For any long-running blocking call from a NiceGUI button click handler.
-
-**Trade-offs:** More explicit than Streamlit's `st.spinner` pattern but more flexible. The progress callback is called from the ThreadPoolExecutor thread, so must not touch NiceGUI UI objects directly.
-
-**Example:**
-```python
-# app/components/process.py
-import asyncio
-from nicegui import ui, run
-
-async def start_processing(state, config):
-    loop = asyncio.get_event_loop()
-    progress_bar = ui.linear_progress(value=0)
-    label = ui.label("Начало обработки...")
-
-    def on_progress(current: int, total: int, message: str):
-        val = current / total if total > 0 else 0
-        # Must schedule UI update on event loop thread
-        loop.call_soon_threadsafe(progress_bar.set_value, val)
-        loop.call_soon_threadsafe(label.set_text, message)
-
-    def on_file_done(result):
-        state.results.append(result)
-
-    stats = await run.io_bound(
-        pipeline_service.process_archive,
-        Path(state.source_dir),
-        config,
-        on_progress=on_progress,
-        on_file_done=on_file_done,
-    )
-    state.output_dir = stats['output_dir']
-    state.show_results = True
-    ui.navigate.to('/')  # refresh registry view
-```
-
----
-
-### Pattern 5: Clickable Registry Table via `ui.aggrid`
-
-**What:** `ui.aggrid` wraps AG Grid (the same library Streamlit's `st.dataframe` uses under the hood). Configure `rowSelection: singleRow`, handle `rowClicked` event, navigate to `/document/{id}`. This replaces the current Streamlit dataframe with no native click support.
-
-**When to use:** For any table that needs row-level interactivity — selection, click-to-open, inline status badges.
-
-**Trade-offs:** AG Grid column definitions are verbose JSON. Encapsulate in `app/components/table.py` and pass data as rows list.
-
-**Example:**
-```python
-# app/components/table.py
-from nicegui import ui
-
-def render_registry_table(rows: list[dict]):
-    grid = ui.aggrid({
-        'columnDefs': [
-            {'headerName': 'Тип', 'field': 'doc_type', 'width': 180},
-            {'headerName': 'Контрагент', 'field': 'counterparty', 'flex': 1},
-            {'headerName': 'Статус', 'field': 'status_label', 'width': 130,
-             'cellStyle': {'cursor': 'pointer'}},
-            {'headerName': 'Действует до', 'field': 'date_end', 'width': 150},
-            {'headerName': 'Сумма', 'field': 'amount', 'width': 120},
-        ],
-        'rowData': rows,
-        'rowSelection': {'mode': 'singleRow'},
-        'domLayout': 'autoHeight',
-    }).classes('w-full')
-
-    async def on_row_click(event):
-        doc_id = event.args['data'].get('id')
-        if doc_id:
-            ui.navigate.to(f'/document/{doc_id}')
-
-    grid.on('rowClicked', on_row_click)
-    return grid
-```
-
----
 
 ## Data Flow
 
-### Page Navigation Flow
+### Theme Load Order
 
 ```
-User clicks "Документы" tab in header
-        |
-        v
-ui.navigate.to('/') — URL changes, sub_pages container re-renders
-        |
-        v
-registry.build(state) called
-        |
-        v
-loads db from state.output_dir
-calls get_computed_status_sql() for each row
-applies filter_type, filter_status, filter_search from state
-        |
-        v
-render_registry_table(rows) — ui.aggrid renders
-        |
-User clicks row → on_row_click → ui.navigate.to('/document/42')
-        |
-        v
-document.build(state, doc_id=42)
+ui.run() starts
+    ↓
+root() called
+    ↓
+ui.add_head_html(tokens.css)            CSS custom properties defined
+    ↓
+ui.add_head_html(design-system.css)     Animations + Quasar overrides using var(--)
+    ↓
+ui.add_head_html(status badge CSS)      Tailwind @layer components — literal class names
+    ↓
+ui.colors(primary='#4f46e5', ...)       Quasar --q-primary aligned to --color-accent value
+    ↓
+render_header()
+    ↓
+sub_pages routes to active page
+    ↓
+Page renders with Tailwind utility classes + style= attributes where vars needed
 ```
 
-### Processing Flow (async)
+### Token Change Flow (future palette update)
 
 ```
-User clicks "Запустить" button
-        |
-        v
-async start_processing(state, config)
-        |
-        v
-await run.io_bound(pipeline_service.process_archive, ...)
-        |   [runs in thread pool, event loop free]
-        |
-        +---> on_progress(current, total, msg)
-        |         loop.call_soon_threadsafe → update progress_bar
-        |
-        +---> on_file_done(result)
-        |         state.results.append(result)
-        |
-        v
-stats returned → state updated → ui.navigate.to('/')
+Edit tokens.css primitive layer
+    ↓
+Browser recalculates all var(--*) references instantly (no recompile)
+    ↓
+Update ui.colors(primary=NEW_HEX) in main.py (one line)
+    ↓
+Update HEX dict in styles.py (for AG Grid JS renderers only)
 ```
 
-### State Management
+### Key Data Flows
 
-```
-app.storage.client['state'] = AppState()  (per-connection, in-memory)
-        |
-        v
-Pages read: state = get_state()
-Pages write: state.filter_type = "Договор аренды"
-        |
-        v
-Persistent settings (active_provider, warning_days, Telegram):
-~/.yurteg/settings.json   (same as current, read by config.py)
-```
+1. **Tailwind classes resolve at parse time** — they do not read CSS vars at runtime. `bg-indigo-600` is always indigo. For colors that must flex with the token system, use `style="background: var(--color-accent)"` or define a custom class in `@layer components`.
 
----
+2. **AG Grid cell renderers are JavaScript strings** — they reference CSS class names (`.status-active` etc.) or hardcoded hex. They cannot access CSS custom properties. The HEX dict in `styles.py` stays alive for values injected into JS strings.
 
-## Build Order (Migration Phases)
+3. **FullCalendar overrides** — already in `design-system.css`. After tokens.css is live, replace hardcoded hex values (`#4f46e5`, `#4338ca`, etc.) with `var(--color-accent)` etc.
 
-**Phase 1 — Skeleton + Navigation (no services yet)**
-- Create `app/` directory structure
-- `app/main.py`: `ui.run()` with native mode + `ui.sub_pages`
-- `app/state.py`: `AppState` dataclass + `get_state()`
-- `app/components/header.py`: top navigation with three tabs (no functionality, navigates routes)
-- `app/pages/registry.py`: empty layout placeholder
-- `app/pages/document.py`: empty layout placeholder
-- `app/pages/settings.py`: empty layout placeholder
-- `app/pages/templates.py`: empty layout placeholder
-- **Deliverable:** App launches, navigation works, empty views visible
+## Scaling Considerations
 
-**Phase 2 — Registry View (core product)**
-- Wire `modules/database.py` + `lifecycle_service` to registry page
-- `app/components/table.py`: ag-grid with columns, row click, status badges
-- Filters: type, status, search
-- Client selector (calls `client_manager.list_clients()`)
-- **Deliverable:** Existing documents display in registry with filters
+This is a desktop app — "scaling" here means maintainability as visual complexity grows across future milestones.
 
-**Phase 3 — Document Card**
-- `app/pages/document.py`: full-page layout
-- Metadata display (all fields from ProcessingResult)
-- Lawyer notes (read/write from DB)
-- Version list + diff view (calls `version_service`)
-- Review tab (calls `review_service`)
-- Manual status override (calls `lifecycle_service.set_manual_status`)
-- **Deliverable:** Clicking a row opens full document details
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| v0.7 (this milestone) | Single light theme, CSS vars in :root — no scoping needed |
+| v0.8 (potential dark mode) | Add `body.body--dark { --color-surface: #0f172a; --color-text-primary: #f8fafc; }` block — semantic layer repoints automatically, components unchanged |
+| v1+ (brand refresh) | Edit primitive layer in tokens.css only — all semantic tokens cascade through automatically |
 
-**Phase 4 — Processing (pipeline wiring)**
-- `app/components/process.py`: folder picker + process button + progress bar
-- Wire `app.on_startup` for `LlamaServerManager` singleton
-- Wire `pipeline_service.process_archive` via `run.io_bound`
-- Telegram queue fetch on startup (`telegram_sync`)
-- **Deliverable:** Can process new documents from UI
+### Scaling Priorities
 
-**Phase 5 — Settings + Templates**
-- `app/pages/settings.py`: provider selector, anonymization toggle, Telegram config, warning days
-- `app/pages/templates.py`: list, add, delete templates (calls `review_service`)
-- Persists to `~/.yurteg/settings.json`
-- **Deliverable:** Full parity with current Streamlit settings
+1. **First issue:** Tailwind class strings in Python (`TEXT_HEADING`, `BTN_PRIMARY`, inline in pages) cannot read CSS vars — they are static strings resolved at Tailwind JIT parse time. Solution: use Tailwind for layout and spacing (flex, gap, padding, rounded), use `style=` attributes with `var(--)` for color, shadow, and type scale where Tailwind coverage ends.
 
-**Phase 6 — Polish (design milestone)**
-- Apply typography, spacing, color system (Tailwind via NiceGUI classes)
-- Empty state + onboarding for first launch
-- Calendar view in registry (payment events from `payment_service`)
-- Attention panel for expiring documents
-- **Deliverable:** Production-ready UI
-
----
-
-## Integration Points
-
-### Services Wired Into NiceGUI Handlers
-
-| Service | Where Called | NiceGUI Pattern |
-|---------|-------------|-----------------|
-| `pipeline_service.process_archive()` | `process.py` button click | `await run.io_bound(...)` |
-| `lifecycle_service.get_computed_status_sql()` | `registry.py` data load | Direct call (fast SQL) |
-| `lifecycle_service.set_manual_status()` | `document.py` status override | Direct call in `on_click` |
-| `lifecycle_service.get_attention_required()` | `registry.py` header panel | Direct call |
-| `version_service.get_version_group()` | `document.py` versions tab | Direct call |
-| `version_service.diff_versions()` | `document.py` diff view | `await run.io_bound(...)` if slow |
-| `payment_service.get_calendar_events()` | `registry.py` calendar view | Direct call |
-| `review_service.review_against_template()` | `document.py` review tab | `await run.io_bound(...)` |
-| `review_service.list_templates()` | `templates.py` | Direct call |
-| `client_manager.list_clients()` | `header.py` client select | Direct call |
-| `telegram_sync` | `main.py` on_startup | `await run.io_bound(...)` once |
-| `LlamaServerManager` | `main.py` on_startup | Module-level singleton |
-
-### New vs Modified Components
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| `app/main.py` | NEW | Replaces old `main.py` |
-| `app/state.py` | NEW | Replaces `st.session_state` |
-| `app/pages/*.py` | NEW | All new |
-| `app/components/*.py` | NEW | All new |
-| `services/llama_server.py` | UNCHANGED | Singleton managed differently |
-| `services/*.py` | UNCHANGED | All services unchanged |
-| `modules/*.py` | UNCHANGED | All modules unchanged |
-| `controller.py` | UNCHANGED | |
-| `config.py` | UNCHANGED | |
-| `providers/*.py` | UNCHANGED | |
-| `requirements.txt` | MODIFIED | Remove streamlit/streamlit-calendar, add nicegui |
-
----
+2. **Second issue:** AG Grid column definitions produce JS strings. Any color in a cellRenderer must remain a literal hex or CSS class name. Keep HEX dict in `styles.py` as the single source for these values and update it in sync with tokens.css primitives.
 
 ## Anti-Patterns
 
-### Anti-Pattern 1: Porting `st.rerun()` Logic Directly
+### Anti-Pattern 1: Overloading design-system.css with token definitions
 
-**What people do:** Find every `st.rerun()` call and try to find a NiceGUI equivalent. NiceGUI has no `rerun()`.
+**What people do:** Add all new visual rules — hero sizes, card shadows, header weight — directly to the existing `design-system.css` alongside the animation rules.
 
-**Why it's wrong:** `st.rerun()` was a Streamlit workaround for the lack of reactive state. NiceGUI has actual reactivity — binding UI elements to state values means they update automatically when state changes, without a full re-render.
+**Why it's wrong:** design-system.css is the behavior layer. Mixing value definitions into it makes it impossible to understand what controls what, and a token change requires reading through animation code to find the value to edit.
 
-**Do this instead:** Use `ui.label().bind_text_from(state_obj, 'field')` for display values. For table re-renders, call `.update()` on the aggrid element or simply re-navigate to the page. Most `st.rerun()` calls can be eliminated entirely by restructuring as reactive bindings.
+**Do this instead:** `tokens.css` for values only, `design-system.css` for behaviors only. `style=` attribute for one-off per-element overrides.
 
----
+### Anti-Pattern 2: Adding new hardcoded Tailwind color classes to styles.py
 
-### Anti-Pattern 2: One Giant `main.py` Again
+**What people do:** Continue adding `"text-indigo-600"` or `"bg-slate-900"` as new Tailwind class strings in `styles.py` for the v0.7 overhaul.
 
-**What people do:** Translate the 2247-line Streamlit main.py into a 2247-line NiceGUI main.py.
+**Why it's wrong:** Tailwind color classes are hardcoded at parse time. If the accent shifts from indigo to another color in v0.8, every occurrence needs grep-and-replace across the entire codebase.
 
-**Why it's wrong:** NiceGUI pages are naturally modular — each `@ui.page` or sub-page function should live in its own module. A monolith loses this structure and makes the design milestone (Phase 6) much harder to execute.
+**Do this instead:** For hero text, large headings, and any color that should track the token system — use `style="color: var(--color-text-primary)"`. For stable utility colors (borders, subtle backgrounds) where Tailwind classes like `border-slate-200` are fine to stay, they can remain as Tailwind classes.
 
-**Do this instead:** Follow the `app/pages/` structure above. Each page module exports a single `build(state)` function. `main.py` only contains `ui.run()`, `app.on_startup` hooks, and the `ui.sub_pages` routing table.
+### Anti-Pattern 3: Hero sections via padding inflation
 
----
+**What people do:** Add `pt-16 pb-12` to existing column containers to simulate a hero section.
 
-### Anti-Pattern 3: Calling Blocking Services Directly in `on_click`
+**Why it's wrong:** A hero section is a structural zone with its own background, visual boundary, and typographic anchor. Padding inflation on an existing flex column produces a wireframe with extra whitespace, not a designed section with visual character.
 
-**What people do:** Call `pipeline_service.process_archive()` directly inside a button click handler (which is an async function in NiceGUI).
+**Do this instead:** Introduce explicit section wrapper elements (`ui.element('div')`) with semantic CSS classes defined in tokens.css (`.hero-zone`, `.registry-header`, etc.). These wrappers own their background, padding, and border.
 
-**Why it's wrong:** This blocks the asyncio event loop for the entire duration of processing (potentially minutes). The UI freezes — no progress updates, no other interactions.
+### Anti-Pattern 4: Calling ui.colors() inside page builders
 
-**Do this instead:** Always use `await run.io_bound(blocking_function, *args)` for any call that involves disk I/O, network, or `ThreadPoolExecutor`. Progress callbacks must use `loop.call_soon_threadsafe()` to post UI updates back to the event loop.
+**What people do:** Call `ui.colors()` inside `registry.build()` or `settings.build()` to ensure colors are set on each navigation.
 
----
+**Why it's wrong:** `ui.colors()` injects a `<style>` tag into the page head. Called per sub_page switch, it reinjects on every navigation, accumulating duplicate style tags over the lifetime of the session.
 
-### Anti-Pattern 4: Per-Client Storage for Singleton Resources
+**Do this instead:** Call `ui.colors()` once in `root()` before the sub_pages block. It persists for the lifetime of the SPA session.
 
-**What people do:** Store `LlamaServerManager` in `app.storage.client` (per connection) or `app.storage.user` (per session).
+### Anti-Pattern 5: Mixing layout structure changes with visual changes
 
-**Why it's wrong:** The llama-server is a subprocess — there should only ever be one instance. Storing it per-client would try to start multiple instances, conflict on the same port, or leak processes.
+**What people do:** Rework Tailwind class strings while simultaneously restructuring the layout of a page.
 
-**Do this instead:** Module-level variable, initialized exactly once in `app.on_startup`. Expose via `get_llama_manager()` accessor. `app.on_shutdown` calls `manager.stop()`.
+**Why it's wrong:** Layout structure changes break functional behavior (filters stop firing, navigation breaks). Visual changes are safe if layout is stable. Mixing both in one edit makes it impossible to bisect what broke something.
 
----
+**Do this instead:** Structural rework (new zone containers, hero wrappers) first. Visual token application (replacing hardcoded hex with vars, adding shadows, upgrading type scale) second, per component.
 
-## NiceGUI Storage Reference
+## Integration Points
 
-| Storage | Scope | Persistence | Use For |
-|---------|-------|-------------|---------|
-| `app.storage.client` | Per connection | Lost on reload | UI state (AppState) — replaces `st.session_state` |
-| `app.storage.user` | Per browser session | Survives reloads | User preferences if multi-user ever needed |
-| `app.storage.general` | All connections | Server memory | Global counters — not needed here |
-| Module-level var | Application | Process lifetime | LlamaServerManager singleton |
-| `~/.yurteg/settings.json` | Disk | Permanent | Provider, Telegram, warning_days |
-| `~/.yurteg/yurteg.db` | Disk (SQLite) | Permanent | All contract data |
+### Where Theme Logic Lives
 
----
+| Concern | File | Status | Notes |
+|---------|------|--------|-------|
+| CSS custom property values | `app/static/tokens.css` | NEW | Loaded first via main.py |
+| Quasar color alignment | `app/main.py` root() | MODIFY | Add `ui.colors(primary='#4f46e5')` |
+| Animation + behavior CSS | `app/static/design-system.css` | MODIFY | Replace hardcoded hex with var(--) |
+| Python Tailwind constants | `app/styles.py` | MODIFY | Add semantic style helpers; keep HEX dict |
+| AG Grid hex for JS renderers | `app/styles.py` HEX dict | KEEP | Cannot use CSS vars in JS strings |
+| Per-page layout structure | `app/pages/*.py` | MODIFY | Structural zone wrappers added per page |
+| Header visual weight | `app/components/header.py` | MODIFY | Logo mark, accent CTA, visual anchoring |
+| Splash hero | `app/components/onboarding/splash.py` | MODIFY | Full-screen, large type, visual confidence |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| tokens.css → design-system.css | `var()` references | Load order critical: tokens must come first |
+| tokens.css → Tailwind @layer | No direct connection | Tailwind resolves at parse time; use `style=` for dynamic values |
+| styles.py → pages/components | Python string import | Tailwind class string constants; semantic additions welcome |
+| ui.colors() → Quasar components | CSS `--q-primary` etc. on body | Called once in root() |
+| AG Grid cellRenderers → CSS | Class name strings in JS | Must use literal `.status-*` class names; no CSS var access |
+| FullCalendar → tokens | CSS class overrides in design-system.css | Replace hardcoded hex with var(--) after tokens.css is live |
+
+### Build Order for This Milestone
+
+Dependencies determine the order phases must ship in:
+
+1. **tokens.css + main.py wiring** — foundation. No visual work is coherent before the token system is defined and loading correctly. Validate in browser devtools that `:root` custom properties are present.
+
+2. **Header** — persistent across all pages. Reworked header must be stable before any page-level work, since it anchors the visual rhythm and the accent CTA sets expectations for interaction.
+
+3. **Splash** — isolated component, no state dependencies, high visual impact. Full-screen hero. Good confidence check that large typography and hero zones work before tackling complex pages.
+
+4. **Registry page** — highest complexity (stats bar, filter zone, AG Grid table, calendar toggle, empty state). Depends on tokens and header being stable. Most user-facing impact.
+
+5. **Document card** — depends on registry navigation working correctly. Breadcrumbs, structured metadata blocks, visual section separators.
+
+6. **Templates + Settings** — relatively isolated, lower visual complexity. Can ship as a pair.
+
+7. **Sквозные микро-детали** — footer, transition polish, hover states, consistent spacing — final pass after all pages are structurally complete and stable.
 
 ## Sources
 
-- NiceGUI Storage documentation: [https://nicegui.io/documentation/storage](https://nicegui.io/documentation/storage) (HIGH confidence)
-- NiceGUI ui.run() documentation: [https://nicegui.io/documentation/run](https://nicegui.io/documentation/run) (HIGH confidence)
-- NiceGUI ui.sub_pages documentation: [https://nicegui.io/documentation/sub_pages](https://nicegui.io/documentation/sub_pages) (HIGH confidence)
-- NiceGUI ui.aggrid documentation: [https://nicegui.io/documentation/aggrid](https://nicegui.io/documentation/aggrid) (HIGH confidence)
-- NiceGUI Pages & Routing: [https://nicegui.io/documentation/section_pages_routing](https://nicegui.io/documentation/section_pages_routing) (HIGH confidence)
-- NiceGUI Configuration & Deployment: [https://nicegui.io/documentation/section_configuration_deployment](https://nicegui.io/documentation/section_configuration_deployment) (HIGH confidence)
-- NiceGUI background thread discussion: [https://github.com/zauberzeug/nicegui/discussions/836](https://github.com/zauberzeug/nicegui/discussions/836) (MEDIUM confidence)
-- NiceGUI NiceGUI 3.0 episode (patterns): [https://talkpython.fm/episodes/show/525/nicegui-goes-3.0](https://talkpython.fm/episodes/show/525/nicegui-goes-3.0) (MEDIUM confidence)
-- Current codebase: `/Users/danilakistenev/Downloads/Личное/ЮР тэг/yurteg/main.py` (direct analysis, HIGH confidence)
+- [NiceGUI ui.colors documentation](https://nicegui.io/documentation/colors) — HIGH confidence
+- [NiceGUI Styling and Theming (DeepWiki)](https://deepwiki.com/zauberzeug/nicegui/7.2-styling-and-theming) — HIGH confidence
+- [Quasar Dark Mode — body--dark/body--light classes](https://quasar.dev/style/dark-mode/) — HIGH confidence
+- [CSS Design Tokens and Custom Properties guide 2025](https://www.frontendtools.tech/blog/css-variables-guide-design-tokens-theming-2025) — MEDIUM confidence
+- [Practical Guide to CSS Custom Properties for Theming](https://ronaldsvilcins.com/2025/03/30/a-practical-guide-to-css-custom-properties-for-theming/) — MEDIUM confidence
+- Codebase direct analysis: `app/static/design-system.css`, `app/styles.py`, `app/main.py`, `app/components/header.py`, `app/pages/registry.py`, `app/pages/settings.py` — HIGH confidence
 
 ---
-
-*Architecture research for: ЮрТэг — Streamlit → NiceGUI migration*
-*Researched: 2026-03-21*
+*Architecture research for: ЮрТэг v0.7 — visual design system overhaul*
+*Researched: 2026-03-22*
