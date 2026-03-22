@@ -1,0 +1,94 @@
+/* ЮрТэг Design Tokens v0.7
+   Prefix: --yt-* (избегаем коллизии с --fc-* FullCalendar)
+   Порядок загрузки: ПЕРВЫМ в main.py, до design-system.css
+*/
+
+:root {
+  /* ── Primitives — палитра ─────────────────────────────────────────── */
+  --yt-p-indigo-600: #4f46e5;
+  --yt-p-indigo-700: #4338ca;
+  --yt-p-indigo-50:  #eef2ff;
+  --yt-p-slate-900:  #0f172a;
+  --yt-p-slate-800:  #1e293b;
+  --yt-p-slate-700:  #334155;
+  --yt-p-slate-600:  #475569;
+  --yt-p-slate-500:  #64748b;
+  --yt-p-slate-400:  #94a3b8;
+  --yt-p-slate-300:  #cbd5e1;
+  --yt-p-slate-200:  #e2e8f0;
+  --yt-p-slate-100:  #f1f5f9;
+  --yt-p-slate-50:   #f8fafc;
+  --yt-p-green-600:  #059669;
+  --yt-p-red-600:    #dc2626;
+  --yt-p-amber-600:  #d97706;
+
+  /* ── Semantic — цвета по назначению ──────────────────────────────── */
+  --yt-color-accent:         var(--yt-p-indigo-600);
+  --yt-color-accent-hover:   var(--yt-p-indigo-700);
+  --yt-color-accent-subtle:  var(--yt-p-indigo-50);
+  --yt-color-text-primary:   var(--yt-p-slate-900);
+  --yt-color-text-secondary: var(--yt-p-slate-600);
+  --yt-color-text-muted:     var(--yt-p-slate-400);
+  --yt-color-surface:        #ffffff;
+  --yt-surface-bg:           var(--yt-p-slate-100);   /* фон контентных зон — не белый */
+  --yt-color-surface-raised: var(--yt-p-slate-50);
+  --yt-color-border:         var(--yt-p-slate-200);
+  --yt-color-border-strong:  var(--yt-p-slate-300);
+  --yt-color-hero-bg:        var(--yt-p-slate-900);   /* тёмный фон hero/splash */
+
+  /* ── Типографика ──────────────────────────────────────────────────── */
+  --yt-font-family: 'IBM Plex Sans', system-ui, sans-serif;
+
+  /* Размеры */
+  --yt-text-hero:  clamp(2.5rem, 5vw, 3.5rem);   /* splash hero headline */
+  --yt-text-h1:    1.75rem;    /* 28px — page title */
+  --yt-text-h2:    1.25rem;    /* 20px — card heading */
+  --yt-text-body:  0.875rem;   /* 14px — body */
+  --yt-text-small: 0.75rem;    /* 12px — labels, badges */
+
+  /* Веса */
+  --yt-weight-light:    300;
+  --yt-weight-regular:  400;
+  --yt-weight-medium:   500;
+  --yt-weight-semibold: 600;
+  --yt-weight-bold:     700;
+
+  /* ── Spacing ──────────────────────────────────────────────────────── */
+  --yt-space-1:  0.25rem;
+  --yt-space-2:  0.5rem;
+  --yt-space-3:  0.75rem;
+  --yt-space-4:  1rem;
+  --yt-space-6:  1.5rem;
+  --yt-space-8:  2rem;
+  --yt-space-12: 3rem;
+  --yt-space-16: 4rem;
+
+  /* ── Shadows ──────────────────────────────────────────────────────── */
+  --yt-shadow-sm:     0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --yt-shadow-md:     0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --yt-shadow-lg:     0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --yt-shadow-xl:     0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+  --yt-shadow-header: 0 1px 3px rgb(0 0 0 / 0.04);
+
+  /* ── Radii ────────────────────────────────────────────────────────── */
+  --yt-radius-sm: 0.375rem;   /* 6px */
+  --yt-radius-md: 0.5rem;     /* 8px */
+  --yt-radius-lg: 0.75rem;    /* 12px */
+  --yt-radius-xl: 1rem;       /* 16px */
+
+  /* ── Transitions ──────────────────────────────────────────────────── */
+  --yt-ease-out:      cubic-bezier(0.25, 1, 0.5, 1);
+  --yt-duration-fast: 150ms;
+  --yt-duration-base: 200ms;
+  --yt-duration-slow: 300ms;
+
+  /* ── NiceGUI spacing reset ────────────────────────────────────────── */
+  /* Предотвращает коллизию --nicegui-default-padding с Tailwind p-* классами */
+  --nicegui-default-padding: 0;
+  --nicegui-default-gap: 0;
+}
+
+/* ── FullCalendar CSS переменные (задокументированы при smoke-test) ── */
+/* --fc-border-color, --fc-button-bg-color, --fc-button-hover-bg-color,
+   --fc-event-bg-color, --fc-event-border-color, --fc-today-bg-color
+   Эти переменные НЕ конфликтуют с --yt-* префиксом. */
