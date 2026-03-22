@@ -23,13 +23,14 @@ from nicegui import run, ui
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
 from app.components.ui_helpers import empty_state
-from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE
+from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL
 from app.components.registry_table import (
     load_table_data,
     load_version_children,
     render_registry_table,
     _client_manager,
     _collapse_version_children,
+    _fetch_counts,
 )
 from app.state import get_state
 from config import load_settings, save_setting
@@ -77,14 +78,46 @@ def build() -> None:
     _timer: list = [None]
 
     with ui.column().classes("w-full"):
-        # Search + Segments row — search-row class for guided tour targeting (D-14 onboarding)
-        with ui.row().classes("w-full px-6 py-4 items-center gap-4 search-row"):
+        # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
+        stats_row = ui.row().classes(STATS_BAR)
+        total_num = ui.label("—")
+        expiring_num = ui.label("—")
+        attention_num = ui.label("—")
+
+        with stats_row:
+            with ui.column().classes(STATS_ITEM):
+                total_num.classes(STAT_NUMBER + " text-slate-900")
+                ui.label("документов").classes(STAT_LABEL + " text-slate-500")
+            ui.label("·").classes("text-slate-300 text-xl font-light")
+            with ui.column().classes(STATS_ITEM):
+                expiring_num.classes(STAT_NUMBER + " text-amber-600")
+                ui.label("истекают").classes(STAT_LABEL + " text-slate-500")
+            ui.label("·").classes("text-slate-300 text-xl font-light")
+            with ui.column().classes(STATS_ITEM):
+                attention_num.classes(STAT_NUMBER + " text-red-600")
+                ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
+
+        # ── Page heading + controls row ──────────────────────────────────────────
+        with ui.row().classes("w-full px-6 pt-5 pb-2 items-center gap-4"):
+            # REGI-05: Заголовок с визуальным весом
+            ui.label("Реестр").classes("text-2xl font-semibold text-slate-900 mr-auto")
+
+            # Calendar toggle — right-aligned (DSGN-04, D-15)
+            with ui.row().classes("items-center gap-1.5"):
+                list_btn = ui.button("≡").props("flat no-caps").classes(TOGGLE_ACTIVE)
+                list_btn.props('title="Список" aria-label="Вид списком"')
+                cal_btn = ui.button("⊞").props("flat no-caps").classes(TOGGLE_INACTIVE)
+                cal_btn.props('title="Календарь" aria-label="Вид календарём"')
+
+        # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
+        with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row"):
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")
                 .classes("flex-1 max-w-md")
             )
 
+            # REGI-06: Filter bar с filled active state
             with ui.row().classes("gap-1.5 bg-slate-100 p-1 rounded-lg"):
                 for key, label in [
                     ("all", "Все"),
@@ -97,13 +130,6 @@ def build() -> None:
                     ).props("flat unelevated no-caps")
                     btn.classes(SEG_ACTIVE if key == "all" else SEG_INACTIVE)
                     seg_buttons[key] = btn
-
-            # Calendar toggle — right-aligned (DSGN-04, D-15)
-            with ui.row().classes("ml-auto items-center gap-1.5"):
-                list_btn = ui.button("≡").props("flat no-caps").classes(TOGGLE_ACTIVE)
-                list_btn.props('title="Список" aria-label="Вид списком"')
-                cal_btn = ui.button("⊞").props("flat no-caps").classes(TOGGLE_INACTIVE)
-                cal_btn.props('title="Календарь" aria-label="Вид календарём"')
 
         # Progress section — hidden by default (D-12)
         progress_section = ui.column().classes("w-full px-6 py-4 gap-2")
@@ -133,6 +159,13 @@ def build() -> None:
     }
 
     # ── Inner helpers ──────────────────────────────────────────────────────────
+
+    async def _refresh_stats() -> None:
+        """Обновляет counts в stats bar (REGI-01). Вызывается при init и после фильтрации."""
+        counts = await run.io_bound(_fetch_counts, state.current_client, state.warning_days_threshold)
+        total_num.set_text(str(counts["total"]))
+        expiring_num.set_text(str(counts["expiring"]))
+        attention_num.set_text(str(counts["attention"]))
 
     def _apply_segment_classes(active_key: str) -> None:
         """Update button classes based on active segment."""
@@ -257,6 +290,10 @@ def build() -> None:
         active_segment["value"] = key
         _apply_segment_classes(key)
         if grid_ref["grid"]:
+            # Pitfall 7: отключаем row animation перед фильтрацией, чтобы не replay
+            await ui.run_javascript(
+                "document.querySelectorAll('.ag-row').forEach(r => r.style.animation = 'none')"
+            )
             await load_table_data(grid_ref["grid"], state, key)
 
     # Debounced search — per Pitfall 6 from RESEARCH, 300ms debounce
@@ -378,6 +415,7 @@ def build() -> None:
     state._on_upload = _on_upload  # type: ignore[attr-defined]
 
     async def _init() -> None:
+        await _refresh_stats()
         with grid_container:
             grid = await render_registry_table(state)
             grid_ref["grid"] = grid

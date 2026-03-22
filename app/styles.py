@@ -71,6 +71,10 @@ TEMPLATE_CARD = "bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
 # Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
 BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"
 
+# Stats bar item (Phase 16, REGI-01)
+STATS_BAR = "flex items-center gap-6 px-6 py-3 bg-white border-b border-slate-200"
+STATS_ITEM = "flex flex-col items-center gap-0"
+
 # Document card — Phase 16 (CARD-01, CARD-02, CARD-03)
 BREADCRUMB_LINK = "text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
 BREADCRUMB_SEP  = "text-sm text-slate-400 mx-1"
