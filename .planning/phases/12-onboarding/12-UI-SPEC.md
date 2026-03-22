@@ -57,12 +57,14 @@ Exceptions:
 
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
-| Body | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 | Wizard step descriptions, progress label, tour tooltip text, empty state body |
-| Label | 12px (`text-xs`) | 500 (`font-medium`) | 1.4 | Progress bytes label (`580/940 МБ`), hint items in empty state, capability bullets |
-| Heading | 20px (`text-xl`) | 600 (`font-semibold`) | 1.2 | Splash welcome heading, empty state heading, tour step title |
-| Display | 28px (`text-3xl`) | 700 (`font-bold`) | 1.1 | App name `ЮрТэг` on splash — one instance only |
+| Body | 14px (`text-sm`) | 400 (`font-normal`) | 1.5 | Wizard step descriptions, progress label, tour tooltip text, empty state body, hint items, capability bullets, label items (`580/940 МБ`) |
+| Heading | 20px (`text-xl`) | 600 (`font-semibold`) | 1.2 | Splash welcome heading, empty state heading, tour step title, wizard step 2 heading, app name `ЮрТэг` on splash, all CTAs |
 
-**Source:** REQUIREMENTS.md (DSGN-03: чёткая типографическая иерархия); existing codebase (`text-base font-semibold`, `text-lg font-semibold`, `text-sm`, `text-xs` patterns confirmed). Display size is new for splash only — no other screen uses it.
+Two weights only: `font-normal` (400) for all body, labels, descriptions, and secondary text; `font-semibold` (600) for all headings, CTAs, and the `ЮрТэг` display mark. No `font-medium` (500) or `font-bold` (700) anywhere in this phase.
+
+The `ЮрТэг` display mark uses `text-3xl` (28px) at `font-semibold` (600) — size varies but weight does not.
+
+**Source:** REQUIREMENTS.md (DSGN-03: чёткая типографическая иерархия); existing codebase (`text-base font-semibold`, `text-lg font-semibold`, `text-sm`, `text-xs` patterns confirmed). Checker revision 2026-03-22: consolidated from 4 weights to 2.
 
 ---
 
@@ -77,7 +79,7 @@ Exceptions:
 
 Accent reserved for:
 - «Выбрать папку» button in empty state (only interactive CTA)
-- «Далее» / «Готово» button in wizard steps
+- «Далее: Telegram» / «Сохранить и начать» button in wizard steps
 - «Далее» button in guided tour steps
 
 Accent NOT used for: headings, body text, icons, progress bar fill, hint bullets, «Пропустить» links.
@@ -103,7 +105,7 @@ Shown only when `first_run_completed != true` in `~/.yurteg/settings.json` (D-05
 Layout (vertical, centered, `max-w-lg mx-auto`, outer padding `py-16`):
 
 ```
-[ЮрТэг]                           ← text-3xl font-bold text-gray-900
+[ЮрТэг]                           ← text-3xl font-semibold text-gray-900
                                      (not an image — text mark for MVP)
 
 Добро пожаловать!                  ← text-xl font-semibold text-gray-900, mt-8
@@ -114,14 +116,14 @@ Layout (vertical, centered, `max-w-lg mx-auto`, outer padding `py-16`):
   · Контроль сроков и предупреждения
 
 [progress bar section]             ← mt-6
-  Загрузка модели (580/940 МБ) — 62%   ← text-xs text-gray-500
+  Загрузка модели (580/940 МБ) — 62%   ← text-sm text-gray-500 font-normal
   [████████████░░░░░░░░]               ← ui.linear_progress, bg-gray-700 fill
 
 [wizard section]                   ← mt-8, fade-in when rendered
   [Step 1 or Step 2 content]
 ```
 
-Capability bullets: each bullet is `text-sm text-gray-600`, preceded by `·` marker at `text-gray-400`. No icons — clean text list.
+Capability bullets: each bullet is `text-sm text-gray-600 font-normal`, preceded by `·` marker at `text-gray-400`. No icons — clean text list.
 
 Progress bar: `ui.linear_progress(value=0.62).props("color=grey-9 track-color=grey-3").classes("w-full h-1.5 rounded-full")`.
 
@@ -136,28 +138,28 @@ Progress bar: `ui.linear_progress(value=0.62).props("color=grey-9 track-color=gr
 Step 1 wizard content area shows only navigation:
 
 ```
-[Пропустить]   [Далее →]
+[Пропустить]   [Далее: Telegram →]
 ```
 
 `Пропустить`: `ui.button("Пропустить").props("flat no-caps").classes("text-sm text-gray-400 hover:text-gray-600")` — no background, visually secondary.
 
-`Далее →`: `ui.button("Далее →").props("no-caps").classes("px-6 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg")`.
+`Далее: Telegram →`: `ui.button("Далее: Telegram →").props("no-caps").classes("px-6 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg")`.
 
 **Step 2 — Telegram**
 
 ```
-Подключите Telegram-бот                ← text-base font-medium text-gray-900
+Подключите Telegram-бот                ← text-xl font-semibold text-gray-900
 
-Получайте уведомления об истекающих    ← text-sm text-gray-500
+Получайте уведомления об истекающих    ← text-sm text-gray-500 font-normal
 документах прямо в мессенджер.
 
 [Токен бота                      ]     ← ui.input, outlined dense
                                         placeholder: "110201543:AAHdqTcvCH1vGWJxfSeofSs0K"
 
-[Пропустить]   [Готово ✓]
+[Пропустить]   [Сохранить и начать ✓]
 ```
 
-`Готово`: same accent style as `Далее`. On click: saves Telegram token, sets `first_run_completed: true`, closes splash, navigates to `/`.
+`Сохранить и начать`: same accent style as `Далее: Telegram` — `font-semibold`. On click: saves Telegram token, sets `first_run_completed: true`, closes splash, navigates to `/`.
 
 **Transition between steps:** `content.clear()` + re-render (NiceGUI Pattern — no animation, instant). Per FEATURES.md anti-pattern: animated transitions add latency in NiceGUI.
 
@@ -176,21 +178,21 @@ Layout (centered, `py-16 flex flex-col items-center gap-4`):
 
 Загрузите первые документы         ← text-xl font-semibold text-gray-900
 
-Выберите папку с PDF или DOCX —    ← text-sm text-gray-500, text-center, max-w-xs
+Выберите папку с PDF или DOCX —    ← text-sm text-gray-500 font-normal, text-center, max-w-xs
 мы извлечём метаданные и разложим
 файлы автоматически.
 
 [ Выбрать папку ]                  ← accent button, reuses pick_folder() from process.py
 
 [hint bullets]                     ← mt-2, flex col gap-1
-  · Извлечёт метаданные            ← text-xs text-gray-400
+  · Извлечёт метаданные            ← text-sm text-gray-400 font-normal
   · Разложит по папкам
   · Проверит сроки
 ```
 
 Folder SVG: simple outline icon — `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5">` standard folder path. No emoji, no generic stock art.
 
-«Выбрать папку» button: same style as accent CTA above (`bg-gray-900 text-white`), `px-6 py-2 rounded-lg text-sm font-medium`.
+«Выбрать папку» button: `bg-gray-900 text-white font-semibold`, `px-6 py-2 rounded-lg text-sm`.
 
 After first processing: empty state removed, table shown — never returns (D-13). Flag: `first_run_completed: true` already set by wizard; table check is purely `len(rows) > 0`.
 
@@ -210,11 +212,11 @@ Triggered after first processing completion — when `load_table_data()` returns
 
 Tour step anatomy:
 ```
-Шаг 1 / 3                          ← text-xs text-gray-400
+Шаг 1 / 3                          ← text-sm text-gray-400 font-normal
 
-[step title]                        ← text-base font-medium text-gray-900, mb-1
+[step title]                        ← text-xl font-semibold text-gray-900, mb-1
 
-[step description]                  ← text-sm text-gray-500, leading-relaxed
+[step description]                  ← text-sm text-gray-500 font-normal, leading-relaxed
 
 [Пропустить тур]   [Далее →]       ← same button styles as wizard
 ```
@@ -247,7 +249,7 @@ Tooltip positioning:
 | Loading | App start, `first_run_completed` absent/false | Splash renders full-screen, model download begins via `run.io_bound` |
 | Progress updating | `on_progress` callback from `_start_llama` | `progress_bar.set_value(n/total)` + label updates via `loop.call_soon_threadsafe` |
 | Model ready, wizard not done | Progress reaches 1.0 | Progress bar stays visible (filled), wizard remains for user to complete |
-| Model ready + wizard done | User clicks Готово | `save_setting('first_run_completed', True)` → `ui.navigate.to('/')` |
+| Model ready + wizard done | User clicks Сохранить и начать | `save_setting('first_run_completed', True)` → `ui.navigate.to('/')` |
 | Skip wizard | User clicks Пропустить at any step | `save_setting('first_run_completed', True)` → `ui.navigate.to('/')` |
 
 ### Empty State
@@ -275,8 +277,8 @@ Tooltip positioning:
 | Element | Copy |
 |---------|------|
 | Primary CTA (empty state) | «Выбрать папку» |
-| Primary CTA (wizard step 2) | «Готово» |
-| Primary CTA (wizard step 1) | «Далее →» |
+| Primary CTA (wizard step 2) | «Сохранить и начать» |
+| Primary CTA (wizard step 1) | «Далее: Telegram →» |
 | Primary CTA (tour steps 1-2) | «Далее →» |
 | Primary CTA (tour step 3) | «Завершить» |
 | Skip link (wizard) | «Пропустить» |
@@ -304,7 +306,7 @@ Tooltip positioning:
 | Error state (model load failure) | «Не удалось загрузить модель. Проверьте интернет-соединение или выберите облачный провайдер в настройках.» |
 | Destructive confirmation | Нет деструктивных действий в этой фазе |
 
-**Source:** CONTEXT.md D-03, D-11, D-15; REQUIREMENTS.md ONBR-04; 12-CONTEXT.md specifics (дружелюбный тон, не холодный инструмент).
+**Source:** CONTEXT.md D-03, D-11, D-15; REQUIREMENTS.md ONBR-04; 12-CONTEXT.md specifics (дружелюбный тон, не холодный инструмент). Checker revision 2026-03-22: «Готово» → «Сохранить и начать», «Далее →» → «Далее: Telegram →».
 
 ---
 
