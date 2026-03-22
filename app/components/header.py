@@ -29,10 +29,10 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                    Если None — папка выбирается, но pipeline не запускается.
     """
     with ui.header().classes(
-        "bg-white border-b border-gray-200 px-6 py-0 flex items-center gap-8 h-12"
+        "bg-white border-b border-slate-200 px-6 py-0 flex items-center gap-8 h-12"
     ):
         # Left: text logo
-        ui.label("ЮрТэг").classes("text-base font-semibold text-gray-900 shrink-0")
+        ui.label("ЮрТэг").classes("text-base font-semibold text-slate-900 shrink-0")
 
         # Center: text-link nav tabs
         with ui.row().classes("gap-6 flex-1 justify-center"):
@@ -51,7 +51,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         upload_btn = ui.button(
             "+ Загрузить",
             on_click=_on_upload_click,
-        ).props("flat no-caps").classes("text-sm text-gray-700 shrink-0")
+        ).props("flat no-caps").classes("text-sm text-slate-700 shrink-0")
 
         # Сохраняем ссылку на кнопку для start_pipeline (ui_refs['upload_btn'])
         _header_refs["upload_btn"] = upload_btn
@@ -63,7 +63,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             profile_btn = ui.button(
                 f"👤 {state.current_client}",
                 on_click=lambda: client_menu.open(),
-            ).props("flat no-caps").classes("text-sm text-gray-600")
+            ).props("flat no-caps").classes("text-sm text-slate-600")
 
             with ui.menu() as client_menu:
                 for name in cm.list_clients():
@@ -114,6 +114,7 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
 def _nav_link(label: str, path: str) -> None:
     """Render a single text navigation link."""
     ui.link(label, path).classes(
-        "text-sm text-gray-600 hover:text-gray-900 no-underline"
-        " border-b-2 border-transparent hover:border-gray-900 pb-0.5"
+        "text-sm text-slate-600 hover:text-slate-900 no-underline"
+        " border-b-2 border-transparent hover:border-slate-900 pb-0.5"
+        " transition-colors duration-150"
     )

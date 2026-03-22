@@ -32,8 +32,8 @@ from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
 
 # Segment styling — literal classes per D-24
-_SEG_ACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md bg-gray-900 text-white"
-_SEG_INACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100"
+_SEG_ACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors duration-150"
+_SEG_INACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
 
 
 def _render_empty_state(container, state) -> None:
@@ -50,36 +50,36 @@ def _render_empty_state(container, state) -> None:
 
     with container:
         with ui.column().classes("py-16 flex flex-col items-center gap-4"):
-            # Folder SVG icon — outline, stroke gray-300
+            # Folder SVG icon — outline, stroke slate-300
             ui.html(
                 '<svg width="48" height="48" viewBox="0 0 24 24" fill="none"'
-                ' stroke="#d1d5db" stroke-width="1.5">'
+                ' stroke="#cbd5e1" stroke-width="1.5">'
                 '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
                 "</svg>"
             )
             # Heading
             ui.label("Загрузите первые документы").classes(
-                "text-xl font-semibold text-gray-900"
+                "text-xl font-semibold text-slate-900"
             )
             # Body description
             ui.label(
                 "Выберите папку с PDF или DOCX — мы извлечём метаданные"
                 " и разложим файлы автоматически."
-            ).classes("text-sm text-gray-500 font-normal text-center max-w-xs")
+            ).classes("text-sm text-slate-500 font-normal text-center max-w-xs")
             # CTA button
             ui.button("Выбрать папку", on_click=_on_pick_folder).props(
                 "no-caps"
-            ).classes("px-6 py-2 bg-gray-900 text-white font-semibold rounded-lg text-sm")
+            ).classes("px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm")
             # Hint bullets
             with ui.column().classes("mt-2 gap-1"):
                 ui.label("· Извлечёт метаданные").classes(
-                    "text-sm text-gray-400 font-normal"
+                    "text-sm text-slate-400 font-normal"
                 )
                 ui.label("· Разложит по папкам").classes(
-                    "text-sm text-gray-400 font-normal"
+                    "text-sm text-slate-400 font-normal"
                 )
                 ui.label("· Проверит сроки").classes(
-                    "text-sm text-gray-400 font-normal"
+                    "text-sm text-slate-400 font-normal"
                 )
 
 
@@ -100,7 +100,7 @@ def build() -> None:
                 .classes("flex-1 max-w-md")
             )
 
-            with ui.row().classes("gap-1 bg-gray-100 p-1 rounded-lg"):
+            with ui.row().classes("gap-1 bg-slate-100 p-1 rounded-lg"):
                 for key, label in [
                     ("all", "Все"),
                     ("expiring", "Истекают ⚠"),
@@ -120,8 +120,8 @@ def build() -> None:
         with progress_section:
             with ui.row().classes("items-center gap-3 w-full"):
                 progress_bar = ui.linear_progress(value=0).classes("flex-1")
-                count_label = ui.label("0/0 файлов").classes("text-sm text-gray-500 shrink-0")
-            file_label = ui.label("").classes("text-xs text-gray-400")
+                count_label = ui.label("0/0 файлов").classes("text-sm text-slate-500 shrink-0")
+            file_label = ui.label("").classes("text-xs text-slate-400")
             error_col = ui.column().classes("gap-1")
 
         grid_container = ui.column().classes("w-full")
@@ -227,7 +227,7 @@ def build() -> None:
         """Показывает диалог подтверждения удаления (placeholder)."""
         with ui.dialog() as dialog, ui.card():
             ui.label("Удалить документ?").classes("text-lg font-semibold")
-            ui.label("Это действие необратимо. Файл в исходной папке останется.").classes("text-sm text-gray-500")
+            ui.label("Это действие необратимо. Файл в исходной папке останется.").classes("text-sm text-slate-500")
             with ui.row().classes("gap-2 mt-4"):
                 ui.button("Отмена", on_click=dialog.close).props("flat")
                 ui.button(

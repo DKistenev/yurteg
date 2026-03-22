@@ -40,17 +40,17 @@ def _render_metadata(contract: dict) -> None:
     with ui.grid(columns=2).classes("gap-x-8 gap-y-3 w-full"):
         for label, value in fields:
             with ui.column().classes("gap-0.5"):
-                ui.label(label).classes("text-xs font-medium text-gray-400 uppercase tracking-wide")
-                ui.label(value).classes("text-sm text-gray-900")
+                ui.label(label).classes("text-xs font-medium text-slate-400 uppercase tracking-wide")
+                ui.label(value).classes("text-sm text-slate-900")
 
     # Особые условия — bulleted list
     conditions = contract.get("special_conditions") or []
     if conditions:
         with ui.column().classes("gap-1 mt-2"):
-            ui.label("Особые условия").classes("text-xs font-medium text-gray-400 uppercase tracking-wide")
+            ui.label("Особые условия").classes("text-xs font-medium text-slate-400 uppercase tracking-wide")
             with ui.column().classes("gap-0.5 pl-3"):
                 for cond in conditions:
-                    ui.label(f"• {cond}").classes("text-sm text-gray-700")
+                    ui.label(f"• {cond}").classes("text-sm text-slate-700")
 
 
 def _dict_to_metadata(d: dict) -> ContractMetadata:
@@ -82,11 +82,11 @@ def _render_deviations(container, deviations: list[dict]) -> None:
             ui.html(
                 f'<div style="border-left: 3px solid {d["color"]}; padding: 8px 12px; '
                 f'background: {d["color"]}22; border-radius: 6px; margin-bottom: 8px;">'
-                f'<div style="font-size: 11px; color: #9ca3af; margin-bottom: 4px;">'
+                f'<div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">'
                 f'{TYPE_LABEL.get(d["type"], d["type"])}</div>'
-                + (f'<div style="font-size: 12px; color: #6b7280; text-decoration: line-through;">'
+                + (f'<div style="font-size: 12px; color: #64748b; text-decoration: line-through;">'
                    f'{d.get("template_text") or ""}</div>' if d.get("template_text") else '')
-                + (f'<div style="font-size: 14px; color: #111827;">'
+                + (f'<div style="font-size: 14px; color: #0f172a;">'
                    f'{d.get("document_text") or ""}</div>' if d.get("document_text") else '')
                 + '</div>'
             )
@@ -129,8 +129,8 @@ async def build(doc_id: str = "") -> None:
 
     if contract is None:
         with ui.column().classes("w-full p-8 gap-4"):
-            ui.label("Документ не найден").classes("text-xl text-gray-500")
-            ui.button("← Назад к реестру", on_click=lambda: ui.navigate.to("/")).props("flat no-caps").classes("text-gray-600")
+            ui.label("Документ не найден").classes("text-xl text-slate-500")
+            ui.button("← Назад к реестру", on_click=lambda: ui.navigate.to("/")).props("flat no-caps").classes("text-slate-600")
         return
 
     # Загружаем computed_status отдельным SQL-запросом (per Pattern 3)
@@ -150,11 +150,11 @@ async def build(doc_id: str = "") -> None:
             ui.button(
                 "← Назад к реестру",
                 on_click=lambda: ui.navigate.to("/")
-            ).props("flat no-caps").classes("text-gray-600")
+            ).props("flat no-caps").classes("text-slate-600")
 
             ui.label(
                 contract.get("contract_type") or "Документ"
-            ).classes("text-xl font-semibold text-gray-900")
+            ).classes("text-xl font-semibold text-slate-900")
 
             # Prev/next buttons (per D-03, D-20)
             doc_ids = state.filtered_doc_ids
@@ -166,23 +166,23 @@ async def build(doc_id: str = "") -> None:
                 prev_btn = ui.button(
                     "◀",
                     on_click=lambda pid=prev_id: ui.navigate.to(f"/document/{pid}")
-                ).props("flat dense").classes("text-gray-500")
+                ).props("flat dense").classes("text-slate-500")
                 prev_btn.set_enabled(prev_id is not None)
 
                 next_btn = ui.button(
                     "▶",
                     on_click=lambda nid=next_id: ui.navigate.to(f"/document/{nid}")
-                ).props("flat dense").classes("text-gray-500")
+                ).props("flat dense").classes("text-slate-500")
                 next_btn.set_enabled(next_id is not None)
 
         # ── Metadata grid (per D-04, D-05) ────────────────────────────────────
         with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Метаданные").classes("text-sm font-semibold text-gray-700 mb-3")
+            ui.label("Метаданные").classes("text-sm font-semibold text-slate-700 mb-3")
             _render_metadata(contract)
 
         # ── Status section (per D-06, D-07) ───────────────────────────────────
         with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Статус").classes("text-sm font-semibold text-gray-700 mb-3")
+            ui.label("Статус").classes("text-sm font-semibold text-slate-700 mb-3")
 
             # Отображаем бейдж статуса
             icon, label_text, color = STATUS_LABELS.get(
@@ -209,7 +209,7 @@ async def build(doc_id: str = "") -> None:
                     ui.button(
                         "Сбросить",
                         on_click=_clear_status
-                    ).props("flat dense no-caps").classes("text-gray-500 text-xs")
+                    ).props("flat dense no-caps").classes("text-slate-500 text-xs")
 
             # Select dropdown для ручного статуса
             status_row_el = ui.row().classes("items-center gap-2 mt-2")
@@ -243,11 +243,11 @@ async def build(doc_id: str = "") -> None:
                 ui.button(
                     "Отмена",
                     on_click=lambda: status_row_el.set_visibility(False)
-                ).props("flat dense no-caps").classes("text-gray-500 text-xs")
+                ).props("flat dense no-caps").classes("text-slate-500 text-xs")
 
         # ── Lawyer notes (per D-08, D-09) ─────────────────────────────────────
         with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Пометки юриста").classes("text-sm font-semibold text-gray-700 mb-3")
+            ui.label("Пометки юриста").classes("text-sm font-semibold text-slate-700 mb-3")
 
             async def _save_comment(e) -> None:
                 comment_text = e.sender.value or ""
@@ -285,7 +285,7 @@ async def build(doc_id: str = "") -> None:
                         # Per D-14: нет шаблонов — сообщение со ссылкой
                         review_container.clear()
                         with review_container:
-                            with ui.row().classes('items-center gap-2 text-gray-500 text-sm'):
+                            with ui.row().classes('items-center gap-2 text-slate-500 text-sm'):
                                 ui.label('Нет шаблонов.')
                                 ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-blue-600 underline')
                         return
@@ -333,15 +333,15 @@ async def build(doc_id: str = "") -> None:
 
             if not versions:
                 with versions_container:
-                    ui.label('Версии не найдены').classes('text-gray-400 text-sm')
+                    ui.label('Версии не найдены').classes('text-slate-400 text-sm')
             else:
                 with versions_container:
                     for v in versions:
                         with ui.row().classes('w-full items-center justify-between py-2 border-b last:border-0'):
                             with ui.row().classes('gap-4 items-center'):
-                                ui.label(f'v{v.version_number}').classes('text-sm font-medium text-gray-900')
-                                ui.label(v.link_method or '').classes('text-xs text-gray-400')
-                                ui.label(v.created_at or '').classes('text-xs text-gray-400')
+                                ui.label(f'v{v.version_number}').classes('text-sm font-medium text-slate-900')
+                                ui.label(v.link_method or '').classes('text-xs text-slate-400')
+                                ui.label(v.created_at or '').classes('text-xs text-slate-400')
 
                             if v.contract_id != int(doc_id):
                                 with ui.row().classes('gap-2'):
