@@ -142,7 +142,7 @@ def build() -> None:
             ui.label("Реестр").classes("text-2xl font-semibold text-slate-900 mr-auto")
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
-            with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg"):
+            with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg").props("id=calendar-toggle"):
                 list_btn = ui.button("≡ Список").props("flat no-caps").classes(TOGGLE_ACTIVE + " text-xs px-3 py-1")
                 list_btn.props('aria-label="Вид списком"')
                 cal_btn = ui.button("⊞ Календарь").props("flat no-caps").classes(TOGGLE_INACTIVE + " text-xs px-3 py-1")

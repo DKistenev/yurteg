@@ -15,6 +15,7 @@ from nicegui import run, ui
 
 from app.components.process import pick_folder
 from app.state import AppState
+from config import save_setting
 from services.client_manager import ClientManager
 
 # Module-level singletons
@@ -68,6 +69,18 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
 
         # Сохраняем ссылку на кнопку для start_pipeline (ui_refs['upload_btn'])
         _header_refs["upload_btn"] = upload_btn
+
+        # «? Гид» — subtle restart button (ONBR-02)
+        def _restart_tour() -> None:
+            save_setting("tour_completed", False)
+            ui.navigate.to("/")  # перезагружает реестр, _init() проверит флаг и запустит тур
+
+        ui.button(
+            "? Гид",
+            on_click=_restart_tour,
+        ).props('flat no-caps id=tour-guide-btn aria-label="Запустить тур по приложению"').classes(
+            "text-xs text-slate-400 hover:text-slate-200 transition-colors duration-150 px-2"
+        )
 
         # Right: client dropdown (D-20)
         with ui.row().classes("shrink-0 items-center gap-1"):
