@@ -25,8 +25,8 @@ Bugfix/polish milestone — починить все проблемы из ауд
 
 ### Onboarding
 
-- [ ] **ONBR-01**: Guided tour при первом открытии — spotlight на кнопки, карточки с описанием, кнопка «Продолжить»
-- [ ] **ONBR-02**: Кнопка «Начать тур» для повторного запуска guided tour в любой момент
+- [x] **ONBR-01**: Guided tour при первом открытии — spotlight на кнопки, карточки с описанием, кнопка «Продолжить»
+- [x] **ONBR-02**: Кнопка «Начать тур» для повторного запуска guided tour в любой момент
 - [ ] **ONBR-03**: Demo-данные — кнопка «Загрузить тестовые документы» в empty state для демонстрации реестра
 
 ### Polish
@@ -65,8 +65,8 @@ Bugfix/polish milestone — починить все проблемы из ауд
 | BRND-01 | Phase 18 | Complete |
 | BRND-02 | Phase 18 | Complete |
 | BRND-03 | Phase 18 | Complete |
-| ONBR-01 | Phase 19 | Pending |
-| ONBR-02 | Phase 19 | Pending |
+| ONBR-01 | Phase 19 | Complete |
+| ONBR-02 | Phase 19 | Complete |
 | ONBR-03 | Phase 19 | Pending |
 | PLSH-01 | Phase 18 | Complete |
 | PLSH-02 | Phase 18 | Complete |

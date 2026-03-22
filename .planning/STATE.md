@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: UI Polish & Fixes
 status: Ready to execute
-stopped_at: Completed 19-onboarding-demo/19-03-PLAN.md
-last_updated: "2026-03-22T20:57:28.014Z"
+stopped_at: Completed 19-onboarding-demo/19-01-PLAN.md
+last_updated: "2026-03-22T20:58:44.750Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 19 (Onboarding + Demo Data) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Plan: 2 of 3
 | Phase 18 P03 | 5 | 2 tasks | 4 files |
 | Phase 18-layout-fixes P02 | 5 | 2 tasks | 3 files |
 | Phase 19-onboarding-demo P03 | 5 | 1 tasks | 2 files |
+| Phase 19-onboarding-demo P01 | 5 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase 18-layout-fixes]: Dialog: card p-0 + overflow-hidden + ui.element div for indigo header band
 - [Phase 18-layout-fixes]: Settings height: flex-1 on row + self-stretch on sidebar (not min-h-screen)
 - [Phase 19-03]: Local import guard for webview inside try/except (ImportError, AttributeError) — allows module import in web environments without pywebview
+- [Phase 19-01]: TOUR_STEPS expanded 3→5: upload → nav tabs → search/filters → calendar-toggle → client dropdown
+- [Phase 19-01]: Tooltip visual: box-shadow 20/60px, radius 12px, max-width 300px, progress bar + step dots
+- [Phase 19-01]: «? Гид» button: flat subtle text-xs slate-400 between upload CTA and client dropdown
 
 ### Pending Todos
 
@@ -128,6 +132,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 19-onboarding-demo/19-03-PLAN.md
+Stopped at: Completed 19-onboarding-demo/19-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14
