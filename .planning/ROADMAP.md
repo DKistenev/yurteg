@@ -85,7 +85,9 @@ Plans:
   2. Hero-zone реализован как explicit structural wrapper (ui.element('div')), не padding inflation
   3. Все функциональные callbacks (wizard flow, model download) работают без регрессий
   4. *(stretch)* Staggered entrance анимация элементов
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 15-01-PLAN.md — полный рерайт splash.py: dark hero-zone, TEXT_HERO, BTN_ACCENT_FILLED, stagger .hero-enter
 **UI hint**: yes
 **Note**: Изолированный компонент, нет data dependencies — валидирует паттерн до сложного registry
 
@@ -137,7 +139,7 @@ Plans:
 | 11. Settings + Templates | v0.6 | 3/3 | Complete | 2026-03-22 |
 | 12. Onboarding | v0.6 | 2/2 | Complete | 2026-03-22 |
 | 13. Design Polish + Calendar | v0.6 | 4/4 | Complete | 2026-03-22 |
-| 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete    | 2026-03-22 |
-| 15. Splash | v0.7 | 0/TBD | Not started | - |
+| 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
+| 15. Splash | v0.7 | 0/1 | Not started | - |
 | 16. Registry + Card | v0.7 | 0/TBD | Not started | - |
 | 17. Полировка: templates, settings, анимации | v0.7 | 0/TBD | Not started | - |
