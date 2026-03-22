@@ -126,7 +126,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [ ] 17-01-PLAN.md — templates: color-coded cards + type icon + colored badges + rich empty state (TMPL-01,02,03)
-- [ ] 17-02-PLAN.md — settings: sidebar indigo active state + section headers + descriptions (SETT-01,02)
+- [x] 17-02-PLAN.md — settings: sidebar indigo active state + section headers + descriptions (SETT-01,02)
 - [ ] 17-03-PLAN.md — animations + footer + hover audit (ANIM-01,02,03,04, XCUT-01,02)
 - [ ] 17-04-PLAN.md — visual seam check: checkpoint human-verify (XCUT-04)
 **UI hint**: yes
@@ -151,4 +151,4 @@ Plans:
 | 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
 | 15. Splash | v0.7 | 1/1 | Complete    | 2026-03-22 |
 | 16. Registry + Card | v0.7 | 3/3 | Complete    | 2026-03-22 |
-| 17. Полировка: templates, settings, анимации | v0.7 | 0/4 | Not started | - |
+| 17. Полировка: templates, settings, анимации | v0.7 | 1/4 | In Progress|  |

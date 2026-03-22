@@ -51,8 +51,8 @@
 
 ### Настройки
 
-- [ ] **SETT-01**: Секции с заголовками, описаниями и визуальными разделителями
-- [ ] **SETT-02**: Sidebar с визуальной структурой (активный пункт выделен, не голый текст)
+- [x] **SETT-01**: Секции с заголовками, описаниями и визуальными разделителями
+- [x] **SETT-02**: Sidebar с визуальной структурой (активный пункт выделен, не голый текст)
 
 ### Анимации
 
@@ -114,8 +114,8 @@
 | TMPL-01 | Phase 17 | Pending |
 | TMPL-02 | Phase 17 | Pending |
 | TMPL-03 | Phase 17 | Pending |
-| SETT-01 | Phase 17 | Pending |
-| SETT-02 | Phase 17 | Pending |
+| SETT-01 | Phase 17 | Complete |
+| SETT-02 | Phase 17 | Complete |
 | ANIM-01 | Phase 17 | Pending |
 | ANIM-02 | Phase 17 | Pending |
 | ANIM-03 | Phase 17 | Pending |
