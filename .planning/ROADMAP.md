@@ -170,4 +170,4 @@ Plans:
 | 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 3/3 | Complete    | 2026-03-22 |
 | 12. Onboarding | v0.6 | 2/2 | Complete    | 2026-03-22 |
-| 13. Design Polish + Calendar | v0.6 | 4/4 | Complete   | 2026-03-22 |
+| 13. Design Polish + Calendar | v0.6 | 4/4 | Complete    | 2026-03-22 |

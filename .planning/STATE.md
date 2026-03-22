@@ -4,7 +4,7 @@ milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
 stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-03-22T13:05:57.705Z"
+last_updated: "2026-03-22T13:10:55.690Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 
 ## Current Position
 
-Phase: 13 (design-polish-calendar) — EXECUTING
-Plan: 4 of 4
+Phase: 13
+Plan: Not started
 
 ## Performance Metrics
 
