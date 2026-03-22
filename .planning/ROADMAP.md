@@ -37,7 +37,7 @@ Full details: `.planning/milestones/v0.5-ROADMAP.md`
 - [x] **Phase 9: Document Detail Card** — Full-page карточка документа с ревью, версиями, заметками, навигацией (completed 2026-03-21)
 - [x] **Phase 10: Pipeline Wiring** — Нативный file picker, async обработка, прогресс в реальном времени (completed 2026-03-21)
 - [x] **Phase 11: Settings + Templates** — Страница настроек, управление шаблонами, переключение клиента (completed 2026-03-22)
-- [ ] **Phase 12: Onboarding** — Splash screen с wizard, empty states, first-run flow
+- [x] **Phase 12: Onboarding** — Splash screen с wizard, empty states, first-run flow (completed 2026-03-22)
 - [ ] **Phase 13: Design Polish + Calendar** — Цветовая система, типографика, календарь, анимации
 
 ## Phase Details
@@ -132,10 +132,10 @@ Plans:
   3. После загрузки модели splash закрывается, открывается реестр с empty state «Загрузить первые документы»
   4. При повторном запуске splash и wizard не показываются — приложение открывается сразу
   5. После первой обработки запускается guided tour с подсветкой: реестр → фильтры → загрузка
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 12-01-PLAN.md — Splash screen + wizard, main.py splash gate
-- [ ] 12-02-PLAN.md — Empty state реестра, guided tour overlay
+- [x] 12-02-PLAN.md — Empty state реестра, guided tour overlay
 
 ### Phase 13: Design Polish + Calendar
 **Goal**: Интерфейс выглядит профессионально: светлая утилитарная тема без AI slop и возможность переключить реестр в вид платёжного календаря
@@ -164,5 +164,5 @@ Plans:
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 3/3 | Complete    | 2026-03-22 |
-| 12. Onboarding | v0.6 | 1/2 | In Progress|  |
+| 12. Onboarding | v0.6 | 2/2 | Complete   | 2026-03-22 |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |

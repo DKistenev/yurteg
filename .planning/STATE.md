@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-22T10:59:18.912Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-22T11:04:28.650Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -87,6 +87,7 @@ Plan: 2 of 2
 | Phase 11-settings-templates P02 | 3min | 1 tasks | 1 files |
 | Phase 11-settings-templates P03 | 5min | 1 tasks | 1 files |
 | Phase 12-onboarding P01 | 2min | 2 tasks | 3 files |
+| Phase 12-onboarding P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -191,6 +192,8 @@ Recent decisions affecting current work:
 - [Phase 11-settings-templates]: cards_ref list pattern for forward-reference to container inside NiceGUI closure — avoids nonlocal scope issues
 - [Phase 12-onboarding]: render_splash() как full-page component, не ui.dialog — чистый layout без overlay артефактов
 - [Phase 12-onboarding]: load_settings() вызывается внутри root() per-connection, не на уровне модуля
+- [Phase 12-onboarding]: Empty state: show only when rows==0 AND no filter — prevents false show on filtered 0-result
+- [Phase 12-onboarding]: Tour JS-Python bridge: hidden NiceGUI button clicked by endTour() JS
 
 ### Pending Todos
 
@@ -211,6 +214,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 12-01-PLAN.md
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
