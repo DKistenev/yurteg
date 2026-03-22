@@ -99,9 +99,18 @@ def render_splash() -> None:
                         ui.button("Пропустить").props("flat no-caps").classes(
                             "text-sm text-slate-400 hover:text-slate-600"
                         ).on_click(lambda: _finish())
-                        ui.button("Сохранить и начать").props("no-caps").classes(
+                        save_btn = ui.button("Сохранить и начать").props("no-caps").classes(
                             "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
-                        ).on_click(lambda: _save_and_finish(token_input))
+                        )
+
+                        def _on_save_click(btn=save_btn, ti=token_input) -> None:
+                            btn.disable()
+                            try:
+                                _save_and_finish(ti)
+                            finally:
+                                btn.enable()
+
+                        save_btn.on_click(_on_save_click)
 
             # Render step 1 wizard content (navigation only — bullets above)
             with wizard_area:

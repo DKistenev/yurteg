@@ -52,7 +52,7 @@ STATUS_CELL_RENDERER = """(params) => {
 _EXPAND_CELL_RENDERER = """(params) => {
     if (!params.value) return '';
     const expanded = params.data && params.data.is_expanded;
-    return `<span class="expand-icon" style="cursor:pointer">${expanded ? '\u25bc' : '\u25b6'}</span>`;
+    return `<span class="expand-icon" aria-label="\u0420\u0430\u0437\u0432\u0435\u0440\u043d\u0443\u0442\u044c" style="cursor:pointer">${expanded ? '\u25bc' : '\u25b6'}</span>`;
 }"""
 
 # Actions cell renderer (last column) — per D-12, D-13
@@ -60,7 +60,7 @@ _ACTIONS_CELL_RENDERER = """(params) => {
     if (params.data && params.data.is_child) return '';
     const div = document.createElement('div');
     div.className = 'actions-cell';
-    div.innerHTML = '<span class="action-icon" title="\u041c\u0435\u043d\u044e">\u22ef</span>';
+    div.innerHTML = '<span class="action-icon" title="\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f" aria-label="\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f">\u22ef</span>';
     return div;
 }"""
 

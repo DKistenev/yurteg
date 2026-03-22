@@ -44,6 +44,7 @@ async def _start_llama() -> None:
         logger.info("llama-server запущен")
     except Exception as e:
         logger.warning(f"llama-server не запустился: {e}")
+        ui.notify("Локальная модель недоступна. Используется облачный провайдер.", type="warning")
 
 
 def _stop_llama() -> None:

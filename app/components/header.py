@@ -38,7 +38,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         with ui.row().classes("gap-6 flex-1 justify-center"):
             _nav_link("Документы", "/")
             _nav_link("Шаблоны", "/templates")
-            _nav_link("⚙", "/settings")
+            _nav_link("⚙", "/settings", aria_label="Настройки")
 
         # Upload button — per D-01, D-02 (рядом с табами, перед профилем)
         async def _on_upload_click() -> None:
@@ -63,7 +63,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             profile_btn = ui.button(
                 f"👤 {state.current_client}",
                 on_click=lambda: client_menu.open(),
-            ).props("flat no-caps").classes("text-sm text-slate-600")
+            ).props('flat no-caps aria-label="Профиль клиента"').classes("text-sm text-slate-600")
 
             with ui.menu() as client_menu:
                 for name in cm.list_clients():
@@ -111,10 +111,12 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     dlg.open()
 
 
-def _nav_link(label: str, path: str) -> None:
+def _nav_link(label: str, path: str, aria_label: str = "") -> None:
     """Render a single text navigation link."""
-    ui.link(label, path).classes(
+    link = ui.link(label, path).classes(
         "text-sm text-slate-600 hover:text-slate-900 no-underline"
         " border-b-2 border-transparent hover:border-slate-900 pb-0.5"
         " transition-colors duration-150"
     )
+    if aria_label:
+        link.props(f'aria-label="{aria_label}"')

@@ -107,17 +107,25 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
             if not new_name:
                 ui.notify("Введите название шаблона", type="warning")
                 return
-            state = get_state()
-            db = ClientManager().get_db(state.current_client)
-            await run.io_bound(
-                review_service.update_template, db, tmpl.id, new_name, new_type
-            )
-            dlg.close()
-            _render_cards(cards_container)
+            save_btn.disable()
+            try:
+                state = get_state()
+                db = ClientManager().get_db(state.current_client)
+                try:
+                    await run.io_bound(
+                        review_service.update_template, db, tmpl.id, new_name, new_type
+                    )
+                except Exception as e:
+                    ui.notify(f"Ошибка: {e}", type="negative")
+                    return
+                dlg.close()
+                _render_cards(cards_container)
+            finally:
+                save_btn.enable()
 
         with ui.row().classes("justify-end gap-2 w-full"):
             ui.button("Отмена", on_click=dlg.close).props("flat no-caps color=grey")
-            ui.button("Сохранить", on_click=_confirm).props("no-caps color=primary")
+            save_btn = ui.button("Сохранить", on_click=_confirm).props("no-caps color=primary")
 
     dlg.open()
 
@@ -131,7 +139,11 @@ def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
         async def _confirm_delete() -> None:
             state = get_state()
             db = ClientManager().get_db(state.current_client)
-            await run.io_bound(review_service.delete_template, db, tmpl.id)
+            try:
+                await run.io_bound(review_service.delete_template, db, tmpl.id)
+            except Exception as e:
+                ui.notify(f"Ошибка: {e}", type="negative")
+                return
             dlg.close()
             _render_cards(cards_container)
 
@@ -180,41 +192,53 @@ async def _add_template_flow(cards_container: ui.column) -> None:
                 ui.notify("Введите название шаблона", type="warning")
                 return
 
-            # Показываем статус извлечения
-            status_label.set_text("Читаю документ...")
+            add_btn.disable()
+            try:
+                # Показываем статус извлечения
+                status_label.set_text("Читаю документ...")
 
-            # Construct FileInfo — Pitfall 4: не передавать Path напрямую
-            fi = FileInfo(
-                path=file_path,
-                filename=file_path.name,
-                extension=file_path.suffix.lower(),
-                size_bytes=file_path.stat().st_size,
-                file_hash="",
-            )
+                # Construct FileInfo — Pitfall 4: не передавать Path напрямую
+                fi = FileInfo(
+                    path=file_path,
+                    filename=file_path.name,
+                    extension=file_path.suffix.lower(),
+                    size_bytes=file_path.stat().st_size,
+                    file_hash="",
+                )
 
-            # Blocking I/O — run.io_bound
-            extracted = await run.io_bound(extractor.extract_text, fi)
+                # Blocking I/O — run.io_bound
+                try:
+                    extracted = await run.io_bound(extractor.extract_text, fi)
+                except Exception as e:
+                    ui.notify(f"Ошибка чтения файла: {e}", type="negative")
+                    return
 
-            state = get_state()
-            db = ClientManager().get_db(state.current_client)
-            doc_type = type_select.value or "Прочее"
+                state = get_state()
+                db = ClientManager().get_db(state.current_client)
+                doc_type = type_select.value or "Прочее"
 
-            await run.io_bound(
-                review_service.add_template,
-                db,
-                doc_type,
-                new_name,
-                extracted.text,
-                str(file_path),
-            )
+                try:
+                    await run.io_bound(
+                        review_service.add_template,
+                        db,
+                        doc_type,
+                        new_name,
+                        extracted.text,
+                        str(file_path),
+                    )
+                except Exception as e:
+                    ui.notify(f"Ошибка сохранения: {e}", type="negative")
+                    return
 
-            dlg.close()
-            _render_cards(cards_container)
-            ui.notify(f"Шаблон «{new_name}» добавлен", type="positive")
+                dlg.close()
+                _render_cards(cards_container)
+                ui.notify(f"Шаблон «{new_name}» добавлен", type="positive")
+            finally:
+                add_btn.enable()
 
         with ui.row().classes("justify-end gap-2 w-full"):
             ui.button("Отмена", on_click=dlg.close).props("flat no-caps color=grey")
-            ui.button(
+            add_btn = ui.button(
                 "Добавить", on_click=_confirm
             ).props("no-caps color=primary")
 

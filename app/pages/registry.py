@@ -123,9 +123,9 @@ def build() -> None:
             # Calendar toggle — right-aligned (DSGN-04, D-15)
             with ui.row().classes("ml-auto items-center gap-1"):
                 list_btn = ui.button("≡").props("flat no-caps").classes(_TOGGLE_ACTIVE)
-                list_btn.props('title="Список"')
+                list_btn.props('title="Список" aria-label="Вид списком"')
                 cal_btn = ui.button("⊞").props("flat no-caps").classes(_TOGGLE_INACTIVE)
-                cal_btn.props('title="Календарь"')
+                cal_btn.props('title="Календарь" aria-label="Вид календарём"')
 
         # Progress section — hidden by default (D-12)
         progress_section = ui.column().classes("w-full px-6 py-3 gap-2")
@@ -220,22 +220,28 @@ def build() -> None:
 
     async def _switch_view(view: str) -> None:
         """Переключает вид между списком и календарём (DSGN-04, D-15)."""
-        state.calendar_visible = (view == "calendar")
-        if state.calendar_visible:
-            list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-            list_btn.classes(_TOGGLE_INACTIVE)
-            cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-            cal_btn.classes(_TOGGLE_ACTIVE)
-            grid_container.set_visibility(False)
-            calendar_container.set_visibility(True)
-            await _show_calendar()
-        else:
-            list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-            list_btn.classes(_TOGGLE_ACTIVE)
-            cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-            cal_btn.classes(_TOGGLE_INACTIVE)
-            grid_container.set_visibility(True)
-            calendar_container.set_visibility(False)
+        list_btn.disable()
+        cal_btn.disable()
+        try:
+            state.calendar_visible = (view == "calendar")
+            if state.calendar_visible:
+                list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+                list_btn.classes(_TOGGLE_INACTIVE)
+                cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+                cal_btn.classes(_TOGGLE_ACTIVE)
+                grid_container.set_visibility(False)
+                calendar_container.set_visibility(True)
+                await _show_calendar()
+            else:
+                list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+                list_btn.classes(_TOGGLE_ACTIVE)
+                cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+                cal_btn.classes(_TOGGLE_INACTIVE)
+                grid_container.set_visibility(True)
+                calendar_container.set_visibility(False)
+        finally:
+            list_btn.enable()
+            cal_btn.enable()
 
     list_btn.on_click(lambda: _switch_view("list"))
     cal_btn.on_click(lambda: _switch_view("calendar"))
@@ -270,10 +276,6 @@ def build() -> None:
         with ui.menu() as menu:
             # Открыть (D-13)
             ui.menu_item("Открыть", on_click=lambda: ui.navigate.to(f"/document/{contract_id}"))
-            # Скачать оригинал (D-13) — placeholder, путь из БД в Phase 10
-            ui.menu_item("Скачать оригинал", on_click=lambda: ui.notify("Функция доступна в следующей версии", type="info"))
-            # Переобработать (D-13) — Phase 10
-            ui.menu_item("Переобработать", on_click=lambda: ui.notify("Функция доступна в следующей версии", type="info"))
             ui.separator()
             # Быстрая смена статуса (D-14)
             with ui.menu_item("Изменить статус"):
@@ -290,12 +292,6 @@ def build() -> None:
                         "Сбросить ручной статус",
                         on_click=lambda: _clear_status(contract_id),
                     )
-            ui.separator()
-            # Удалить (D-13) — placeholder с подтверждением
-            ui.menu_item(
-                "Удалить",
-                on_click=lambda: _confirm_delete(contract_id),
-            ).classes("text-red-600")
 
         menu.open()
 
@@ -303,7 +299,11 @@ def build() -> None:
         """Устанавливает ручной статус и перегружает таблицу (D-14)."""
         from nicegui import run
         db = _client_manager.get_db(state.current_client)
-        await run.io_bound(set_manual_status, db, contract_id, status)
+        try:
+            await run.io_bound(set_manual_status, db, contract_id, status)
+        except Exception as e:
+            ui.notify(f"Ошибка: {e}", type="negative")
+            return
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
         label_info = STATUS_LABELS.get(status, ("", status, ""))
@@ -314,23 +314,14 @@ def build() -> None:
         from nicegui import run
         from services.lifecycle_service import clear_manual_status
         db = _client_manager.get_db(state.current_client)
-        await run.io_bound(clear_manual_status, db, contract_id)
+        try:
+            await run.io_bound(clear_manual_status, db, contract_id)
+        except Exception as e:
+            ui.notify(f"Ошибка: {e}", type="negative")
+            return
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
         ui.notify("Статус сброшен", type="info")
-
-    def _confirm_delete(contract_id: int) -> None:
-        """Показывает диалог подтверждения удаления (placeholder)."""
-        with ui.dialog() as dialog, ui.card():
-            ui.label("Удалить документ?").classes("text-lg font-semibold")
-            ui.label("Это действие необратимо. Файл в исходной папке останется.").classes("text-sm text-slate-500")
-            with ui.row().classes("gap-2 mt-4"):
-                ui.button("Отмена", on_click=dialog.close).props("flat")
-                ui.button(
-                    "Удалить",
-                    on_click=lambda: (ui.notify("Функция удаления доступна в следующей версии", type="warning"), dialog.close()),
-                ).props("color=red")
-        dialog.open()
 
     # ── Version expand/collapse ──────────────────────────────────────────────────
 

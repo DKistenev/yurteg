@@ -210,7 +210,11 @@ def build() -> None:
             async def _check_telegram() -> None:
                 srv_url = load_settings().get("telegram_server_url", "").strip()
                 tg = TelegramSync(server_url=srv_url, chat_id=0)
-                ok = await run.io_bound(tg.check_connection)
+                try:
+                    ok = await run.io_bound(tg.check_connection)
+                except Exception as e:
+                    ui.notify(f"Ошибка проверки подключения: {e}", type="negative")
+                    return
                 if ok:
                     status_label.set_text("● Подключён")
                     status_label.classes(remove="text-red-500", add="text-green-600")

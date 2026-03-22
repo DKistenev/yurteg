@@ -166,13 +166,13 @@ async def build(doc_id: str = "") -> None:
                 prev_btn = ui.button(
                     "◀",
                     on_click=lambda pid=prev_id: ui.navigate.to(f"/document/{pid}")
-                ).props("flat dense").classes("text-slate-500")
+                ).props('flat dense aria-label="Предыдущий документ"').classes("text-slate-500")
                 prev_btn.set_enabled(prev_id is not None)
 
                 next_btn = ui.button(
                     "▶",
                     on_click=lambda nid=next_id: ui.navigate.to(f"/document/{nid}")
-                ).props("flat dense").classes("text-slate-500")
+                ).props('flat dense aria-label="Следующий документ"').classes("text-slate-500")
                 next_btn.set_enabled(next_id is not None)
 
         # ── Metadata grid (per D-04, D-05) ────────────────────────────────────
@@ -202,7 +202,11 @@ async def build(doc_id: str = "") -> None:
                 ).props("flat dense no-caps").classes("text-blue-600 text-xs")
 
                 async def _clear_status() -> None:
-                    await run.io_bound(clear_manual_status, db, int(doc_id))
+                    try:
+                        await run.io_bound(clear_manual_status, db, int(doc_id))
+                    except Exception as ex:
+                        ui.notify(f"Ошибка: {ex}", type="negative")
+                        return
                     ui.navigate.to(f"/document/{doc_id}")
 
                 if contract.get("manual_status"):
@@ -232,10 +236,18 @@ async def build(doc_id: str = "") -> None:
                 async def _apply_status() -> None:
                     val = status_sel.value
                     if val and val in MANUAL_STATUSES:
-                        await run.io_bound(set_manual_status, db, int(doc_id), val)
-                        ui.navigate.to(f"/document/{doc_id}")
+                        apply_btn.disable()
+                        try:
+                            try:
+                                await run.io_bound(set_manual_status, db, int(doc_id), val)
+                            except Exception as ex:
+                                ui.notify(f"Ошибка: {ex}", type="negative")
+                                return
+                            ui.navigate.to(f"/document/{doc_id}")
+                        finally:
+                            apply_btn.enable()
 
-                ui.button(
+                apply_btn = ui.button(
                     "Применить",
                     on_click=_apply_status
                 ).props("dense no-caps").classes("bg-blue-600 text-white text-xs")
@@ -253,12 +265,15 @@ async def build(doc_id: str = "") -> None:
                 comment_text = e.sender.value or ""
                 file_hash = contract.get("file_hash", "")
                 if file_hash:
-                    await run.io_bound(
-                        db.update_review,
-                        file_hash,
-                        contract.get("review_status", "not_reviewed"),
-                        comment_text,
-                    )
+                    try:
+                        await run.io_bound(
+                            db.update_review,
+                            file_hash,
+                            contract.get("review_status", "not_reviewed"),
+                            comment_text,
+                        )
+                    except Exception as ex:
+                        ui.notify(f"Ошибка сохранения заметки: {ex}", type="negative")
 
             comment_area = ui.textarea(
                 value=contract.get("lawyer_comment", "")
@@ -270,59 +285,77 @@ async def build(doc_id: str = "") -> None:
             review_container = ui.column().classes('w-full gap-2')
 
             async def _run_review() -> None:
-                review_container.clear()
-                with review_container:
-                    ui.spinner('dots').classes('text-blue-500')
-
-                _db = _client_manager.get_db(state.current_client)
-                # Per D-11: автоподбор шаблона по типу и тексту
-                template = await run.io_bound(
-                    match_template, _db, contract.get('subject', ''), contract.get('contract_type')
-                )
-                if template is None:
-                    templates = await run.io_bound(list_templates, _db)
-                    if not templates:
-                        # Per D-14: нет шаблонов — сообщение со ссылкой
-                        review_container.clear()
-                        with review_container:
-                            with ui.row().classes('items-center gap-2 text-slate-500 text-sm'):
-                                ui.label('Нет шаблонов.')
-                                ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-blue-600 underline')
-                        return
-                    # Dropdown для ручного выбора (per D-11 fallback)
+                review_btn.disable()
+                try:
                     review_container.clear()
                     with review_container:
-                        template_options = {t.id: f"{t.name} ({t.contract_type})" for t in templates}
-                        selected_template = ui.select(
-                            template_options,
-                            label='Выберите шаблон',
-                        ).classes('w-full max-w-sm')
+                        ui.spinner('dots').classes('text-blue-500')
 
-                        async def _review_with_selected() -> None:
-                            sel_id = selected_template.value
-                            if sel_id is None:
-                                return
-                            sel_tmpl = next((t for t in templates if t.id == sel_id), None)
-                            if sel_tmpl:
-                                await _do_review(sel_tmpl.content_text)
+                    _db = _client_manager.get_db(state.current_client)
+                    # Per D-11: автоподбор шаблона по типу и тексту
+                    try:
+                        template = await run.io_bound(
+                            match_template, _db, contract.get('subject', ''), contract.get('contract_type')
+                        )
+                    except Exception as e:
+                        ui.notify(f"Ошибка подбора шаблона: {e}", type="negative")
+                        return
+                    if template is None:
+                        try:
+                            templates = await run.io_bound(list_templates, _db)
+                        except Exception as e:
+                            ui.notify(f"Ошибка загрузки шаблонов: {e}", type="negative")
+                            return
+                        if not templates:
+                            # Per D-14: нет шаблонов — сообщение со ссылкой
+                            review_container.clear()
+                            with review_container:
+                                with ui.row().classes('items-center gap-2 text-slate-500 text-sm'):
+                                    ui.label('Нет шаблонов.')
+                                    ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-blue-600 underline')
+                            return
+                        # Dropdown для ручного выбора (per D-11 fallback)
+                        review_container.clear()
+                        with review_container:
+                            template_options = {t.id: f"{t.name} ({t.contract_type})" for t in templates}
+                            selected_template = ui.select(
+                                template_options,
+                                label='Выберите шаблон',
+                            ).classes('w-full max-w-sm')
 
-                        ui.button('Проверить', on_click=_review_with_selected).props('flat no-caps').classes('text-blue-600')
-                    return
+                            async def _review_with_selected() -> None:
+                                sel_id = selected_template.value
+                                if sel_id is None:
+                                    return
+                                sel_tmpl = next((t for t in templates if t.id == sel_id), None)
+                                if sel_tmpl:
+                                    await _do_review(sel_tmpl.content_text)
 
-                # Шаблон найден — запускаем ревью
-                await _do_review(template.content_text)
+                            ui.button('Проверить', on_click=_review_with_selected).props('flat no-caps').classes('text-blue-600')
+                        return
+
+                    # Шаблон найден — запускаем ревью
+                    await _do_review(template.content_text)
+                finally:
+                    review_btn.enable()
 
             async def _do_review(template_text: str) -> None:
                 review_container.clear()
                 with review_container:
                     ui.spinner('dots').classes('text-blue-500')
                 # Per D-12: async через run.io_bound — не блокирует UI
-                deviations = await run.io_bound(
-                    review_against_template, template_text, contract.get('subject', '')
-                )
+                try:
+                    deviations = await run.io_bound(
+                        review_against_template, template_text, contract.get('subject', '')
+                    )
+                except Exception as e:
+                    review_container.clear()
+                    with review_container:
+                        ui.notify(f"Ошибка ревью: {e}", type="negative")
+                    return
                 _render_deviations(review_container, deviations)
 
-            ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-blue-600')
+            review_btn = ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-blue-600')
 
         # ── Version History section (per D-15 through D-18) ───────────────────
         with ui.expansion('Версии', icon='history', value=False).classes('w-full border rounded-lg'):
@@ -347,12 +380,20 @@ async def build(doc_id: str = "") -> None:
                                 with ui.row().classes('gap-2'):
                                     # Per D-17: Сравнить — показывает diff полей inline
                                     async def _show_diff(other_id: int = v.contract_id) -> None:
-                                        other = await run.io_bound(_db2.get_contract_by_id, other_id)
+                                        try:
+                                            other = await run.io_bound(_db2.get_contract_by_id, other_id)
+                                        except Exception as e:
+                                            ui.notify(f"Ошибка загрузки версии: {e}", type="negative")
+                                            return
                                         if other is None:
                                             return
                                         meta_current = _dict_to_metadata(contract)
                                         meta_other = _dict_to_metadata(other)
-                                        diffs = await run.io_bound(diff_versions, meta_current, meta_other)
+                                        try:
+                                            diffs = await run.io_bound(diff_versions, meta_current, meta_other)
+                                        except Exception as e:
+                                            ui.notify(f"Ошибка сравнения версий: {e}", type="negative")
+                                            return
                                         _render_diff_table(versions_container, diffs)
 
                                     ui.button('Сравнить', on_click=_show_diff).props('flat dense no-caps').classes('text-xs text-blue-600')
