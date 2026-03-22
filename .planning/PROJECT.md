@@ -85,12 +85,15 @@
 
 ### Active
 
-- [ ] Полная переработка визуального слоя — дизайн-система, тема, типографика (v0.7)
-- [ ] Hero splash/onboarding с визуальным характером (v0.7)
-- [ ] Registry с визуальной плотностью и rich empty state (v0.7)
-- [ ] Визуально структурированные настройки и шаблоны (v0.7)
-- [ ] Header с визуальным весом, accent CTA, лого-марка (v0.7)
-- [ ] Сквозные микро-детали: footer, transitions, hover states (v0.7)
+- [ ] Дизайн-система: tokens.css, палитра, типографика с ролевым маппингом, фон ≠ белый (v0.7)
+- [ ] Dark chrome header с лого-маркой и filled CTA (v0.7)
+- [ ] Hero splash с dark surface и визуальной уверенностью (v0.7)
+- [ ] Registry: stats bar, filled badges, AG Grid theming, filter bar, rich empty state (v0.7)
+- [ ] Карточка документа: breadcrumbs, визуально различимые секции (v0.7)
+- [ ] Шаблоны: color-coded карточки с type icons, не generic shadow (v0.7)
+- [ ] Настройки: секции с разделителями, sidebar structure (v0.7)
+- [ ] Анимации: page transitions, stagger, micro-interactions, skeleton loading (v0.7)
+- [ ] Сквозное: footer, hover states, visual seam check (v0.7)
 
 ### Deferred
 

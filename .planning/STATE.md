@@ -7,7 +7,7 @@ stopped_at: roadmap_created
 last_updated: "2026-03-22T00:00:00.000Z"
 last_activity: 2026-03-22
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 
 ## Current Position
 
-Phase: 14 of 16 (Фундамент: дизайн-система + header)
+Phase: 14 of 17 (Фундамент: дизайн-система + header)
 Plan: — of — (not planned yet)
 Status: Ready to plan
-Last activity: 2026-03-22 — Roadmap v0.7 создан (3 фазы, 31 req)
+Last activity: 2026-03-22 — Roadmap v0.7 revised post-review (4 фазы, 34 req)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -57,9 +57,13 @@ Recent decisions affecting current work:
 - [v0.7 Roadmap]: Все кастомные стили в @layer components/@layer overrides — иначе Quasar молча перекрывает
 - [v0.7 Roadmap]: AG Grid theming только через --ag-* CSS variables с .ag-theme-quartz scope — не через @layer
 - [v0.7 Roadmap]: Функциональные классы AG Grid (actions-cell, status-*) не переименовывать — это API contract
-- [v0.7 Roadmap]: Phase 14 объединяет дизайн-систему + header — фундамент + якорь в одной фазе
-- [v0.7 Roadmap]: Phase 15 объединяет Splash + Registry + Card — все hero-zone поверхности, один паттерн
-- [v0.7 Roadmap]: Phase 16 объединяет Templates + Settings + Анимации + Сквозное — финальная полировка
+- [v0.7 Roadmap]: Phase 14 = дизайн-система + header + DSGN-05 (фон ≠ белый) + NiceGUI padding reset
+- [v0.7 Roadmap]: Phase 15 = Splash only — изолированная валидация hero-zone паттерна
+- [v0.7 Roadmap]: Phase 16 = Registry + Card — после валидации на splash; includes REGI-06 (filter bar)
+- [v0.7 Roadmap]: Phase 17 = Templates + Settings + Анимации + Сквозное + visual seam check
+- [v0.7 Review]: TMPL-01 переписан — color-coded accent + type icon, не generic shadow+rounded
+- [v0.7 Review]: CARD-03 переписан — визуально различимые блоки (метаданные ≠ ревью ≠ версии)
+- [v0.7 Review]: DSGN-03 дополнен ролевым маппингом типографики (hero/title/section/body)
 
 ### Pending Todos
 
@@ -67,14 +71,17 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Phase 15]: Перед AG Grid CSS — проверить DevTools какой именно theme class активен (ag-theme-quartz vs ag-theme-alpine)
-- [Phase 15]: load_table_data() — проверить возвращает ли агрегатные counts для stats bar
-- [Phase 16]: backdrop-filter: blur() — не использовать, CPU spikes в pywebview macOS
-- [Phase 16]: После добавления всех --yt-* переменных — smoke-test FullCalendar calendar view
+- [Phase 14]: Enumerate --fc-* FullCalendar CSS variables in DevTools при smoke-test
+- [Phase 16]: Перед AG Grid CSS — проверить DevTools какой именно theme class активен (ag-theme-quartz vs ag-theme-alpine)
+- [Phase 16]: load_table_data() — проверить возвращает ли агрегатные counts для stats bar
+- [Phase 16]: Анимация строк не должна перезапускаться при переключении фильтра (Pitfall 7)
+- [Phase 17]: backdrop-filter: blur() — не использовать, CPU spikes в pywebview macOS
+- [Phase 17]: После добавления всех --yt-* переменных — smoke-test FullCalendar calendar view
+- [Phase 17]: Performance budget — transitions < 200ms, no jank на macOS pywebview
 
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: ROADMAP.md v0.7 consolidated to 3 phases (14-16)
+Stopped at: ROADMAP.md v0.7 revised post-review to 4 phases (14-17), 34 req
 Resume file: None
 Next: /gsd:plan-phase 14
