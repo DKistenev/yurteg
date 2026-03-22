@@ -16,7 +16,8 @@ from app.components.process import pick_folder
 from app.state import AppState
 from services.client_manager import ClientManager
 
-# Module-level ref to upload button — позволяет start_pipeline получить ссылку на кнопку
+# Module-level singletons
+_cm = ClientManager()
 _header_refs: dict = {"upload_btn": None}
 
 
@@ -57,8 +58,6 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         _header_refs["upload_btn"] = upload_btn
 
         # Right: client dropdown (D-20)
-        cm = ClientManager()
-
         with ui.row().classes("shrink-0 items-center gap-1"):
             profile_btn = ui.button(
                 f"👤 {state.current_client}",
@@ -66,7 +65,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             ).props('flat no-caps aria-label="Профиль клиента"').classes("text-sm text-slate-600")
 
             with ui.menu() as client_menu:
-                for name in cm.list_clients():
+                for name in _cm.list_clients():
                     ui.menu_item(
                         name,
                         on_click=lambda n=name: _switch_client(state, n, profile_btn, client_menu),
@@ -74,7 +73,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                 ui.separator()
                 ui.menu_item(
                     "+ Добавить клиента",
-                    on_click=lambda: _show_add_dialog(state, cm, profile_btn, client_menu),
+                    on_click=lambda: _show_add_dialog(state, _cm, profile_btn, client_menu),
                 )
 
 

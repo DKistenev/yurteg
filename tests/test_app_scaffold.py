@@ -10,10 +10,10 @@ class TestAppStateFields:
     """Verify AppState dataclass structure and defaults."""
 
     def test_appstate_has_all_fields(self):
-        """AppState must have exactly 22 fields (21 original + calendar_visible added in Phase 13)."""
+        """AppState must have exactly 16 fields (dead settings cache fields removed in polish)."""
         from app.state import AppState
         fields = AppState.__dataclass_fields__
-        assert len(fields) == 22, f"Expected 22 fields, got {len(fields)}: {list(fields.keys())}"
+        assert len(fields) == 16, f"Expected 16 fields, got {len(fields)}: {list(fields.keys())}"
 
     def test_appstate_defaults(self):
         """Verify default values match spec."""
@@ -30,14 +30,8 @@ class TestAppStateFields:
         assert s.processing_time is None
         assert s.upload_dir is None
 
-        # Settings cache
+        # Settings cache (canonical source: settings.json, bridged in main.py)
         assert s.warning_days_threshold == 30
-        assert s.telegram_chat_id == 0
-        assert s.telegram_server_url == ""
-        assert s.tg_queue_fetched is False
-        assert s.startup_toast_shown is False
-        assert s.deadlines_pushed is False
-        assert s.auto_bind_summary is None
 
         # Navigation
         assert s.current_client == "Основной реестр"

@@ -22,14 +22,8 @@ class AppState:
     processing_time: Optional[float] = None
     upload_dir: Optional[Path] = None
 
-    # Settings cache (UI-side — canonical source is ~/.yurteg/settings.json)
+    # Settings cache (canonical source: ~/.yurteg/settings.json, bridged in main.py root())
     warning_days_threshold: int = 30
-    telegram_chat_id: int = 0
-    telegram_server_url: str = ""
-    tg_queue_fetched: bool = False
-    startup_toast_shown: bool = False
-    deadlines_pushed: bool = False
-    auto_bind_summary: Optional[dict] = None
 
     # Navigation
     current_client: str = "Основной реестр"
