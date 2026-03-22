@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: UI Polish & Fixes
-status: planning
-stopped_at: null
-last_updated: "2026-03-22T23:00:00.000Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 18-layout-fixes/18-03-PLAN.md
+last_updated: "2026-03-22T20:48:28.167Z"
 last_activity: 2026-03-22
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 2
+  completed_phases: 1
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 17 — Полировка
+**Current focus:** Phase 18 — Layout + Visual Fixes
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
+Phase: 18 (Layout + Visual Fixes) — EXECUTING
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -51,6 +51,8 @@ Plan: Not started
 | Phase 17-polish P02 | 4 | 1 tasks | 1 files |
 | Phase 17-polish P01 | 8 | 2 tasks | 2 files |
 | Phase 17-polish P03 | 5 | 2 tasks | 4 files |
+| Phase 18-layout-fixes P01 | 5 | 2 tasks | 2 files |
+| Phase 18 P03 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -98,6 +100,10 @@ Recent decisions affecting current work:
 - [Phase 17-polish]: on_add callback threaded through all CRUD paths so empty state CTA always works after delete
 - [Phase 17-polish]: Skeleton reveal via set_visibility() in _init() — no timer hack, clean async flip
 - [Phase 17-polish]: .card-enter on wrapper div, not ui.card() — avoids Quasar .q-card double-animation conflict
+- [Phase 18-layout-fixes]: Stats bar labels must be created INSIDE with-block in NiceGUI — DOM placement is fixed at creation time, not at with-block entry
+- [Phase 18-layout-fixes]: STATS_BAR bg-white override via .replace() — avoids touching shared styles.py constant
+- [Phase 18-03]: SEG_INACTIVE hover softened to slate-50 for cleaner appearance on white background
+- [Phase 18-03]: Calendar toggle wrapped in pill container bg-slate-100 matching segment bar pattern
 
 ### Pending Todos
 
@@ -116,6 +122,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 17-polish/17-03-PLAN.md
+Stopped at: Completed 18-layout-fixes/18-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14

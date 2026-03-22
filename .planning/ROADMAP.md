@@ -42,7 +42,7 @@ Full details: `.planning/milestones/v0.7-ROADMAP.md`
 
 **Milestone Goal:** Починить все проблемы из аудита v0.7 — layout, onboarding, demo-данные, баги
 
-- [ ] **Phase 18: Layout + Visual Fixes** — stats bar, центрирование, лого, footer, segments, CSS cleanup
+- [x] **Phase 18: Layout + Visual Fixes** — stats bar, центрирование, лого, footer, segments, CSS cleanup (completed 2026-03-22)
 - [ ] **Phase 19: Onboarding + Demo Data** — guided tour, кнопка тура, demo-данные, web mode fallback
 
 ## Phase Details
@@ -60,9 +60,9 @@ Full details: `.planning/milestones/v0.7-ROADMAP.md`
   6. hero-enter:nth-child(5) работает, dead CSS удалён
 **Plans**: 3 plans
 Plans:
-- [ ] 18-01-PLAN.md — Stats bar fix + registry centering + AG Grid warnings
-- [ ] 18-02-PLAN.md — Logo + dialog restyle + templates/settings centering
-- [ ] 18-03-PLAN.md — Footer + segments + calendar toggle + CSS cleanup
+- [x] 18-01-PLAN.md — Stats bar fix + registry centering + AG Grid warnings
+- [x] 18-02-PLAN.md — Logo + dialog restyle + templates/settings centering
+- [x] 18-03-PLAN.md — Footer + segments + calendar toggle + CSS cleanup
 **UI hint**: yes
 
 ### Phase 19: Onboarding + Demo Data
@@ -82,5 +82,5 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 18. Layout + Visual Fixes | v0.7.1 | 0/3 | Not started | - |
+| 18. Layout + Visual Fixes | v0.7.1 | 3/3 | Complete   | 2026-03-22 |
 | 19. Onboarding + Demo Data | v0.7.1 | 0/TBD | Not started | - |
