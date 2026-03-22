@@ -9,11 +9,11 @@
 
 ### Дизайн-система
 
-- [ ] **DSGN-01**: tokens.css с --yt-* переменными: палитра, spacing scale, shadows, radii
-- [ ] **DSGN-02**: app.colors() Quasar bridge — интеграция токенов с NiceGUI компонентами
-- [ ] **DSGN-03**: IBM Plex Sans weights 300/400/500/600/700 с размерной шкалой и ролевым маппингом (hero=text-4xl font-bold, page title=text-2xl font-semibold, section=text-xs uppercase tracking-wider, body=text-sm)
-- [ ] **DSGN-04**: @layer discipline — components + overrides для безопасных Quasar переопределений
-- [ ] **DSGN-05**: Фон контентных зон — не чисто белый (--yt-surface-bg), hero-зоны — тёмный accent surface; --nicegui-default-padding: 0 и --nicegui-default-gap: 0 в :root
+- [x] **DSGN-01**: tokens.css с --yt-* переменными: палитра, spacing scale, shadows, radii
+- [x] **DSGN-02**: app.colors() Quasar bridge — интеграция токенов с NiceGUI компонентами
+- [x] **DSGN-03**: IBM Plex Sans weights 300/400/500/600/700 с размерной шкалой и ролевым маппингом (hero=text-4xl font-bold, page title=text-2xl font-semibold, section=text-xs uppercase tracking-wider, body=text-sm)
+- [x] **DSGN-04**: @layer discipline — components + overrides для безопасных Quasar переопределений
+- [x] **DSGN-05**: Фон контентных зон — не чисто белый (--yt-surface-bg), hero-зоны — тёмный accent surface; --nicegui-default-padding: 0 и --nicegui-default-gap: 0 в :root
 
 ### Header
 
@@ -65,7 +65,7 @@
 
 - [ ] **XCUT-01**: Footer с версией приложения
 - [ ] **XCUT-02**: Consistent hover states на всех интерактивных элементах
-- [ ] **XCUT-03**: Consistent spacing по всем экранам через токены
+- [x] **XCUT-03**: Consistent spacing по всем экранам через токены
 - [ ] **XCUT-04**: Visual seam check — все экраны визуально когерентны при навигации header→splash→registry→card→settings
 
 ## Future Requirements
@@ -89,12 +89,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSGN-01 | Phase 14 | Pending |
-| DSGN-02 | Phase 14 | Pending |
-| DSGN-03 | Phase 14 | Pending |
-| DSGN-04 | Phase 14 | Pending |
-| DSGN-05 | Phase 14 | Pending |
-| XCUT-03 | Phase 14 | Pending |
+| DSGN-01 | Phase 14 | Complete |
+| DSGN-02 | Phase 14 | Complete |
+| DSGN-03 | Phase 14 | Complete |
+| DSGN-04 | Phase 14 | Complete |
+| DSGN-05 | Phase 14 | Complete |
+| XCUT-03 | Phase 14 | Complete |
 | HEAD-01 | Phase 14 | Pending |
 | HEAD-02 | Phase 14 | Pending |
 | HEAD-03 | Phase 14 | Pending |

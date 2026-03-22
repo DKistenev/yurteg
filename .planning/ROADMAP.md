@@ -71,7 +71,7 @@ Full details: `.planning/milestones/v0.6-ROADMAP.md`
   7. FullCalendar calendar view без артефактов; --fc-* переменные задокументированы в tokens.css
 **Plans**: 2 plans
 Plans:
-- [ ] 14-01-PLAN.md — tokens.css + design-system.css @layer + main.py wiring + styles.py
+- [x] 14-01-PLAN.md — tokens.css + design-system.css @layer + main.py wiring + styles.py
 - [ ] 14-02-PLAN.md — dark chrome header, лого-марка «Ю», filled CTA, active tab indicator
 **UI hint**: yes
 **Pre-phase check**: Enumerate active --fc-* CSS variables in DevTools
@@ -137,7 +137,7 @@ Plans:
 | 11. Settings + Templates | v0.6 | 3/3 | Complete | 2026-03-22 |
 | 12. Onboarding | v0.6 | 2/2 | Complete | 2026-03-22 |
 | 13. Design Polish + Calendar | v0.6 | 4/4 | Complete | 2026-03-22 |
-| 14. Фундамент: дизайн-система + header | v0.7 | 0/2 | Not started | - |
+| 14. Фундамент: дизайн-система + header | v0.7 | 1/2 | In Progress|  |
 | 15. Splash | v0.7 | 0/TBD | Not started | - |
 | 16. Registry + Card | v0.7 | 0/TBD | Not started | - |
 | 17. Полировка: templates, settings, анимации | v0.7 | 0/TBD | Not started | - |
