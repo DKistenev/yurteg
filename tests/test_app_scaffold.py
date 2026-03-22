@@ -10,10 +10,10 @@ class TestAppStateFields:
     """Verify AppState dataclass structure and defaults."""
 
     def test_appstate_has_all_fields(self):
-        """AppState must have exactly 21 fields (20 original + filtered_doc_ids added in Phase 9)."""
+        """AppState must have exactly 22 fields (21 original + calendar_visible added in Phase 13)."""
         from app.state import AppState
         fields = AppState.__dataclass_fields__
-        assert len(fields) == 21, f"Expected 21 fields, got {len(fields)}: {list(fields.keys())}"
+        assert len(fields) == 22, f"Expected 22 fields, got {len(fields)}: {list(fields.keys())}"
 
     def test_appstate_defaults(self):
         """Verify default values match spec."""

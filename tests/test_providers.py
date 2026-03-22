@@ -74,10 +74,10 @@ def test_openrouter_system_merge():
     assert "Проанализируй договор" in merged[0]["content"]
 
 
-def test_ollama_stub():
-    """OllamaProvider.complete() поднимает NotImplementedError (stub для Вехи 3)."""
+def test_ollama_instantiates():
+    """OllamaProvider instantiates without error (fully implemented since Phase 4)."""
     from providers.ollama import OllamaProvider
     cfg = _make_config()
     provider = OllamaProvider(cfg)
-    with pytest.raises(NotImplementedError):
-        provider.complete([{"role": "user", "content": "test"}])
+    assert provider is not None
+    assert hasattr(provider, "complete")

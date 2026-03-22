@@ -159,4 +159,4 @@ def _render_error_log(
     with error_col:
         for filename, message in error_entries:
             with ui.expansion(f"✗ {filename}").classes("text-red-600 text-sm"):
-                ui.label(message).classes("text-xs text-gray-500 pl-4")
+                ui.label(message).classes("text-xs text-slate-500 pl-4")
