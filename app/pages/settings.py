@@ -6,12 +6,13 @@ Phase 11, Plan 02.
 """
 from nicegui import run, ui
 
+from app.styles import TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY
 from config import load_settings, save_setting
 from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
 
 # Текстовые метки навигации
-_NAV_ITEMS = ["AI", "Обработка", "Telegram"]
+_NAV_ITEMS = ["ИИ", "Обработка", "Уведомления"]
 
 # Провайдеры
 _PROVIDERS = {
@@ -28,16 +29,16 @@ def build() -> None:
     """Рендерит страницу настроек с левой навигацией и правой панелью."""
 
     settings = load_settings()
-    active_section: list[str] = ["AI"]  # mutable container для захвата в closures
+    active_section: list[str] = ["ИИ"]  # mutable container для захвата в closures
     nav_buttons: dict[str, ui.button] = {}
 
     with ui.row().classes("w-full min-h-screen gap-0"):
         # --- Левая навигация ---
         with ui.column().classes(
-            "w-48 min-h-screen border-r border-slate-200 bg-slate-50 p-3 gap-1"
+            "w-48 min-h-screen border-r border-slate-200 bg-slate-50 p-3 gap-1.5"
         ):
             ui.label("Настройки").classes(
-                "text-xs font-semibold text-slate-400 uppercase tracking-wide px-3 py-2"
+                TEXT_LABEL_SECTION + " px-3 py-2"
             )
             for section in _NAV_ITEMS:
                 btn = ui.button(section).props("flat no-caps").classes(
@@ -65,19 +66,19 @@ def build() -> None:
                 )
         content.clear()
         with content:
-            if section == "AI":
+            if section == "ИИ":
                 _render_ai_section()
             elif section == "Обработка":
                 _render_processing_section()
-            elif section == "Telegram":
+            elif section == "Уведомления":
                 _render_telegram_section()
 
     # Привязываем клики
     for section in _NAV_ITEMS:
         nav_buttons[section].on_click(lambda s=section: _switch(s))
 
-    # Инициализация — открываем AI секцию
-    _switch("AI")
+    # Инициализация — открываем ИИ секцию
+    _switch("ИИ")
 
     # --- Секция AI ---
 
@@ -85,10 +86,10 @@ def build() -> None:
         s = load_settings()
         current_provider = s.get("active_provider", "ollama")
 
-        ui.label("AI-провайдер").classes("text-lg font-semibold text-slate-900")
+        ui.label("ИИ-помощник").classes(TEXT_HEADING)
         ui.label(
             "Выберите модель для извлечения метаданных из документов."
-        ).classes("text-sm text-slate-500")
+        ).classes(TEXT_SECONDARY)
 
         # API key row — показываем только для облачных провайдеров
         api_key_row = ui.row().classes("w-full items-center gap-3")
@@ -100,7 +101,7 @@ def build() -> None:
                 with api_key_row:
                     inp = (
                         ui.input(
-                            label=f"API-ключ ({_PROVIDERS.get(provider, provider)})",
+                            label=f"Ключ доступа ({_PROVIDERS.get(provider, provider)})",
                             value=key_val,
                             password=True,
                             password_toggle_button=True,
@@ -133,10 +134,10 @@ def build() -> None:
         saved_types = s.get("anonymize_types")
         current_types: set[str] = set(saved_types) if saved_types is not None else all_keys
 
-        ui.label("Анонимизация").classes("text-lg font-semibold text-slate-900")
+        ui.label("Защита данных").classes(TEXT_HEADING)
         ui.label(
-            "Какие типы персональных данных маскировать при отправке в облачный AI:"
-        ).classes("text-sm text-slate-500 mb-2")
+            "Какие персональные данные скрывать перед отправкой на обработку:"
+        ).classes(TEXT_SECONDARY + " mb-2")
 
         def _on_checkbox_change(key: str, checked: bool) -> None:
             if checked:
@@ -172,10 +173,10 @@ def build() -> None:
     def _render_telegram_section() -> None:
         s = load_settings()
 
-        ui.label("Telegram-бот").classes("text-lg font-semibold text-slate-900")
+        ui.label("Уведомления в Telegram").classes(TEXT_HEADING)
         ui.label(
-            "Подключите бота для получения уведомлений о дедлайнах и отправки документов через Telegram."
-        ).classes("text-sm text-slate-500")
+            "Подключите бота, чтобы получать напоминания об истекающих договорах прямо в мессенджер."
+        ).classes(TEXT_SECONDARY)
 
         url_inp = (
             ui.input(
@@ -213,7 +214,7 @@ def build() -> None:
                 try:
                     ok = await run.io_bound(tg.check_connection)
                 except Exception as e:
-                    ui.notify(f"Ошибка проверки подключения: {e}", type="negative")
+                    ui.notify("Не удалось проверить подключение. Убедитесь, что адрес сервера указан верно.", type="negative")
                     return
                 if ok:
                     status_label.set_text("● Подключён")

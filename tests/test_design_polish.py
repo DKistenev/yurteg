@@ -11,6 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 MAIN_PY = PROJECT_ROOT / "app" / "main.py"
 REGISTRY_PY = PROJECT_ROOT / "app" / "pages" / "registry.py"
+STYLES_PY = PROJECT_ROOT / "app" / "styles.py"
 DESIGN_CSS = PROJECT_ROOT / "app" / "static" / "design-system.css"
 
 
@@ -51,8 +52,8 @@ def test_actions_css_hex():
 
 
 def test_seg_active_indigo():
-    """registry.py _SEG_ACTIVE must use bg-indigo-600."""
-    content = REGISTRY_PY.read_text(encoding="utf-8")
+    """SEG_ACTIVE in styles.py must use bg-indigo-600."""
+    content = STYLES_PY.read_text(encoding="utf-8")
     assert "bg-indigo-600" in content
     assert "bg-gray-900" not in content
 

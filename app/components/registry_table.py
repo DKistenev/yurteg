@@ -105,6 +105,7 @@ COLUMN_DEFS = [
         "width": 140,
         "sortable": True,
         "filter": "agTextColumnFilter",
+        "cellStyle": {"fontVariantNumeric": "tabular-nums"},
     },
     # Actions column (D-12) — last
     {
@@ -340,14 +341,16 @@ async def render_registry_table(state: "AppState"):
         {
             "columnDefs": COLUMN_DEFS,
             "rowData": [],
-            "domLayout": "autoHeight",
+            "domLayout": "normal",
             "defaultColDef": {
                 "sortable": True,
                 "resizable": True,
             },
             "rowSelection": "single",
+            "pagination": True,
+            "paginationAutoPageSize": True,
         }
-    ).classes("w-full")
+    ).classes("w-full").style("height: calc(100vh - 140px)")
 
     return grid
 

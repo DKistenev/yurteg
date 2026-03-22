@@ -50,7 +50,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                 await on_upload(source_dir)
 
         upload_btn = ui.button(
-            "+ Загрузить",
+            "+ Загрузить документы",
             on_click=_on_upload_click,
         ).props("flat no-caps").classes("text-sm text-slate-700 shrink-0")
 
@@ -60,9 +60,9 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         # Right: client dropdown (D-20)
         with ui.row().classes("shrink-0 items-center gap-1"):
             profile_btn = ui.button(
-                f"👤 {state.current_client}",
+                f"📁 {state.current_client}",
                 on_click=lambda: client_menu.open(),
-            ).props('flat no-caps aria-label="Профиль клиента"').classes("text-sm text-slate-600")
+            ).props('flat no-caps aria-label="Рабочее пространство"').classes("text-sm text-slate-600")
 
             with ui.menu() as client_menu:
                 for name in _cm.list_clients():
@@ -72,7 +72,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                     )
                 ui.separator()
                 ui.menu_item(
-                    "+ Добавить клиента",
+                    "+ Новое пространство",
                     on_click=lambda: _show_add_dialog(state, _cm, profile_btn, client_menu),
                 )
 
@@ -81,7 +81,7 @@ def _switch_client(state: AppState, name: str, btn, menu) -> None:
     """Переключает активного клиента и перезагружает реестр (D-21)."""
     state.current_client = name
     state.filter_search = ""  # сброс фильтров при переключении
-    btn.text = f"👤 {name}"
+    btn.text = f"📁 {name}"
     if menu:
         menu.close()
     ui.navigate.to("/")  # перезагрузить реестр с данными нового клиента
@@ -92,8 +92,8 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     menu.close()
 
     with ui.dialog() as dlg, ui.card():
-        ui.label("Новый клиент").classes("text-lg font-semibold")
-        name_input = ui.input("Название клиента").props("outlined")
+        ui.label("Новое рабочее пространство").classes("text-lg font-semibold")
+        name_input = ui.input("Название").props("outlined")
 
         with ui.row().classes("gap-2 justify-end w-full"):
             ui.button("Отмена", on_click=dlg.close).props("flat")

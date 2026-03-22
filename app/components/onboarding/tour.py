@@ -13,6 +13,8 @@ from typing import Callable
 
 from nicegui import ui
 
+from app.styles import HEX
+
 TOUR_STEPS = [
     {
         "target": ".ag-root-wrapper",
@@ -23,13 +25,13 @@ TOUR_STEPS = [
     {
         "target": ".search-row",
         "title": "Фильтры и поиск",
-        "body": "Используйте сегменты и поиск. Истекающие документы выделены предупреждением.",
+        "body": "Переключайте вкладки, чтобы видеть только истекающие или требующие внимания договоры. Поиск ищет по всем полям.",
         "position": "below-left",
     },
     {
         "target": "#upload-btn",
         "title": "Загрузка документов",
-        "body": "Нажмите здесь для обработки новых документов.",
+        "body": "Нажмите, чтобы выбрать папку с новыми документами для обработки.",
         "position": "below-right",
     },
 ]
@@ -111,7 +113,7 @@ def render_tour(on_complete: Callable) -> None:
         savedZIndex = el.style.zIndex;
         el.style.position = 'relative';
         el.style.zIndex = '50';
-        el.style.outline = '2px solid #4f46e5';
+        el.style.outline = '2px solid {HEX["indigo_600"]}';
         el.style.outlineOffset = '2px';
         highlightedEl = el;
     }}
@@ -160,19 +162,19 @@ def render_tour(on_complete: Callable) -> None:
         const nextLabel = isLast ? 'Завершить тур' : 'Далее \u2192';
 
         tooltip.innerHTML = `
-            <div style="font-size: 14px; color: #94a3b8; margin-bottom: 8px;">
+            <div style="font-size: 14px; color: {HEX["slate_400"]}; margin-bottom: 8px;">
                 \u0428\u0430\u0433 ${{index + 1}} / ${{STEPS.length}}
             </div>
-            <div style="font-size: 20px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">
+            <div style="font-size: 20px; font-weight: 600; color: {HEX["slate_900"]}; margin-bottom: 4px;">
                 ${{step.title}}
             </div>
-            <div style="font-size: 14px; color: #64748b; line-height: 1.625; margin-bottom: 16px;">
+            <div style="font-size: 14px; color: {HEX["slate_500"]}; line-height: 1.625; margin-bottom: 16px;">
                 ${{step.body}}
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <button onclick="endTour()" style="
                     font-size: 14px;
-                    color: #94a3b8;
+                    color: {HEX["slate_400"]};
                     cursor: pointer;
                     background: none;
                     border: none;
@@ -180,7 +182,7 @@ def render_tour(on_complete: Callable) -> None:
                 ">Пропустить тур</button>
                 <button onclick="${{isLast ? 'endTour' : 'nextStep'}}()" style="
                     padding: 8px 24px;
-                    background: #4f46e5;
+                    background: {HEX["indigo_600"]};
                     color: white;
                     font-size: 14px;
                     font-weight: 600;

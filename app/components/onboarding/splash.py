@@ -14,6 +14,7 @@ import logging
 
 from nicegui import run, ui
 
+from app.styles import TEXT_HEADING_XL, BTN_PRIMARY, BTN_FLAT
 from config import Config, save_setting
 from modules.postprocessor import get_grammar_path
 from services.llama_server import LlamaServerManager
@@ -33,20 +34,20 @@ def render_splash() -> None:
     # Outer wrapper — full screen, white, centered
     with ui.column().classes("min-h-screen bg-white flex items-center justify-center"):
         # Inner content card
-        with ui.column().classes("max-w-lg w-full mx-auto py-16 px-8 gap-0"):
+        with ui.column().classes("max-w-lg w-full mx-auto py-16 px-8 gap-6"):
 
             # Logo
             ui.label("ЮрТэг").classes("text-3xl font-semibold text-slate-900")
 
             # Welcome heading
-            ui.label("Добро пожаловать!").classes("text-xl font-semibold text-slate-900 mt-8")
+            ui.label("Добро пожаловать!").classes(TEXT_HEADING_XL + " mt-2")
 
             # Capability bullets section
-            with ui.column().classes("bg-slate-50 rounded-lg p-4 mt-6 gap-2"):
+            with ui.column().classes("bg-slate-50 rounded-lg p-4 gap-2"):
                 _bullets = [
-                    "Загрузите папку → получите реестр",
-                    "Автосортировка по папкам",
-                    "Контроль сроков и предупреждения",
+                    "Загрузите папку с документами → получите готовый реестр",
+                    "Файлы автоматически разложатся по папкам",
+                    "Напомним, когда договор истекает",
                 ]
                 for text in _bullets:
                     with ui.row().classes("gap-2 items-start"):
@@ -54,9 +55,9 @@ def render_splash() -> None:
                         ui.label(text).classes("text-sm text-slate-600 font-normal")
 
             # Progress bar section
-            with ui.column().classes("mt-6 gap-1 w-full"):
+            with ui.column().classes("gap-1 w-full"):
                 progress_label = ui.label(
-                    f"Загрузка модели (0/{_MODEL_SIZE_MB} МБ)"
+                    f"Загрузка ИИ-помощника (0/{_MODEL_SIZE_MB} МБ)"
                 ).classes("text-sm text-slate-500 font-normal")
                 progress_bar = (
                     ui.linear_progress(value=0)
@@ -65,7 +66,7 @@ def render_splash() -> None:
                 )
 
             # Wizard area (step 1 initially)
-            wizard_area = ui.column().classes("w-full mt-8 gap-4")
+            wizard_area = ui.column().classes("w-full gap-4")
 
             def _finish() -> None:
                 """Завершает onboarding: сохраняет флаг, переходит в реестр."""
@@ -83,9 +84,7 @@ def render_splash() -> None:
                 wizard_area.clear()
                 with wizard_area:
                     # Heading
-                    ui.label("Подключите Telegram-бот").classes(
-                        "text-xl font-semibold text-slate-900"
-                    )
+                    ui.label("Уведомления").classes(TEXT_HEADING_XL)
                     # Body
                     ui.label(
                         "Получайте уведомления об истекающих документах прямо в мессенджер."
@@ -97,10 +96,10 @@ def render_splash() -> None:
                     # Navigation row
                     with ui.row().classes("w-full justify-between items-center"):
                         ui.button("Пропустить").props("flat no-caps").classes(
-                            "text-sm text-slate-400 hover:text-slate-600"
+                            BTN_FLAT
                         ).on_click(lambda: _finish())
                         save_btn = ui.button("Сохранить и начать").props("no-caps").classes(
-                            "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                            BTN_PRIMARY
                         )
 
                         def _on_save_click(btn=save_btn, ti=token_input) -> None:
@@ -116,10 +115,10 @@ def render_splash() -> None:
             with wizard_area:
                 with ui.row().classes("w-full justify-between items-center"):
                     ui.button("Пропустить").props("flat no-caps").classes(
-                        "text-sm text-slate-400 hover:text-slate-600"
+                        BTN_FLAT
                     ).on_click(lambda: _finish())
-                    ui.button("Далее: Telegram \u2192").props("no-caps").classes(
-                        "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                    ui.button("Далее: Уведомления \u2192").props("no-caps").classes(
+                        BTN_PRIMARY
                     ).on_click(_show_step_2)
 
             # Start model download asynchronously
@@ -138,7 +137,7 @@ def render_splash() -> None:
                 def on_progress(fraction: float, msg: str) -> None:
                     """Callback из thread pool — обновляет UI через event loop."""
                     downloaded_mb = int(fraction * _MODEL_SIZE_MB)
-                    label_text = f"Загрузка модели ({downloaded_mb}/{_MODEL_SIZE_MB} МБ)"
+                    label_text = f"Загрузка ИИ-помощника ({downloaded_mb}/{_MODEL_SIZE_MB} МБ)"
                     loop.call_soon_threadsafe(progress_bar.set_value, fraction)
                     loop.call_soon_threadsafe(progress_label.set_text, label_text)
 
@@ -147,8 +146,8 @@ def render_splash() -> None:
                 except Exception as exc:
                     logger.warning("ensure_model завершился с ошибкой: %s", exc)
                     ui.notify(
-                        "Не удалось загрузить модель. Проверьте интернет-соединение "
-                        "или выберите облачный провайдер в настройках.",
+                        "Не удалось загрузить ИИ-помощника. Проверьте интернет-соединение "
+                        "и попробуйте снова.",
                         type="negative",
                         timeout=10000,
                     )
@@ -157,7 +156,7 @@ def render_splash() -> None:
                 loop.call_soon_threadsafe(progress_bar.set_value, 1.0)
                 loop.call_soon_threadsafe(
                     progress_label.set_text,
-                    f"Модель готова ({_MODEL_SIZE_MB}/{_MODEL_SIZE_MB} МБ)",
+                    f"ИИ-помощник готов ({_MODEL_SIZE_MB}/{_MODEL_SIZE_MB} МБ)",
                 )
 
                 try:

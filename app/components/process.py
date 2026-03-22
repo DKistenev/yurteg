@@ -74,7 +74,7 @@ async def start_pipeline(
     ui_refs['upload_btn'].set_enabled(False)
     ui_refs['section'].set_visibility(True)
     ui_refs['bar'].set_value(0)
-    ui_refs['count'].set_text("0/0 файлов")
+    ui_refs['count'].set_text("Подготовка...")
     ui_refs['file_label'].set_text("")
 
     # Debounce: не обновлять UI чаще 500ms (Claude's Discretion, CONTEXT.md)

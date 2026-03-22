@@ -9,6 +9,7 @@ import logging
 from nicegui import run, ui
 
 from app.state import get_state
+from app.styles import CARD_SECTION, TEXT_SUBHEAD, TEXT_LABEL_UPPER, HEX
 from modules.models import ContractMetadata
 from services.client_manager import ClientManager
 from services.lifecycle_service import (
@@ -40,14 +41,14 @@ def _render_metadata(contract: dict) -> None:
     with ui.grid(columns=2).classes("gap-x-8 gap-y-3 w-full"):
         for label, value in fields:
             with ui.column().classes("gap-0.5"):
-                ui.label(label).classes("text-xs font-normal text-slate-400 uppercase tracking-wide")
+                ui.label(label).classes(TEXT_LABEL_UPPER)
                 ui.label(value).classes("text-sm text-slate-900")
 
     # Особые условия — bulleted list
     conditions = contract.get("special_conditions") or []
     if conditions:
         with ui.column().classes("gap-1 mt-2"):
-            ui.label("Особые условия").classes("text-xs font-normal text-slate-400 uppercase tracking-wide")
+            ui.label("Особые условия").classes(TEXT_LABEL_UPPER)
             with ui.column().classes("gap-0.5 pl-3"):
                 for cond in conditions:
                     ui.label(f"• {cond}").classes("text-sm text-slate-700")
@@ -128,7 +129,7 @@ async def build(doc_id: str = "") -> None:
     contract = await run.io_bound(db.get_contract_by_id, int(doc_id))
 
     if contract is None:
-        with ui.column().classes("w-full p-8 gap-4"):
+        with ui.column().classes("w-full px-6 py-6 gap-4"):
             ui.label("Документ не найден").classes("text-xl text-slate-500")
             ui.button("← Назад к реестру", on_click=lambda: ui.navigate.to("/")).props("flat no-caps").classes("text-slate-600")
         return
@@ -176,13 +177,13 @@ async def build(doc_id: str = "") -> None:
                 next_btn.set_enabled(next_id is not None)
 
         # ── Metadata grid (per D-04, D-05) ────────────────────────────────────
-        with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Метаданные").classes("text-sm font-semibold text-slate-700 mb-3")
+        with ui.card().classes(CARD_SECTION):
+            ui.label("Сведения о документе").classes(TEXT_SUBHEAD + " mb-3")
             _render_metadata(contract)
 
         # ── Status section (per D-06, D-07) ───────────────────────────────────
-        with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Статус").classes("text-sm font-semibold text-slate-700 mb-3")
+        with ui.card().classes(CARD_SECTION):
+            ui.label("Статус").classes(TEXT_SUBHEAD + " mb-3")
 
             # Отображаем бейдж статуса
             icon, label_text, color = STATUS_LABELS.get(
@@ -205,7 +206,7 @@ async def build(doc_id: str = "") -> None:
                     try:
                         await run.io_bound(clear_manual_status, db, int(doc_id))
                     except Exception as ex:
-                        ui.notify(f"Ошибка: {ex}", type="negative")
+                        ui.notify("Не удалось сбросить статус. Попробуйте ещё раз.", type="negative")
                         return
                     ui.navigate.to(f"/document/{doc_id}")
 
@@ -241,7 +242,7 @@ async def build(doc_id: str = "") -> None:
                             try:
                                 await run.io_bound(set_manual_status, db, int(doc_id), val)
                             except Exception as ex:
-                                ui.notify(f"Ошибка: {ex}", type="negative")
+                                ui.notify("Не удалось изменить статус. Попробуйте ещё раз.", type="negative")
                                 return
                             ui.navigate.to(f"/document/{doc_id}")
                         finally:
@@ -258,8 +259,8 @@ async def build(doc_id: str = "") -> None:
                 ).props("flat dense no-caps").classes("text-slate-500 text-xs")
 
         # ── Lawyer notes (per D-08, D-09) ─────────────────────────────────────
-        with ui.card().classes("w-full shadow-none border rounded-lg p-5"):
-            ui.label("Пометки юриста").classes("text-sm font-semibold text-slate-700 mb-3")
+        with ui.card().classes(CARD_SECTION):
+            ui.label("Пометки юриста").classes(TEXT_SUBHEAD + " mb-3")
 
             async def _save_comment(e) -> None:
                 comment_text = e.sender.value or ""
@@ -273,7 +274,7 @@ async def build(doc_id: str = "") -> None:
                             comment_text,
                         )
                     except Exception as ex:
-                        ui.notify(f"Ошибка сохранения заметки: {ex}", type="negative")
+                        ui.notify("Не удалось сохранить заметку. Попробуйте ещё раз.", type="negative")
 
             comment_area = ui.textarea(
                 value=contract.get("lawyer_comment", "")
@@ -281,7 +282,7 @@ async def build(doc_id: str = "") -> None:
             comment_area.on("blur", _save_comment)
 
         # ── AI Review section (per D-10 through D-14) ────────────────────────
-        with ui.expansion('Ревью', icon='rate_review').classes('w-full border rounded-lg'):
+        with ui.expansion('Проверка по шаблону', icon='rate_review').classes('w-full border rounded-lg'):
             review_container = ui.column().classes('w-full gap-2')
 
             async def _run_review() -> None:
@@ -298,13 +299,13 @@ async def build(doc_id: str = "") -> None:
                             match_template, _db, contract.get('subject', ''), contract.get('contract_type')
                         )
                     except Exception as e:
-                        ui.notify(f"Ошибка подбора шаблона: {e}", type="negative")
+                        ui.notify("Не удалось подобрать шаблон автоматически.", type="negative")
                         return
                     if template is None:
                         try:
                             templates = await run.io_bound(list_templates, _db)
                         except Exception as e:
-                            ui.notify(f"Ошибка загрузки шаблонов: {e}", type="negative")
+                            ui.notify("Не удалось загрузить список шаблонов.", type="negative")
                             return
                         if not templates:
                             # Per D-14: нет шаблонов — сообщение со ссылкой
@@ -351,14 +352,14 @@ async def build(doc_id: str = "") -> None:
                 except Exception as e:
                     review_container.clear()
                     with review_container:
-                        ui.notify(f"Ошибка ревью: {e}", type="negative")
+                        ui.notify("Не удалось выполнить проверку. Попробуйте ещё раз.", type="negative")
                     return
                 _render_deviations(review_container, deviations)
 
             review_btn = ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-indigo-600')
 
         # ── Version History section (per D-15 through D-18) ───────────────────
-        with ui.expansion('Версии', icon='history', value=False).classes('w-full border rounded-lg'):
+        with ui.expansion('История версий', icon='history', value=False).classes('w-full border rounded-lg'):
             versions_container = ui.column().classes('w-full gap-2')
 
             _db2 = _client_manager.get_db(state.current_client)
@@ -383,7 +384,7 @@ async def build(doc_id: str = "") -> None:
                                         try:
                                             other = await run.io_bound(_db2.get_contract_by_id, other_id)
                                         except Exception as e:
-                                            ui.notify(f"Ошибка загрузки версии: {e}", type="negative")
+                                            ui.notify("Не удалось загрузить версию документа.", type="negative")
                                             return
                                         if other is None:
                                             return
@@ -392,7 +393,7 @@ async def build(doc_id: str = "") -> None:
                                         try:
                                             diffs = await run.io_bound(diff_versions, meta_current, meta_other)
                                         except Exception as e:
-                                            ui.notify(f"Ошибка сравнения версий: {e}", type="negative")
+                                            ui.notify("Не удалось сравнить версии.", type="negative")
                                             return
                                         _render_diff_table(versions_container, diffs)
 
@@ -400,6 +401,6 @@ async def build(doc_id: str = "") -> None:
 
                                     # Per D-18: Скачать redline через FastAPI route
                                     ui.link(
-                                        'Скачать redline',
+                                        'Скачать с правками',
                                         f'/download/redline/{doc_id}/{v.contract_id}'
                                     ).classes('text-xs text-indigo-600 underline')

@@ -1,5 +1,32 @@
 # Milestones
 
+## v0.6 UI-редизайн (Shipped: 2026-03-22)
+
+**Phases completed:** 7 phases, 18 plans, 24 tasks
+
+**Key accomplishments:**
+
+- AppState dataclass (20 typed fields) + four NiceGUI page placeholders + persistent Linear-style header — the typed state model and page pattern all phases 8-13 build upon
+- NiceGUI entrypoint app/main.py with SPA routing via ui.sub_pages, triple llama-server shutdown protection, and run.io_bound() pattern established as canonical async template for all future phases
+- AG Grid registry table with live SQLite data, computed status badges via JS cellRenderer, and rapidfuzz multi-word AND-logic fuzzy search
+- Registry page fully interactive: debounced search + three segment filters toggle live data, row clicks navigate to document cards, and header dropdown switches clients with filter reset
+- AG Grid registry with ⋯ context menu (Открыть/Скачать/Переобработать/Удалить), quick status change via MANUAL_STATUSES, and lazy ▶/▼ expand/collapse for versioned documents
+- One-liner:
+- NiceGUI document card completed with AI review via match_template + review_against_template, collapsible version history with diff table, and FastAPI redline .docx download route.
+- Native macOS folder picker + async pipeline runner wired to persistent header upload button via run.io_bound and call_soon_threadsafe
+- Progress section wired into registry page above the table — upload button triggers real-time pipeline progress (bar + count + filename + error log) with auto-table-refresh on completion
+- Settings persistence centralized in config.py (load_settings/save_setting) with delete_template/update_template service methods and check_connection health check — 14 unit tests, all passing
+- Страница настроек с macOS Preferences layout — левая nav (AI/Обработка/Telegram), правая панель с тремя полными секциями, персистенция через settings.json
+- Full Templates page with 2-column card grid, native OPEN_DIALOG file picker, run.io_bound text extraction, and edit/delete dialogs wired to review_service CRUD
+- Full-page onboarding splash с прогресс-баром загрузки GGUF модели и 2-шаговым wizard (приветствие + Telegram) — splash gate в main.py делает early return при первом запуске
+- Empty state
+- IBM Plex Sans font + FullCalendar CDN + row/page animations injected globally; _STATUS_CSS/_ACTIONS_CSS migrated from gray to slate/indigo; AppState gets calendar_visible field; 7-test design polish scaffold GREEN
+- registry.py:
+- List/Calendar view toggle in registry with FullCalendar rendering contract end dates (indigo) and payments (slate-400) from live DB data
+- Full test suite green (266 passed), zero gray Tailwind classes in app/, and all DSGN-01 through DSGN-05 requirements verified via automated tests
+
+---
+
 ## v0.5 Локальная LLM (Shipped: 2026-03-21)
 
 **Phases completed:** 3 phases, 4 plans, 4 tasks

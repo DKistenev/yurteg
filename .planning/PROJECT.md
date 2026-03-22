@@ -2,39 +2,30 @@
 
 ## What This Is
 
-ЮрТэг — десктопное приложение на Python (Streamlit) для автоматической обработки архивов юридических документов. Загрузка папки с PDF/DOCX → извлечение текста → AI-извлечение метаданных (локальная QWEN 1.5B или облако) → автосортировка по папкам → Excel-реестр. Плюс: статусы документов, версионирование, платёжный календарь, ревью против шаблонов, Telegram-бот, мультиклиентский режим. По умолчанию работает полностью локально — без отправки данных в облако.
+ЮрТэг — десктопное приложение на Python (NiceGUI) для автоматической обработки архивов юридических документов. Загрузка папки с PDF/DOCX → извлечение текста → AI-извлечение метаданных (локальная QWEN 1.5B или облако) → автосортировка по папкам → Excel-реестр. Плюс: статусы документов, версионирование, платёжный календарь, ревью против шаблонов, Telegram-бот, мультиклиентский режим. По умолчанию работает полностью локально — без отправки данных в облако.
 
 ## Core Value
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current Milestone: v0.6 UI-редизайн
+## Current State (после v0.6)
 
-**Goal:** Полная переделка UI — миграция на NiceGUI, архитектура «реестр = приложение», светлая тема, утилитарный стиль
+**Shipped:** v0.6 UI-редизайн (2026-03-22)
+- 7 фаз, 18 планов, 40/40 requirements
+- Полная миграция Streamlit → NiceGUI с SPA-архитектурой
+- IBM Plex Sans, slate/indigo палитра, AG Grid, FullCalendar
+- Impeccable design skills прогнаны: /audit, /harden, /normalize, /colorize, /polish, /distill, /onboard, /clarify, /typeset, /extract, /animate, /arrange, /optimize
 
-**Target features:**
-- Миграция UI с Streamlit на NiceGUI
-- Архитектура «одно рабочее пространство» с реестром как центром
-- Full-page transition для деталей документа
-- Три таба верхнего уровня (Документы · Шаблоны · Настройки)
-- Календарь как переключатель вида в реестре
-- Светлая тема, профессиональный утилитарный стиль (без AI slop)
-- Empty state с onboarding для первого запуска
-- Кликабельные строки таблицы, фильтры, поиск
-- Все существующие функции (ревью, версии, платежи, Telegram, мультиклиент) сохранены
+**Next:** v0.7 Доставка — DMG для macOS, EXE для Windows
 
-**Design constraints:**
-- Каждая фаза использует соответствующие Impeccable design skills (/onboard, /arrange, /typeset, /colorize и т.д.)
-- Anti-pattern check: никакого cyan-on-dark, glassmorphism, gradient text, AI color palette
-- Бизнес-логика (controller, modules, services) остаётся без изменений — меняется только UI-слой
+## Codebase
 
-## Current State (после v0.5)
-
-**Codebase:** ~12 300 LOC Python, 223 теста
-**Tech stack:** Python 3.10+, Streamlit → NiceGUI (v0.6), SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz, huggingface_hub
+**LOC:** ~2 800 LOC app/ (NiceGUI UI) + ~9 500 LOC modules/services/tests = ~12 300 LOC Python
+**Tests:** 268 passed
+**Tech stack:** Python 3.10+, NiceGUI (native desktop), SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz, huggingface_hub
 **AI:** QWEN 1.5B локальная (по умолчанию), ZAI GLM-4.7 (облако), OpenRouter (fallback)
 **Inference:** llama-server (llama.cpp) с GBNF грамматикой, автоскачивание модели с HuggingFace
-**Доставка:** DMG для macOS через PyInstaller, планируется .exe для Windows
+**Доставка:** Планируется DMG для macOS, EXE для Windows (v0.7)
 
 ## Requirements
 
@@ -70,17 +61,19 @@
 - ✓ Settings (macOS Preferences) + Templates (карточки с CRUD) — v0.6 Phase 11
 - ✓ Onboarding: splash + wizard + empty state + guided tour — v0.6 Phase 12
 - ✓ Design Polish: IBM Plex Sans, slate/indigo palette, animations, FullCalendar — v0.6 Phase 13
+- ✓ Миграция UI на NiceGUI с архитектурой «реестр = приложение» — v0.6
+- ✓ Светлая тема, утилитарный стиль, без AI slop — v0.6
+- ✓ Full-page карточка документа с ревью, версиями, пометками — v0.6
+- ✓ Управление шаблонами как отдельный таб — v0.6
+- ✓ Страница настроек (провайдер, анонимизация, Telegram) — v0.6
+- ✓ Empty state и onboarding при первом запуске — v0.6
+- ✓ Календарь как переключатель вида реестра — v0.6
 
 ### Active
 
-- [ ] Миграция UI на NiceGUI с архитектурой «реестр = приложение»
-- [ ] Светлая тема, утилитарный стиль, без AI slop
-- [ ] Full-page карточка документа с ревью, версиями, пометками
-- [ ] Управление шаблонами как отдельный таб
-- [ ] Страница настроек (провайдер, анонимизация, Telegram)
-- [ ] Empty state и onboarding при первом запуске
-- [ ] Календарь как переключатель вида реестра
-- [ ] Сборка DMG/EXE для конечных пользователей (v0.7)
+- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.7)
+- [ ] Сборка EXE для Windows (v0.7)
+- [ ] Автообновление или уведомление о новых версиях (v0.7)
 
 ### Out of Scope
 
@@ -103,7 +96,7 @@
 |---|------|----------|
 | 1 | **Архитектура + функционал** | ✅ Завершена (v0.4) |
 | 2 | **Локальная LLM** | ✅ Завершена (v0.5) |
-| 3 | **UI-редизайн** | ◆ В работе (v0.6) — миграция на NiceGUI, реестр-центричная архитектура |
+| 3 | **UI-редизайн** | ✅ Завершена (v0.6) — NiceGUI, реестр-центричная архитектура, Impeccable polish |
 | 4 | DMG/EXE сборка | Доставка конечным пользователям (v0.7) |
 
 ## Constraints
@@ -129,9 +122,12 @@
 | QWEN 1.5B как дефолт | Локальность = безопасность, 85% чистых ответов | ✓ Done (v0.5) |
 | Пропуск анонимизации для локальной LLM | Данные не покидают машину — маскировка не нужна | ✓ Done (v0.5) |
 | ORPO вместо SFT+DPO | Одна фаза обучения, лучше language control | ✓ Good (v3) |
-| NiceGUI вместо Streamlit (v0.6) | Нативные split-view, кликабельные таблицы, Tailwind, desktop mode. Streamlit боролся с нужной архитектурой | — Pending |
-| Реестр = приложение (v0.6) | Юрист работает с документами, не с дашбордами. Одно рабочее пространство вместо 5+ экранов | — Pending |
-| Светлая тема (v0.6) | Убрать AI slop (cyan-on-dark, glassmorphism). Утилитарный стиль как Linear/Notion | — Pending |
+| NiceGUI вместо Streamlit (v0.6) | Нативные split-view, кликабельные таблицы, Tailwind, desktop mode. Streamlit боролся с нужной архитектурой | ✓ Done (v0.6) |
+| Реестр = приложение (v0.6) | Юрист работает с документами, не с дашбордами. Одно рабочее пространство вместо 5+ экранов | ✓ Done (v0.6) |
+| Светлая тема (v0.6) | Убрать AI slop (cyan-on-dark, glassmorphism). Утилитарный стиль как Linear/Notion | ✓ Done (v0.6) |
+| Design tokens + UI helpers (v0.6) | Извлечены повторяющиеся стили в app/styles.py + хелперы в ui_helpers.py | ✓ Done (v0.6) |
+| AG Grid pagination (v0.6) | domLayout: normal + paginationAutoPageSize вместо autoHeight — предотвращает freeze на 500+ документов | ✓ Done (v0.6) |
+| FullCalendar lazy-load (v0.6) | CDN грузится только при клике на календарь, а не при каждом запуске | ✓ Done (v0.6) |
 
 ## Evolution
 
@@ -151,4 +147,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 13 completion — v0.6 MILESTONE COMPLETE*
+*Last updated: 2026-03-22 after v0.6 milestone — UI-редизайн shipped*

@@ -79,19 +79,16 @@ ui.add_head_html("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap&subset=cyrillic" rel="stylesheet">
-<style>* { font-family: 'IBM Plex Sans', sans-serif; }</style>
+<style>body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }</style>
 """)
 
-# FullCalendar CDN
-ui.add_head_html("""
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
-""")
+# FullCalendar CDN — lazy-loaded on first calendar toggle (see _load_fullcalendar_js)
+# Moved from eager <script> to on-demand loading in registry.py _show_calendar()
 
 # Design system CSS (animations, hover-actions, FullCalendar theme)
 ui.add_head_html(f'<style>{(_STATIC / "design-system.css").read_text()}</style>')
 
-# Calendar JS (initCalendar + tooltip)
+# Calendar tooltip container + calendar.js (lightweight, no FullCalendar dependency)
 ui.add_head_html(f"""
 <div id="cal-tooltip" style="position:fixed;z-index:1000;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px;max-width:256px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.07);display:none;"></div>
 <script>{(_STATIC / "calendar.js").read_text()}</script>

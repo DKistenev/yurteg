@@ -15,7 +15,9 @@ from nicegui import app, run, ui
 
 import modules.extractor as extractor
 import services.review_service as review_service
+from app.components.ui_helpers import confirm_dialog
 from app.state import get_state
+from app.styles import TEXT_HEADING_2XL, TEXT_MUTED
 from config import Config
 from modules.models import FileInfo
 from services.client_manager import ClientManager
@@ -48,7 +50,7 @@ def _render_cards(container: ui.column) -> None:
             with ui.column().classes("w-full items-center justify-center py-16"):
                 ui.label("Нет шаблонов").classes("text-slate-400 text-lg")
                 ui.label(
-                    "Добавьте первый шаблон-эталон для ревью договоров"
+                    "Добавьте первый образец — он пригодится для проверки договоров"
                 ).classes("text-slate-300 text-sm mt-1")
             return
 
@@ -60,12 +62,12 @@ def _render_cards(container: ui.column) -> None:
 def _render_card(tmpl, cards_container: ui.column) -> None:
     """Рендерит одну карточку шаблона."""
     with ui.card().classes(
-        "p-4 cursor-default hover:shadow-md transition-shadow transition-colors duration-150 hover:bg-slate-100"
+        "p-5 cursor-default hover:shadow-md transition-shadow transition-colors duration-150 hover:bg-slate-100"
     ):
         # Имя
         ui.label(tmpl.name).classes("font-semibold text-slate-900 text-sm")
         # Тип документа
-        ui.label(tmpl.contract_type).classes("text-xs text-slate-500 mt-0.5")
+        ui.label(tmpl.contract_type).classes("text-xs text-slate-500 mt-1")
         # Preview первых ~200 символов
         preview = (tmpl.content_text or "")[:200]
         ui.label(preview).classes(
@@ -116,7 +118,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
                         review_service.update_template, db, tmpl.id, new_name, new_type
                     )
                 except Exception as e:
-                    ui.notify(f"Ошибка: {e}", type="negative")
+                    ui.notify("Не удалось сохранить изменения. Попробуйте ещё раз.", type="negative")
                     return
                 dlg.close()
                 _render_cards(cards_container)
@@ -132,28 +134,22 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
 
 def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
     """Диалог подтверждения удаления шаблона."""
-    with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[360px]"):
-        ui.label("Удалить шаблон?").classes("text-lg font-semibold text-slate-900 mb-2")
-        ui.label(f"«{tmpl.name}»").classes("text-slate-600 text-sm mb-4")
 
-        async def _confirm_delete() -> None:
-            state = get_state()
-            db = ClientManager().get_db(state.current_client)
-            try:
-                await run.io_bound(review_service.delete_template, db, tmpl.id)
-            except Exception as e:
-                ui.notify(f"Ошибка: {e}", type="negative")
-                return
-            dlg.close()
-            _render_cards(cards_container)
+    async def _do_delete():
+        state = get_state()
+        db = ClientManager().get_db(state.current_client)
+        try:
+            await run.io_bound(review_service.delete_template, db, tmpl.id)
+        except Exception:
+            ui.notify("Не удалось удалить шаблон. Попробуйте ещё раз.", type="negative")
+            return
+        _render_cards(cards_container)
 
-        with ui.row().classes("justify-end gap-2 w-full"):
-            ui.button("Отмена", on_click=dlg.close).props("flat no-caps color=grey")
-            ui.button(
-                "Удалить", on_click=_confirm_delete
-            ).props("flat no-caps color=negative")
-
-    dlg.open()
+    confirm_dialog(
+        title="Удалить шаблон?",
+        message=f"«{tmpl.name}»",
+        on_confirm=_do_delete,
+    )
 
 
 async def _add_template_flow(cards_container: ui.column) -> None:
@@ -210,7 +206,7 @@ async def _add_template_flow(cards_container: ui.column) -> None:
                 try:
                     extracted = await run.io_bound(extractor.extract_text, fi)
                 except Exception as e:
-                    ui.notify(f"Ошибка чтения файла: {e}", type="negative")
+                    ui.notify("Не удалось прочитать файл. Проверьте формат документа.", type="negative")
                     return
 
                 state = get_state()
@@ -227,7 +223,7 @@ async def _add_template_flow(cards_container: ui.column) -> None:
                         str(file_path),
                     )
                 except Exception as e:
-                    ui.notify(f"Ошибка сохранения: {e}", type="negative")
+                    ui.notify("Не удалось сохранить шаблон. Попробуйте ещё раз.", type="negative")
                     return
 
                 dlg.close()
@@ -251,9 +247,9 @@ def build() -> None:
         # Заголовок
         with ui.row().classes("w-full items-start justify-between mb-6"):
             with ui.column().classes("gap-0"):
-                ui.label("Шаблоны").classes("text-2xl font-semibold text-slate-900")
+                ui.label("Шаблоны").classes(TEXT_HEADING_2XL)
                 ui.label(
-                    "Эталонные документы для ревью договоров"
+                    "Образцы документов для проверки договоров"
                 ).classes("text-sm text-slate-400 mb-4")
 
             cards_ref: list[ui.column] = []

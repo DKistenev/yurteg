@@ -22,6 +22,8 @@ from nicegui import run, ui
 
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
+from app.components.ui_helpers import empty_state
+from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE
 from app.components.registry_table import (
     load_table_data,
     load_version_children,
@@ -34,13 +36,6 @@ from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
 from services.payment_service import get_calendar_events
 
-# Segment styling — literal classes per D-24
-_SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
-_SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
-
-# Calendar toggle button styles (Phase 13, DSGN-04, D-15)
-_TOGGLE_ACTIVE = "p-2 rounded-md bg-slate-100 text-slate-700"
-_TOGGLE_INACTIVE = "p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors duration-150"
 
 
 def _render_empty_state(container, state) -> None:
@@ -55,39 +50,22 @@ def _render_empty_state(container, state) -> None:
         if source_dir and hasattr(state, "_on_upload") and state._on_upload:
             await state._on_upload(source_dir)
 
+    FOLDER_ICON = (
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none"'
+        ' stroke="#cbd5e1" stroke-width="1.5">'
+        '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
+        '</svg>'
+    )
+
     with container:
-        with ui.column().classes("py-16 flex flex-col items-center gap-4"):
-            # Folder SVG icon — outline, stroke slate-300
-            ui.html(
-                '<svg width="48" height="48" viewBox="0 0 24 24" fill="none"'
-                ' stroke="#cbd5e1" stroke-width="1.5">'
-                '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
-                "</svg>"
-            )
-            # Heading
-            ui.label("Загрузите первые документы").classes(
-                "text-xl font-semibold text-slate-900"
-            )
-            # Body description
-            ui.label(
-                "Выберите папку с PDF или DOCX — мы извлечём метаданные"
-                " и разложим файлы автоматически."
-            ).classes("text-sm text-slate-500 font-normal text-center max-w-xs")
-            # CTA button
-            ui.button("Выбрать папку", on_click=_on_pick_folder).props(
-                "no-caps"
-            ).classes("px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm")
-            # Hint bullets
-            with ui.column().classes("mt-2 gap-1"):
-                ui.label("· Извлечёт метаданные").classes(
-                    "text-sm text-slate-400 font-normal"
-                )
-                ui.label("· Разложит по папкам").classes(
-                    "text-sm text-slate-400 font-normal"
-                )
-                ui.label("· Проверит сроки").classes(
-                    "text-sm text-slate-400 font-normal"
-                )
+        empty_state(
+            icon_svg=FOLDER_ICON,
+            title="Загрузите первые документы",
+            description="Выберите папку с PDF или DOCX — мы извлечём метаданные и разложим файлы автоматически.",
+            button_label="Выбрать папку",
+            on_click=_on_pick_folder,
+            hints=["Извлечёт метаданные", "Разложит по папкам", "Проверит сроки"],
+        )
 
 
 def build() -> None:
@@ -100,14 +78,14 @@ def build() -> None:
 
     with ui.column().classes("w-full"):
         # Search + Segments row — search-row class for guided tour targeting (D-14 onboarding)
-        with ui.row().classes("w-full px-6 pt-4 pb-2 items-center gap-4 search-row"):
+        with ui.row().classes("w-full px-6 py-4 items-center gap-4 search-row"):
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")
                 .classes("flex-1 max-w-md")
             )
 
-            with ui.row().classes("gap-1 bg-slate-100 p-1 rounded-lg"):
+            with ui.row().classes("gap-1.5 bg-slate-100 p-1 rounded-lg"):
                 for key, label in [
                     ("all", "Все"),
                     ("expiring", "Истекают ⚠"),
@@ -117,18 +95,18 @@ def build() -> None:
                         label,
                         on_click=lambda k=key: _switch_segment(k),
                     ).props("flat unelevated no-caps")
-                    btn.classes(_SEG_ACTIVE if key == "all" else _SEG_INACTIVE)
+                    btn.classes(SEG_ACTIVE if key == "all" else SEG_INACTIVE)
                     seg_buttons[key] = btn
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
-            with ui.row().classes("ml-auto items-center gap-1"):
-                list_btn = ui.button("≡").props("flat no-caps").classes(_TOGGLE_ACTIVE)
+            with ui.row().classes("ml-auto items-center gap-1.5"):
+                list_btn = ui.button("≡").props("flat no-caps").classes(TOGGLE_ACTIVE)
                 list_btn.props('title="Список" aria-label="Вид списком"')
-                cal_btn = ui.button("⊞").props("flat no-caps").classes(_TOGGLE_INACTIVE)
+                cal_btn = ui.button("⊞").props("flat no-caps").classes(TOGGLE_INACTIVE)
                 cal_btn.props('title="Календарь" aria-label="Вид календарём"')
 
         # Progress section — hidden by default (D-12)
-        progress_section = ui.column().classes("w-full px-6 py-3 gap-2")
+        progress_section = ui.column().classes("w-full px-6 py-4 gap-2")
         progress_section.set_visibility(False)
 
         with progress_section:
@@ -141,7 +119,7 @@ def build() -> None:
         grid_container = ui.column().classes("w-full")
 
         # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
-        calendar_container = ui.column().classes("w-full px-6")
+        calendar_container = ui.column().classes("w-full px-6 py-4")
         calendar_container.set_visibility(False)
 
     # Build ui_refs for start_pipeline (D-06, D-07, D-08)
@@ -159,11 +137,35 @@ def build() -> None:
     def _apply_segment_classes(active_key: str) -> None:
         """Update button classes based on active segment."""
         for k, b in seg_buttons.items():
-            b.classes(remove=_SEG_ACTIVE + " " + _SEG_INACTIVE)
-            b.classes(_SEG_ACTIVE if k == active_key else _SEG_INACTIVE)
+            b.classes(remove=SEG_ACTIVE + " " + SEG_INACTIVE)
+            b.classes(SEG_ACTIVE if k == active_key else SEG_INACTIVE)
+
+    _fc_loaded = {"done": False}
+
+    async def _ensure_fullcalendar() -> None:
+        """Lazy-load FullCalendar CDN on first calendar toggle."""
+        if _fc_loaded["done"]:
+            return
+        await ui.run_javascript("""
+            if (!window.FullCalendar) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css';
+                document.head.appendChild(link);
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
+        """)
+        _fc_loaded["done"] = True
 
     async def _show_calendar() -> None:
         """Fetch events and render FullCalendar via JS (D-10, D-11, D-12, D-16)."""
+        await _ensure_fullcalendar()
         db = _client_manager.get_db(state.current_client)
 
         # Payment events — override color to slate-400 (Pitfall 5, D-12)
@@ -180,26 +182,31 @@ def build() -> None:
             ev["extendedProps"]["type"] = "payment"
 
         # Contract end-date events — indigo (D-12)
+        # Optimized: fetch only needed columns instead of get_all_results (full table scan)
         try:
-            contracts = await run.io_bound(db.get_all_results)
+            rows = await run.io_bound(
+                lambda: db.conn.execute(
+                    "SELECT id, contract_type, counterparty, date_end "
+                    "FROM contracts WHERE date_end IS NOT NULL AND status = 'done'"
+                ).fetchall()
+            )
         except Exception:
-            contracts = []
+            rows = []
         end_events: list[dict] = []
-        for c in contracts:
-            date_end = c.get("date_end")
-            if date_end:
-                end_events.append({
-                    "id": f"contract-{c['id']}",
-                    "title": f"{c.get('counterparty', '')} · {c.get('contract_type', '')}",
-                    "start": date_end,
-                    "color": "#4f46e5",  # indigo-600
-                    "extendedProps": {
-                        "type": "end_date",
-                        "contract_id": c["id"],
-                        "counterparty": c.get("counterparty", ""),
-                        "doc_type": c.get("contract_type", ""),
-                    },
-                })
+        for r in rows:
+            c = dict(r)
+            end_events.append({
+                "id": f"contract-{c['id']}",
+                "title": f"{c.get('counterparty', '')} · {c.get('contract_type', '')}",
+                "start": c["date_end"],
+                "color": "#4f46e5",  # indigo-600
+                "extendedProps": {
+                    "type": "end_date",
+                    "contract_id": c["id"],
+                    "counterparty": c.get("counterparty", ""),
+                    "doc_type": c.get("contract_type", ""),
+                },
+            })
 
         all_events = payment_events + end_events
 
@@ -225,18 +232,18 @@ def build() -> None:
         try:
             state.calendar_visible = (view == "calendar")
             if state.calendar_visible:
-                list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-                list_btn.classes(_TOGGLE_INACTIVE)
-                cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-                cal_btn.classes(_TOGGLE_ACTIVE)
+                list_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
+                list_btn.classes(TOGGLE_INACTIVE)
+                cal_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
+                cal_btn.classes(TOGGLE_ACTIVE)
                 grid_container.set_visibility(False)
                 calendar_container.set_visibility(True)
                 await _show_calendar()
             else:
-                list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-                list_btn.classes(_TOGGLE_ACTIVE)
-                cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
-                cal_btn.classes(_TOGGLE_INACTIVE)
+                list_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
+                list_btn.classes(TOGGLE_ACTIVE)
+                cal_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
+                cal_btn.classes(TOGGLE_INACTIVE)
                 grid_container.set_visibility(True)
                 calendar_container.set_visibility(False)
         finally:
@@ -302,7 +309,7 @@ def build() -> None:
         try:
             await run.io_bound(set_manual_status, db, contract_id, status)
         except Exception as e:
-            ui.notify(f"Ошибка: {e}", type="negative")
+            ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
@@ -317,7 +324,7 @@ def build() -> None:
         try:
             await run.io_bound(clear_manual_status, db, contract_id)
         except Exception as e:
-            ui.notify(f"Ошибка: {e}", type="negative")
+            ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])

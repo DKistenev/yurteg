@@ -4,7 +4,7 @@ milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
 stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-03-22T13:10:55.690Z"
+last_updated: "2026-03-22T16:02:52.264Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
