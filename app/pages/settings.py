@@ -85,7 +85,7 @@ def build() -> None:
         s = load_settings()
         current_provider = s.get("active_provider", "ollama")
 
-        ui.label("AI-провайдер").classes("text-lg font-medium text-slate-900")
+        ui.label("AI-провайдер").classes("text-lg font-semibold text-slate-900")
         ui.label(
             "Выберите модель для извлечения метаданных из документов."
         ).classes("text-sm text-slate-500")
@@ -133,7 +133,7 @@ def build() -> None:
         saved_types = s.get("anonymize_types")
         current_types: set[str] = set(saved_types) if saved_types is not None else all_keys
 
-        ui.label("Анонимизация").classes("text-lg font-medium text-slate-900")
+        ui.label("Анонимизация").classes("text-lg font-semibold text-slate-900")
         ui.label(
             "Какие типы персональных данных маскировать при отправке в облачный AI:"
         ).classes("text-sm text-slate-500 mb-2")
@@ -154,7 +154,7 @@ def build() -> None:
 
         ui.separator().classes("my-4")
 
-        ui.label("Предупреждения").classes("text-base font-medium text-slate-900 mt-4")
+        ui.label("Предупреждения").classes("text-base font-semibold text-slate-900 mt-4")
         warning_days = s.get("warning_days", 30)
         inp = ui.number(
             label="За сколько дней предупреждать об истечении",
@@ -172,7 +172,7 @@ def build() -> None:
     def _render_telegram_section() -> None:
         s = load_settings()
 
-        ui.label("Telegram-бот").classes("text-lg font-medium text-slate-900")
+        ui.label("Telegram-бот").classes("text-lg font-semibold text-slate-900")
         ui.label(
             "Подключите бота для получения уведомлений о дедлайнах и отправки документов через Telegram."
         ).classes("text-sm text-slate-500")

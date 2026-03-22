@@ -93,7 +93,7 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     menu.close()
 
     with ui.dialog() as dlg, ui.card():
-        ui.label("Новый клиент").classes("text-lg font-medium")
+        ui.label("Новый клиент").classes("text-lg font-semibold")
         name_input = ui.input("Название клиента").props("outlined")
 
         with ui.row().classes("gap-2 justify-end w-full"):

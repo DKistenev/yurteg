@@ -40,14 +40,14 @@ def _render_metadata(contract: dict) -> None:
     with ui.grid(columns=2).classes("gap-x-8 gap-y-3 w-full"):
         for label, value in fields:
             with ui.column().classes("gap-0.5"):
-                ui.label(label).classes("text-xs font-medium text-slate-400 uppercase tracking-wide")
+                ui.label(label).classes("text-xs font-normal text-slate-400 uppercase tracking-wide")
                 ui.label(value).classes("text-sm text-slate-900")
 
     # Особые условия — bulleted list
     conditions = contract.get("special_conditions") or []
     if conditions:
         with ui.column().classes("gap-1 mt-2"):
-            ui.label("Особые условия").classes("text-xs font-medium text-slate-400 uppercase tracking-wide")
+            ui.label("Особые условия").classes("text-xs font-normal text-slate-400 uppercase tracking-wide")
             with ui.column().classes("gap-0.5 pl-3"):
                 for cond in conditions:
                     ui.label(f"• {cond}").classes("text-sm text-slate-700")
@@ -372,7 +372,7 @@ async def build(doc_id: str = "") -> None:
                     for v in versions:
                         with ui.row().classes('w-full items-center justify-between py-2 border-b last:border-0'):
                             with ui.row().classes('gap-4 items-center'):
-                                ui.label(f'v{v.version_number}').classes('text-sm font-medium text-slate-900')
+                                ui.label(f'v{v.version_number}').classes('text-sm font-semibold text-slate-900')
                                 ui.label(v.link_method or '').classes('text-xs text-slate-400')
                                 ui.label(v.created_at or '').classes('text-xs text-slate-400')
 

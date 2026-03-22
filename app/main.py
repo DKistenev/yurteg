@@ -192,14 +192,14 @@ document.addEventListener('click', function(e) {
 _STATUS_CSS = """
 <style type="text/tailwindcss">
   @layer components {
-    .status-active      { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700; }
-    .status-expiring    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-50 text-yellow-700; }
-    .status-expired     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700; }
-    .status-unknown     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500; }
-    .status-terminated  { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500; }
-    .status-extended    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700; }
-    .status-negotiation { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700; }
-    .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-700; }
+    .status-active      { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-700; }
+    .status-expiring    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-50 text-yellow-700; }
+    .status-expired     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700; }
+    .status-unknown     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
+    .status-terminated  { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
+    .status-extended    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700; }
+    .status-negotiation { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700; }
+    .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-700; }
   }
 </style>
 """

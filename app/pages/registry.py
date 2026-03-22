@@ -35,8 +35,8 @@ from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manua
 from services.payment_service import get_calendar_events
 
 # Segment styling — literal classes per D-24
-_SEG_ACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors duration-150"
-_SEG_INACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
+_SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
+_SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
 
 # Calendar toggle button styles (Phase 13, DSGN-04, D-15)
 _TOGGLE_ACTIVE = "p-2 rounded-md bg-slate-100 text-slate-700"
