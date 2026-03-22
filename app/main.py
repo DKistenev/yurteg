@@ -67,129 +67,38 @@ app.on_shutdown(_stop_llama)
 app.on_disconnect(_stop_llama)
 atexit.register(_stop_llama)
 
-# ── Global design system CSS (Phase 13 — D-06, D-07, D-09, D-22) ─────────────
-# Font FIRST — must load before any rendered element (Pitfall 4 from UI-SPEC).
+# ── Global design system ──────────────────────────────────────────────────────
+# CSS/JS extracted to app/static/ for maintainability. Load order matters: font first.
 
-_FONT_CSS = """
+from pathlib import Path as _Path
+
+_STATIC = _Path(__file__).parent / "static"
+
+# Font (must load before any rendered element)
+ui.add_head_html("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap&subset=cyrillic" rel="stylesheet">
-<style>
-  * { font-family: 'IBM Plex Sans', sans-serif; }
-</style>
-"""
+<style>* { font-family: 'IBM Plex Sans', sans-serif; }</style>
+""")
 
-# FullCalendar v6.1.15 CDN (D-10) — loaded globally so registry calendar renders instantly
-_FULLCALENDAR_CSS = """
+# FullCalendar CDN
+ui.add_head_html("""
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css' rel='stylesheet' />
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
-"""
+""")
 
-# Staggered row + page fade animations (D-17, D-18, D-19, D-20, D-21)
-_ANIMATION_CSS = """
-<style>
-@keyframes row-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.ag-row {
-  animation: row-in 200ms cubic-bezier(0.25, 1, 0.5, 1) both;
-}
-.ag-row:nth-child(1)  { animation-delay: 0ms; }
-.ag-row:nth-child(2)  { animation-delay: 80ms; }
-.ag-row:nth-child(3)  { animation-delay: 160ms; }
-.ag-row:nth-child(4)  { animation-delay: 240ms; }
-.ag-row:nth-child(5)  { animation-delay: 320ms; }
-.ag-row:nth-child(6)  { animation-delay: 400ms; }
-.ag-row:nth-child(7)  { animation-delay: 480ms; }
-.ag-row:nth-child(8)  { animation-delay: 560ms; }
-.ag-row:nth-child(n+9) { animation-delay: 640ms; }
+# Design system CSS (animations, hover-actions, FullCalendar theme)
+ui.add_head_html(f'<style>{(_STATIC / "design-system.css").read_text()}</style>')
 
-@keyframes page-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-.nicegui-content {
-  animation: page-fade-in 200ms ease-out both;
-}
+# Calendar JS (initCalendar + tooltip)
+ui.add_head_html(f"""
+<div id="cal-tooltip" style="position:fixed;z-index:1000;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px;max-width:256px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.07);display:none;"></div>
+<script>{(_STATIC / "calendar.js").read_text()}</script>
+""")
 
-.ag-row { transition: background-color 150ms ease-out; }
-</style>
-"""
-
-# FullCalendar init JS + tooltip (D-13, D-14, D-15, D-16)
-# initCalendar() is global — called via ui.run_javascript from registry.py
-_CALENDAR_JS = """
-<div id="cal-tooltip" style="
-    position: fixed; z-index: 1000; background: white;
-    border: 1px solid #e2e8f0; border-radius: 8px;
-    padding: 12px; max-width: 256px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07);
-    display: none;
-"></div>
-<style>
-.fc { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; }
-.fc-toolbar-title { font-size: 16px; font-weight: 600; color: #0f172a; }
-.fc-button { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; }
-.fc-button-primary { background-color: #4f46e5 !important; border-color: #4f46e5 !important; }
-.fc-button-primary:not(.fc-button-active):hover { background-color: #4338ca !important; }
-.fc-daygrid-day-number { color: #475569; font-size: 12px; }
-.fc-daygrid-day.fc-day-today { background-color: #eef2ff !important; }
-.fc-event { border-radius: 3px; font-size: 11px; padding: 1px 4px; }
-</style>
-<script>
-window.initCalendar = function(events) {
-  var el = document.getElementById('yurteg-calendar');
-  if (!el) return;
-  if (window._cal) { window._cal.destroy(); }
-  window._cal = new FullCalendar.Calendar(el, {
-    initialView: 'dayGridMonth',
-    locale: 'ru',
-    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-    height: 'auto',
-    events: events,
-    eventClick: function(info) { showCalTooltip(info); },
-    buttonText: { today: 'Сегодня' },
-    dayMaxEvents: 3,
-  });
-  window._cal.render();
-};
-
-function showCalTooltip(info) {
-  var ev = info.event;
-  var props = ev.extendedProps || {};
-  var tooltip = document.getElementById('cal-tooltip');
-  if (!tooltip) return;
-  var typeLabel = props.type === 'end_date' ? 'Дата окончания' : 'Платёж';
-  var detail = props.type === 'payment'
-    ? (props.amount ? props.amount.toLocaleString('ru') + ' ₽' : '')
-    : (ev.startStr || '');
-  tooltip.innerHTML =
-    '<div style="font-size:11px;color:#94a3b8;">' + typeLabel + '</div>' +
-    '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-top:2px;">' + (props.counterparty || ev.title) + '</div>' +
-    '<div style="font-size:13px;color:#475569;margin-top:2px;">' + detail + '</div>' +
-    '<div style="font-size:13px;color:#4f46e5;font-weight:600;cursor:pointer;margin-top:8px;" onclick="window.location.href=\'/document/' + props.contract_id + '\'">Открыть →</div>';
-  var rect = info.el.getBoundingClientRect();
-  tooltip.style.display = 'block';
-  tooltip.style.top = (rect.bottom + 8) + 'px';
-  tooltip.style.left = Math.min(rect.left, window.innerWidth - 280) + 'px';
-}
-
-document.addEventListener('click', function(e) {
-  var tooltip = document.getElementById('cal-tooltip');
-  if (tooltip && !tooltip.contains(e.target) && !e.target.closest('.fc-event')) {
-    tooltip.style.display = 'none';
-  }
-});
-</script>
-"""
-
-# ── Status badge CSS (D-23, D-24, Pattern 4 from Phase 8 RESEARCH) ────────────
-# Tailwind @layer components — literal class strings для JS cellRenderer.
-# Определяются один раз при старте, безопасны для JIT-purge.
-# Phase 13 migration: unknown/terminated → slate-100/slate-500 (per DSGN-01, D-04, D-25)
-
-_STATUS_CSS = """
+# Status badge CSS (Tailwind @layer — literal classes for AG Grid JS cellRenderer)
+ui.add_head_html("""
 <style type="text/tailwindcss">
   @layer components {
     .status-active      { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-700; }
@@ -202,29 +111,7 @@ _STATUS_CSS = """
     .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-700; }
   }
 </style>
-"""
-
-# Hover-actions CSS (Phase 08, Plan 03 — D-12, REG-06)
-# actions-cell скрыт по умолчанию, появляется при наведении на строку
-# Phase 13 migration: gray hex → slate/indigo hex (per DSGN-01, UI-SPEC migration map)
-_ACTIONS_CSS = """
-<style>
-  .actions-cell { opacity: 0; transition: opacity 150ms ease; display: flex; align-items: center; justify-content: center; }
-  .ag-row:hover .actions-cell { opacity: 1; }
-  .action-icon { cursor: pointer; font-size: 18px; color: #64748b; line-height: 1; }
-  .action-icon:hover { color: #4f46e5; }
-  .expand-icon { color: #94a3b8; font-size: 12px; user-select: none; }
-  .expand-icon:hover { color: #475569; }
-</style>
-"""
-
-# Inject in correct order: font FIRST (Pitfall 4), then CDN, animations, calendar JS, status, actions
-ui.add_head_html(_FONT_CSS)
-ui.add_head_html(_FULLCALENDAR_CSS)
-ui.add_head_html(_ANIMATION_CSS)
-ui.add_head_html(_CALENDAR_JS)
-ui.add_head_html(_STATUS_CSS)
-ui.add_head_html(_ACTIONS_CSS)
+""")
 
 # ── UI root ────────────────────────────────────────────────────────────────────
 
