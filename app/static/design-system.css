@@ -191,6 +191,7 @@ p, li, label { line-height: 1.5; }
   .hero-enter:nth-child(2) { animation-delay: 100ms; }
   .hero-enter:nth-child(3) { animation-delay: 200ms; }
   .hero-enter:nth-child(4) { animation-delay: 300ms; }
+  .hero-enter:nth-child(5) { animation-delay: 400ms; }
 }
 
 /* ── AG Grid theming (.ag-theme-quartz) — вне @layer, AG Grid не уважает @layer ── */
@@ -262,22 +263,8 @@ p, li, label { line-height: 1.5; }
   .card-enter:nth-child(n+7) { animation-delay: 360ms; }
 }
 
-/* ── Hover states audit (XCUT-02) ─────────────────────────────────────────── */
-/* Закрываем случаи где hover не определён */
-
+/* ── Breadcrumb hover ────────────────────────────────────────────────────── */
 @layer components {
-  /* Nav sidebar items в settings — hover если нет active */
-  .settings-nav-item:not(.settings-nav-active):hover {
-    background: var(--yt-p-slate-100);
-  }
-
-  /* Stats bar items — subtle highlight */
-  .stats-item-clickable:hover {
-    background: var(--yt-color-accent-subtle);
-    border-radius: var(--yt-radius-md);
-  }
-
-  /* Breadcrumb link hover (уже есть indigo color в styles.py, добавим underline) */
   .breadcrumb-link:hover {
     text-decoration: underline;
   }
