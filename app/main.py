@@ -108,6 +108,15 @@ ui.add_head_html(_ACTIONS_CSS)
 def root() -> None:
     """Single root page — header is persistent, content area switches via sub_pages."""
     ui.dark_mode(value=False)
+
+    # Splash gate: при первом запуске показываем onboarding, header не рендерится
+    from config import load_settings
+    settings = load_settings()
+    if not settings.get("first_run_completed"):
+        from app.components.onboarding.splash import render_splash
+        render_splash()
+        return  # early return — no header, no sub_pages
+
     state = get_state()
 
     async def _handle_upload(path):
