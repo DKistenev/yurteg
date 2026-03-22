@@ -66,7 +66,7 @@
 - [x] **DSGN-01**: Светлая тема с тёплыми нейтральными тонами (без AI slop: no cyan-on-dark, no glassmorphism, no gradient text)
 - [x] **DSGN-02**: Один акцентный цвет для действий и статусов, палитра по правилу 60-30-10
 - [x] **DSGN-03**: Типографика с чёткой иерархией (display + body font pairing, modular scale)
-- [ ] **DSGN-04**: Календарь как переключатель вида реестра (FullCalendar.js интеграция)
+- [x] **DSGN-04**: Календарь как переключатель вида реестра (FullCalendar.js интеграция)
 - [x] **DSGN-05**: Анимации появления элементов (staggered reveals, ease-out-quart)
 
 ## v0.7 Requirements
@@ -130,7 +130,7 @@
 | DSGN-01 | Phase 13 | Complete |
 | DSGN-02 | Phase 13 | Complete |
 | DSGN-03 | Phase 13 | Complete |
-| DSGN-04 | Phase 13 | Pending |
+| DSGN-04 | Phase 13 | Complete |
 | DSGN-05 | Phase 13 | Complete |
 
 **Coverage:**

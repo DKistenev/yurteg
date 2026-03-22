@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-03-22T12:56:39.347Z"
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-03-22T13:01:13.574Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 13 (design-polish-calendar) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Plan: 3 of 4
 | Phase 12-onboarding P02 | 3min | 2 tasks | 2 files |
 | Phase 13-design-polish-calendar P01 | 3min | 2 tasks | 3 files |
 | Phase 13 P02 | 6min | 2 tasks | 7 files |
+| Phase 13 P03 | 2min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -200,6 +201,8 @@ Recent decisions affecting current work:
 - [Phase 13-design-polish-calendar]: Source-level test inspection: read main.py as text via pathlib to avoid ui.run() side-effect during pytest
 - [Phase 13]: process.py gray migration deferred — outside plan 13-02 scope
 - [Phase 13]: Tour spotlight outline migrated to indigo-600 — spotlight ring treated as accent element
+- [Phase 13]: Payment event colors overridden to #94a3b8 in registry.py — payment_service stays color-neutral
+- [Phase 13]: Calendar toggle: ui.timer(0.1) defers initCalendar JS call until DOM element exists (Pitfall 2)
 
 ### Pending Todos
 
@@ -220,6 +223,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 13-02-PLAN.md
+Stopped at: Completed 13-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
