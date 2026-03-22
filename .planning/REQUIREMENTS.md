@@ -56,15 +56,15 @@
 
 ### Анимации
 
-- [ ] **ANIM-01**: Page transitions между экранами (fade/slide)
-- [ ] **ANIM-02**: Stagger-эффекты при появлении карточек и строк таблицы
-- [ ] **ANIM-03**: Micro-interactions на кнопках (ripple, scale)
-- [ ] **ANIM-04**: Skeleton-loading вместо пустого экрана при загрузке данных
+- [x] **ANIM-01**: Page transitions между экранами (fade/slide)
+- [x] **ANIM-02**: Stagger-эффекты при появлении карточек и строк таблицы
+- [x] **ANIM-03**: Micro-interactions на кнопках (ripple, scale)
+- [x] **ANIM-04**: Skeleton-loading вместо пустого экрана при загрузке данных
 
 ### Сквозное
 
-- [ ] **XCUT-01**: Footer с версией приложения
-- [ ] **XCUT-02**: Consistent hover states на всех интерактивных элементах
+- [x] **XCUT-01**: Footer с версией приложения
+- [x] **XCUT-02**: Consistent hover states на всех интерактивных элементах
 - [x] **XCUT-03**: Consistent spacing по всем экранам через токены
 - [ ] **XCUT-04**: Visual seam check — все экраны визуально когерентны при навигации header→splash→registry→card→settings
 
@@ -116,12 +116,12 @@
 | TMPL-03 | Phase 17 | Complete |
 | SETT-01 | Phase 17 | Complete |
 | SETT-02 | Phase 17 | Complete |
-| ANIM-01 | Phase 17 | Pending |
-| ANIM-02 | Phase 17 | Pending |
-| ANIM-03 | Phase 17 | Pending |
-| ANIM-04 | Phase 17 | Pending |
-| XCUT-01 | Phase 17 | Pending |
-| XCUT-02 | Phase 17 | Pending |
+| ANIM-01 | Phase 17 | Complete |
+| ANIM-02 | Phase 17 | Complete |
+| ANIM-03 | Phase 17 | Complete |
+| ANIM-04 | Phase 17 | Complete |
+| XCUT-01 | Phase 17 | Complete |
+| XCUT-02 | Phase 17 | Complete |
 | XCUT-04 | Phase 17 | Pending |
 
 **Coverage:**

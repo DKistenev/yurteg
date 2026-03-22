@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
 status: Ready to execute
-stopped_at: Completed 17-polish/17-01-PLAN.md
-last_updated: "2026-03-22T20:02:43.649Z"
+stopped_at: Completed 17-polish/17-03-PLAN.md
+last_updated: "2026-03-22T20:08:45.373Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 17 (Полировка) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Plan: 3 of 4
 | Phase 16-registry-card P02 | 3 | 1 tasks | 1 files |
 | Phase 17-polish P02 | 4 | 1 tasks | 1 files |
 | Phase 17-polish P01 | 8 | 2 tasks | 2 files |
+| Phase 17-polish P03 | 5 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase 17-polish]: Settings sidebar bg-white (не bg-slate-50) — sidebar всплывает над контентным фоном slate-100
 - [Phase 17-polish]: 4px left bar via inline div — not Tailwind border-l-4 (too thin for color accent)
 - [Phase 17-polish]: on_add callback threaded through all CRUD paths so empty state CTA always works after delete
+- [Phase 17-polish]: Skeleton reveal via set_visibility() in _init() — no timer hack, clean async flip
+- [Phase 17-polish]: .card-enter on wrapper div, not ui.card() — avoids Quasar .q-card double-animation conflict
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 17-polish/17-01-PLAN.md
+Stopped at: Completed 17-polish/17-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14
