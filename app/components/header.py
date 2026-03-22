@@ -1,12 +1,13 @@
-"""Persistent header component — Linear/Notion minimal style.
+"""Persistent header component — dark chrome band visual anchor.
 
 Per D-12: Минималистичный текстовый header без иконок у табов.
-Per D-13: Слева — лого «ЮрТэг», центр — табы «Документы · Шаблоны · ⚙», справа — клиент.
+Per D-13: Слева — лого «ЮрТэг», центр — табы «Реестр · Шаблоны · ⚙», справа — клиент.
 Per D-14: Header persistent — остаётся при навигации между sub_pages.
 Per D-20: Профиль → dropdown с клиентами + «Добавить клиента».
 Per D-21: При переключении — сброс фильтров, перезагрузка реестра.
 Per D-22: ClientManager.list_clients() для списка клиентов.
 Per D-01/D-02: Кнопка «+ Загрузить» рядом с табами, видна на любой странице.
+Phase 14-02: Dark chrome header, лого-марка «Ю» indigo квадрат, filled indigo CTA, active tab indicator.
 """
 from typing import Callable, Optional
 
@@ -30,18 +31,25 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                    Если None — папка выбирается, но pipeline не запускается.
     """
     with ui.header().classes(
-        "bg-white border-b border-slate-200 px-6 py-0 flex items-center gap-8 h-12"
-    ):
-        # Left: text logo
-        ui.label("ЮрТэг").classes("text-base font-semibold text-slate-900 shrink-0")
+        "px-6 py-0 flex items-center gap-6 h-14"
+    ).style("background: #0f172a; border-bottom: 1px solid #334155; box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);"):
 
-        # Center: text-link nav tabs
+        # Left: logo mark — indigo square «Ю» + wordmark «рТэг»
+        with ui.row().classes("items-center gap-2 shrink-0"):
+            ui.html(
+                '<div class="w-7 h-7 rounded-lg flex items-center justify-center'
+                ' text-white text-sm font-bold" style="background: #4f46e5;'
+                ' line-height: 1; flex-shrink: 0;">Ю</div>'
+            )
+            ui.label("рТэг").classes("text-base font-semibold text-white tracking-tight")
+
+        # Center: text-link nav tabs with active indicator
         with ui.row().classes("gap-6 flex-1 justify-center"):
-            _nav_link("Документы", "/")
+            _nav_link("Реестр", "/")
             _nav_link("Шаблоны", "/templates")
             _nav_link("⚙", "/settings", aria_label="Настройки")
 
-        # Upload button — per D-01, D-02 (рядом с табами, перед профилем)
+        # Upload CTA — filled indigo (NOT flat, NOT Quasar color prop — avoids !important)
         async def _on_upload_click() -> None:
             if state.processing:
                 return
@@ -52,7 +60,10 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         upload_btn = ui.button(
             "+ Загрузить документы",
             on_click=_on_upload_click,
-        ).props("flat no-caps").classes("text-sm text-slate-700 shrink-0")
+        ).classes(
+            "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+            " hover:bg-indigo-700 transition-colors duration-150 shrink-0"
+        ).props("no-caps")
 
         # Сохраняем ссылку на кнопку для start_pipeline (ui_refs['upload_btn'])
         _header_refs["upload_btn"] = upload_btn
@@ -62,7 +73,9 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             profile_btn = ui.button(
                 f"📁 {state.current_client}",
                 on_click=lambda: client_menu.open(),
-            ).props('flat no-caps aria-label="Рабочее пространство"').classes("text-sm text-slate-600")
+            ).props('flat no-caps aria-label="Рабочее пространство"').classes(
+                "text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
+            )
 
             with ui.menu() as client_menu:
                 for name in _cm.list_clients():
@@ -75,6 +88,27 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
                     "+ Новое пространство",
                     on_click=lambda: _show_add_dialog(state, _cm, profile_btn, client_menu),
                 )
+
+    # Active tab indicator JS — runs on page load and SPA navigation
+    ui.add_body_html("""
+<script>
+(function() {
+  function updateNav() {
+    var path = window.location.pathname;
+    document.querySelectorAll('a[data-path]').forEach(function(el) {
+      var elPath = el.getAttribute('data-path');
+      var isActive = (path === elPath) || (path === '/' && elPath === '/');
+      el.style.color = isActive ? '#ffffff' : '';
+      el.style.borderBottomColor = isActive ? '#4f46e5' : 'transparent';
+      el.style.fontWeight = isActive ? '600' : '500';
+    });
+  }
+  updateNav();
+  window.addEventListener('popstate', updateNav);
+  document.addEventListener('nicegui:navigate', updateNav);
+})();
+</script>
+""")
 
 
 def _switch_client(state: AppState, name: str, btn, menu) -> None:
@@ -111,11 +145,11 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
 
 
 def _nav_link(label: str, path: str, aria_label: str = "") -> None:
-    """Render a single text navigation link."""
+    """Render nav link with active indicator for dark header."""
     link = ui.link(label, path).classes(
-        "text-sm text-slate-600 hover:text-slate-900 no-underline"
-        " border-b-2 border-transparent hover:border-slate-900 pb-0.5"
-        " transition-colors duration-150"
-    )
+        "text-sm font-medium no-underline pb-1 transition-colors duration-150"
+        " text-slate-300 hover:text-white"
+        " border-b-2 border-transparent"
+    ).props(f'data-path="{path}"')
     if aria_label:
         link.props(f'aria-label="{aria_label}"')
