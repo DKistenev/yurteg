@@ -59,6 +59,7 @@
 - [ ] **ONBR-02**: Empty state реестра при пустой базе — центрированный CTA «Загрузить первые документы»
 - [ ] **ONBR-03**: Флаг «первый запуск» — splash и wizard показываются только один раз, при повторных запусках пропускаются
 - [ ] **ONBR-04**: Краткое описание возможностей приложения на splash screen (что делает ЮрТэг, 2-3 предложения)
+- [ ] **ONBR-05**: Guided tour после первой обработки — пошаговая подсветка элементов (реестр → фильтры → загрузка)
 
 ### Дизайн
 
@@ -125,6 +126,7 @@
 | ONBR-02 | Phase 12 | Pending |
 | ONBR-03 | Phase 12 | Pending |
 | ONBR-04 | Phase 12 | Pending |
+| ONBR-05 | Phase 12 | Pending |
 | DSGN-01 | Phase 13 | Pending |
 | DSGN-02 | Phase 13 | Pending |
 | DSGN-03 | Phase 13 | Pending |
@@ -132,8 +134,8 @@
 | DSGN-05 | Phase 13 | Pending |
 
 **Coverage:**
-- v0.6 requirements: 39 total
-- Mapped to phases: 39
+- v0.6 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0 ✓
 
 ---

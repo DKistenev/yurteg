@@ -124,13 +124,14 @@ Plans:
 ### Phase 12: Onboarding
 **Goal**: Первый контакт юриста с приложением — splash screen с прогрессом загрузки модели и setup wizard, empty states для пустых экранов, first-run flow который показывается только один раз
 **Depends on**: Phase 10, Phase 11
-**Requirements**: ONBR-01, ONBR-02, ONBR-03, ONBR-04
-**Design skills**: `/onboard` (first-run experience, empty states), `/clarify` (wizard copy, CTA labels)
+**Requirements**: ONBR-01, ONBR-02, ONBR-03, ONBR-04, ONBR-05
+**Design skills**: `/onboard` (first-run experience, empty states, guided tour), `/clarify` (wizard copy, CTA labels)
 **Success Criteria** (what must be TRUE):
-  1. При первом запуске юрист видит splash screen с прогрессом загрузки модели и шагами setup wizard (Telegram, провайдер)
+  1. При первом запуске юрист видит splash screen с прогрессом загрузки модели и шагами setup wizard (Telegram)
   2. Wizard можно пропустить — кнопка «Пропустить» на каждом шаге
   3. После загрузки модели splash закрывается, открывается реестр с empty state «Загрузить первые документы»
   4. При повторном запуске splash и wizard не показываются — приложение открывается сразу
+  5. После первой обработки запускается guided tour с подсветкой: реестр → фильтры → загрузка
 **Plans**: TBD
 
 ### Phase 13: Design Polish + Calendar
