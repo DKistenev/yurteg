@@ -81,7 +81,6 @@ COLUMN_DEFS = [
         "field": "contract_type",
         "flex": 2,
         "filter": "agTextColumnFilter",
-        "floatingFilter": True,
         "sortable": True,
     },
     {
@@ -89,7 +88,6 @@ COLUMN_DEFS = [
         "field": "counterparty",
         "flex": 2,
         "filter": "agTextColumnFilter",
-        "floatingFilter": True,
         "sortable": True,
     },
     {
@@ -383,6 +381,7 @@ async def render_registry_table(state: "AppState"):
             "rowSelection": "single",
             "pagination": True,
             "paginationAutoPageSize": True,
+            "suppressPropertyNamesCheck": True,
         }
     ).classes("w-full")
 
