@@ -23,7 +23,7 @@ from nicegui import run, ui
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
 from app.components.ui_helpers import empty_state
-from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL
+from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL, BTN_ACCENT_FILLED
 from app.components.registry_table import (
     load_table_data,
     load_version_children,
@@ -40,10 +40,11 @@ from services.payment_service import get_calendar_events
 
 
 def _render_empty_state(container, state) -> None:
-    """Рендерит empty state при пустой БД без активных фильтров.
+    """Rich empty state — CTA + три карточки возможностей (REGI-04).
 
-    Per UI-SPEC Component 3 — точный layout, CSS и копия.
-    Отображается когда load_table_data вернул 0 строк И нет активных фильтров.
+    Per Phase 16 decision: «Выбрать папку» + 3 пункта:
+      извлечём метаданные / разложим по папкам / проверим сроки
+    Функциональный callback _on_pick_folder сохранён без изменений.
     """
     async def _on_pick_folder():
         from app.components.process import pick_folder
@@ -51,22 +52,62 @@ def _render_empty_state(container, state) -> None:
         if source_dir and hasattr(state, "_on_upload") and state._on_upload:
             await state._on_upload(source_dir)
 
-    FOLDER_ICON = (
-        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none"'
-        ' stroke="#cbd5e1" stroke-width="1.5">'
-        '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
-        '</svg>'
-    )
+    CAPABILITIES = [
+        {
+            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
+            "title": "Извлечём метаданные",
+            "body": "Тип, контрагент, суммы, сроки — автоматически из PDF и DOCX",
+        },
+        {
+            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>',
+            "title": "Разложим по папкам",
+            "body": "Структура по типам документов и контрагентам создаётся автоматически",
+        },
+        {
+            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+            "title": "Проверим сроки",
+            "body": "Уведомления об истечении договоров — никаких пропущенных дедлайнов",
+        },
+    ]
 
     with container:
-        empty_state(
-            icon_svg=FOLDER_ICON,
-            title="Загрузите первые документы",
-            description="Выберите папку с PDF или DOCX — мы извлечём метаданные и разложим файлы автоматически.",
-            button_label="Выбрать папку",
-            on_click=_on_pick_folder,
-            hints=["Извлечёт метаданные", "Разложит по папкам", "Проверит сроки"],
-        )
+        # Центральная колонка с max-w
+        with ui.column().classes("w-full items-center py-16 gap-10"):
+
+            # ── Hero-текст ────────────────────────────────────────────────────
+            with ui.column().classes("items-center gap-3 text-center max-w-lg"):
+                # Иконка-якорь
+                ui.html(
+                    '<div style="width:64px;height:64px;background:#eef2ff;border-radius:16px;'
+                    'display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">'
+                    '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5">'
+                    '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
+                    '</svg></div>'
+                )
+                with ui.element("h2").style("font-size:1.5rem;font-weight:700;color:#0f172a;margin:0"):
+                    ui.html("Загрузите первые документы")
+                with ui.element("p").style("font-size:0.9rem;color:#64748b;margin:0;line-height:1.6"):
+                    ui.html("Выберите папку с PDF или DOCX — ЮрТэг обработает архив за несколько минут")
+
+            # ── CTA кнопка (filled, per BTN_ACCENT_FILLED) ───────────────────
+            ui.button(
+                "Выбрать папку",
+                on_click=_on_pick_folder,
+            ).classes(BTN_ACCENT_FILLED + " text-base px-8 py-3")
+
+            # ── Три карточки возможностей ─────────────────────────────────────
+            with ui.row().classes("gap-4 w-full max-w-2xl justify-center flex-wrap"):
+                for cap in CAPABILITIES:
+                    with ui.column().classes(
+                        "bg-white border border-slate-200 rounded-xl p-5 gap-3 items-start"
+                        " flex-1 min-w-[180px] max-w-[220px]"
+                    ):
+                        ui.html(cap["icon"])
+                        with ui.column().classes("gap-1"):
+                            with ui.element("p").style("font-size:0.875rem;font-weight:600;color:#0f172a;margin:0"):
+                                ui.html(cap["title"])
+                            with ui.element("p").style("font-size:0.8rem;color:#64748b;margin:0;line-height:1.5"):
+                                ui.html(cap["body"])
 
 
 def build() -> None:
