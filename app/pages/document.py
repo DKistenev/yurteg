@@ -9,7 +9,12 @@ import logging
 from nicegui import run, ui
 
 from app.state import get_state
-from app.styles import CARD_SECTION, TEXT_SUBHEAD, TEXT_LABEL_UPPER, HEX
+from app.styles import (
+    CARD_SECTION, TEXT_SUBHEAD, TEXT_LABEL_UPPER, HEX,
+    BREADCRUMB_LINK, BREADCRUMB_SEP, BREADCRUMB_CURRENT,
+    SECTION_DIVIDER_HEADER, AI_REVIEW_BLOCK, AI_REVIEW_BORDER_STYLE,
+    META_KEY, META_VAL, VERSION_DOT, VERSION_LINE,
+)
 from modules.models import ContractMetadata
 from services.client_manager import ClientManager
 from services.lifecycle_service import (
@@ -143,186 +148,185 @@ async def build(doc_id: str = "") -> None:
     )
     computed_status = dict(status_row)["computed_status"] if status_row else "unknown"
 
-    # ── Main content column (Notion-style clean layout) ──────────────────────────
-    with ui.column().classes("max-w-4xl mx-auto px-6 py-6 gap-6 w-full"):
+    # ── Main content column ──────────────────────────────────────────────────
+    with ui.column().classes("max-w-4xl mx-auto px-6 py-6 gap-0 w-full"):
 
-        # ── Header (per D-02) ──────────────────────────────────────────────────
-        with ui.row().classes("w-full items-center justify-between border-b pb-4"):
-            ui.button(
-                "← Назад к реестру",
+        # ── Breadcrumbs (CARD-01) ─────────────────────────────────────────────
+        with ui.row().classes("items-center gap-0 mb-6"):
+            ui.label(
+                "Реестр",
                 on_click=lambda: ui.navigate.to("/")
-            ).props("flat no-caps").classes("text-slate-600")
-
+            ).classes(BREADCRUMB_LINK)
+            ui.label("→").classes(BREADCRUMB_SEP)
             ui.label(
                 contract.get("contract_type") or "Документ"
-            ).classes("text-xl font-semibold text-slate-900")
+            ).classes(BREADCRUMB_CURRENT)
 
-            # Prev/next buttons (per D-03, D-20)
+            # Prev/next buttons (per D-03, D-20) — right-aligned
             doc_ids = state.filtered_doc_ids
             current_idx = doc_ids.index(int(doc_id)) if int(doc_id) in doc_ids else -1
             prev_id = doc_ids[current_idx - 1] if current_idx > 0 else None
             next_id = doc_ids[current_idx + 1] if current_idx < len(doc_ids) - 1 else None
 
-            with ui.row().classes("gap-1"):
+            with ui.row().classes("gap-1 ml-auto"):
                 prev_btn = ui.button(
                     "◀",
                     on_click=lambda pid=prev_id: ui.navigate.to(f"/document/{pid}")
-                ).props('flat dense aria-label="Предыдущий документ"').classes("text-slate-500")
+                ).props('flat dense aria-label="Предыдущий документ"').classes("text-slate-400")
                 prev_btn.set_enabled(prev_id is not None)
 
                 next_btn = ui.button(
                     "▶",
                     on_click=lambda nid=next_id: ui.navigate.to(f"/document/{nid}")
-                ).props('flat dense aria-label="Следующий документ"').classes("text-slate-500")
+                ).props('flat dense aria-label="Следующий документ"').classes("text-slate-400")
                 next_btn.set_enabled(next_id is not None)
 
-        # ── Metadata grid (per D-04, D-05) ────────────────────────────────────
-        with ui.card().classes(CARD_SECTION):
-            ui.label("Сведения о документе").classes(TEXT_SUBHEAD + " mb-3")
-            _render_metadata(contract)
+        # ── Метаданные (CARD-02, CARD-03: compact key-value, no card wrapper) ──
+        ui.label("Сведения о документе").classes(SECTION_DIVIDER_HEADER)
+        _render_metadata(contract)
 
-        # ── Status section (per D-06, D-07) ───────────────────────────────────
-        with ui.card().classes(CARD_SECTION):
-            ui.label("Статус").classes(TEXT_SUBHEAD + " mb-3")
+        ui.element("div").classes("mb-8")  # вертикальный отступ между секциями
 
-            # Отображаем бейдж статуса
-            icon, label_text, color = STATUS_LABELS.get(
-                computed_status, ("?", computed_status, "#9ca3af")
-            )
-            status_css_class = f"status-{computed_status}"
-            with ui.row().classes("items-center gap-4"):
-                ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')
+        # ── Статус (CARD-02: section divider) ────────────────────────────────
+        ui.label("Статус").classes(SECTION_DIVIDER_HEADER)
 
-                # Кнопки управления статусом
-                status_select_container = ui.row().classes("items-center gap-2")
+        icon, label_text, color = STATUS_LABELS.get(
+            computed_status, ("?", computed_status, "#9ca3af")
+        )
+        status_css_class = f"status-{computed_status}"
+        with ui.row().classes("items-center gap-4 mb-2"):
+            ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')
+            status_select_container = ui.row().classes("items-center gap-2")
 
-            with status_select_container:
-                change_btn = ui.button(
-                    "Изменить",
-                    on_click=lambda: status_row_el.set_visibility(True)
-                ).props("flat dense no-caps").classes("text-indigo-600 text-xs")
+        with status_select_container:
+            change_btn = ui.button(
+                "Изменить",
+                on_click=lambda: status_row_el.set_visibility(True)
+            ).props("flat dense no-caps").classes("text-indigo-600 text-xs")
 
-                async def _clear_status() -> None:
-                    try:
-                        await run.io_bound(clear_manual_status, db, int(doc_id))
-                    except Exception as ex:
-                        ui.notify("Не удалось сбросить статус. Попробуйте ещё раз.", type="negative")
-                        return
-                    ui.navigate.to(f"/document/{doc_id}")
+            async def _clear_status() -> None:
+                try:
+                    await run.io_bound(clear_manual_status, db, int(doc_id))
+                except Exception:
+                    ui.notify("Не удалось сбросить статус. Попробуйте ещё раз.", type="negative")
+                    return
+                ui.navigate.to(f"/document/{doc_id}")
 
-                if contract.get("manual_status"):
-                    ui.button(
-                        "Сбросить",
-                        on_click=_clear_status
-                    ).props("flat dense no-caps").classes("text-slate-500 text-xs")
-
-            # Select dropdown для ручного статуса
-            status_row_el = ui.row().classes("items-center gap-2 mt-2")
-            status_row_el.set_visibility(False)
-
-            manual_status_options = {
-                "terminated": "Расторгнут",
-                "extended": "Продлён",
-                "negotiation": "На согласовании",
-                "suspended": "Приостановлен",
-            }
-
-            with status_row_el:
-                status_sel = ui.select(
-                    options=manual_status_options,
-                    value=contract.get("manual_status"),
-                    label="Выберите статус",
-                ).classes("w-48").props("dense outlined")
-
-                async def _apply_status() -> None:
-                    val = status_sel.value
-                    if val and val in MANUAL_STATUSES:
-                        apply_btn.disable()
-                        try:
-                            try:
-                                await run.io_bound(set_manual_status, db, int(doc_id), val)
-                            except Exception as ex:
-                                ui.notify("Не удалось изменить статус. Попробуйте ещё раз.", type="negative")
-                                return
-                            ui.navigate.to(f"/document/{doc_id}")
-                        finally:
-                            apply_btn.enable()
-
-                apply_btn = ui.button(
-                    "Применить",
-                    on_click=_apply_status
-                ).props("dense no-caps").classes("bg-indigo-600 text-white text-xs")
-
+            if contract.get("manual_status"):
                 ui.button(
-                    "Отмена",
-                    on_click=lambda: status_row_el.set_visibility(False)
+                    "Сбросить",
+                    on_click=_clear_status
                 ).props("flat dense no-caps").classes("text-slate-500 text-xs")
 
-        # ── Lawyer notes (per D-08, D-09) ─────────────────────────────────────
-        with ui.card().classes(CARD_SECTION):
-            ui.label("Пометки юриста").classes(TEXT_SUBHEAD + " mb-3")
+        status_row_el = ui.row().classes("items-center gap-2 mt-2")
+        status_row_el.set_visibility(False)
 
-            async def _save_comment(e) -> None:
-                comment_text = e.sender.value or ""
-                file_hash = contract.get("file_hash", "")
-                if file_hash:
+        manual_status_options = {
+            "terminated": "Расторгнут",
+            "extended": "Продлён",
+            "negotiation": "На согласовании",
+            "suspended": "Приостановлен",
+        }
+
+        with status_row_el:
+            status_sel = ui.select(
+                options=manual_status_options,
+                value=contract.get("manual_status"),
+                label="Выберите статус",
+            ).classes("w-48").props("dense outlined")
+
+            async def _apply_status() -> None:
+                val = status_sel.value
+                if val and val in MANUAL_STATUSES:
+                    apply_btn.disable()
                     try:
-                        await run.io_bound(
-                            db.update_review,
-                            file_hash,
-                            contract.get("review_status", "not_reviewed"),
-                            comment_text,
-                        )
-                    except Exception as ex:
-                        ui.notify("Не удалось сохранить заметку. Попробуйте ещё раз.", type="negative")
+                        try:
+                            await run.io_bound(set_manual_status, db, int(doc_id), val)
+                        except Exception:
+                            ui.notify("Не удалось изменить статус. Попробуйте ещё раз.", type="negative")
+                            return
+                        ui.navigate.to(f"/document/{doc_id}")
+                    finally:
+                        apply_btn.enable()
 
-            comment_area = ui.textarea(
-                value=contract.get("lawyer_comment", "")
-            ).props('outlined rows=4 placeholder="Добавьте заметку..."').classes("w-full")
-            comment_area.on("blur", _save_comment)
+            apply_btn = ui.button(
+                "Применить",
+                on_click=_apply_status
+            ).props("dense no-caps").classes("bg-indigo-600 text-white text-xs")
 
-        # ── AI Review section (per D-10 through D-14) ────────────────────────
-        with ui.expansion('Проверка по шаблону', icon='rate_review').classes('w-full border rounded-lg'):
-            review_container = ui.column().classes('w-full gap-2')
+            ui.button(
+                "Отмена",
+                on_click=lambda: status_row_el.set_visibility(False)
+            ).props("flat dense no-caps").classes("text-slate-500 text-xs")
+
+        ui.element("div").classes("mb-8")
+
+        # ── Пометки юриста (CARD-02: section divider) ────────────────────────
+        ui.label("Пометки юриста").classes(SECTION_DIVIDER_HEADER)
+
+        async def _save_comment(e) -> None:
+            comment_text = e.sender.value or ""
+            file_hash = contract.get("file_hash", "")
+            if file_hash:
+                try:
+                    await run.io_bound(
+                        db.update_review,
+                        file_hash,
+                        contract.get("review_status", "not_reviewed"),
+                        comment_text,
+                    )
+                except Exception:
+                    ui.notify("Не удалось сохранить заметку. Попробуйте ещё раз.", type="negative")
+
+        comment_area = ui.textarea(
+            value=contract.get("lawyer_comment", "")
+        ).props('outlined rows=4 placeholder="Добавьте заметку..."').classes("w-full")
+        comment_area.on("blur", _save_comment)
+
+        ui.element("div").classes("mb-8")
+
+        # ── AI-ревью (CARD-02, CARD-03: amber accent left-border) ────────────
+        ui.label("Проверка по шаблону").classes(SECTION_DIVIDER_HEADER)
+
+        # Amber/orange accent wrapper — визуально отличает AI-контент от фактических данных
+        with ui.element("div").classes(AI_REVIEW_BLOCK).style(AI_REVIEW_BORDER_STYLE):
+            review_container = ui.column().classes("w-full gap-2 py-2")
 
             async def _run_review() -> None:
                 review_btn.disable()
                 try:
                     review_container.clear()
                     with review_container:
-                        ui.spinner('dots').classes('text-indigo-500')
+                        ui.spinner("dots").classes("text-amber-500")
 
                     _db = _client_manager.get_db(state.current_client)
-                    # Per D-11: автоподбор шаблона по типу и тексту
                     try:
                         template = await run.io_bound(
-                            match_template, _db, contract.get('subject', ''), contract.get('contract_type')
+                            match_template, _db, contract.get("subject", ""), contract.get("contract_type")
                         )
-                    except Exception as e:
+                    except Exception:
                         ui.notify("Не удалось подобрать шаблон автоматически.", type="negative")
                         return
                     if template is None:
                         try:
                             templates = await run.io_bound(list_templates, _db)
-                        except Exception as e:
+                        except Exception:
                             ui.notify("Не удалось загрузить список шаблонов.", type="negative")
                             return
                         if not templates:
-                            # Per D-14: нет шаблонов — сообщение со ссылкой
                             review_container.clear()
                             with review_container:
-                                with ui.row().classes('items-center gap-2 text-slate-500 text-sm'):
-                                    ui.label('Нет шаблонов.')
-                                    ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-indigo-600 underline')
+                                with ui.row().classes("items-center gap-2 text-slate-500 text-sm"):
+                                    ui.label("Нет шаблонов.")
+                                    ui.link("Добавьте в разделе Шаблоны", "/templates").classes("text-indigo-600 underline")
                             return
-                        # Dropdown для ручного выбора (per D-11 fallback)
                         review_container.clear()
                         with review_container:
                             template_options = {t.id: f"{t.name} ({t.contract_type})" for t in templates}
                             selected_template = ui.select(
                                 template_options,
-                                label='Выберите шаблон',
-                            ).classes('w-full max-w-sm')
+                                label="Выберите шаблон",
+                            ).classes("w-full max-w-sm")
 
                             async def _review_with_selected() -> None:
                                 sel_id = selected_template.value
@@ -332,10 +336,9 @@ async def build(doc_id: str = "") -> None:
                                 if sel_tmpl:
                                     await _do_review(sel_tmpl.content_text)
 
-                            ui.button('Проверить', on_click=_review_with_selected).props('flat no-caps').classes('text-indigo-600')
+                            ui.button("Проверить", on_click=_review_with_selected).props("flat no-caps").classes("text-amber-600")
                         return
 
-                    # Шаблон найден — запускаем ревью
                     await _do_review(template.content_text)
                 finally:
                     review_btn.enable()
@@ -343,64 +346,74 @@ async def build(doc_id: str = "") -> None:
             async def _do_review(template_text: str) -> None:
                 review_container.clear()
                 with review_container:
-                    ui.spinner('dots').classes('text-indigo-500')
-                # Per D-12: async через run.io_bound — не блокирует UI
+                    ui.spinner("dots").classes("text-amber-500")
                 try:
                     deviations = await run.io_bound(
-                        review_against_template, template_text, contract.get('subject', '')
+                        review_against_template, template_text, contract.get("subject", "")
                     )
-                except Exception as e:
+                except Exception:
                     review_container.clear()
                     with review_container:
                         ui.notify("Не удалось выполнить проверку. Попробуйте ещё раз.", type="negative")
                     return
                 _render_deviations(review_container, deviations)
 
-            review_btn = ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-indigo-600')
+            review_btn = ui.button("Проверить по шаблону", on_click=_run_review).props("flat no-caps").classes("text-amber-600")
 
-        # ── Version History section (per D-15 through D-18) ───────────────────
-        with ui.expansion('История версий', icon='history', value=False).classes('w-full border rounded-lg'):
-            versions_container = ui.column().classes('w-full gap-2')
+        ui.element("div").classes("mb-8")
 
-            _db2 = _client_manager.get_db(state.current_client)
-            versions = await run.io_bound(get_version_group, _db2, int(doc_id))
+        # ── История версий (CARD-02, CARD-03: timeline-стиль) ────────────────
+        ui.label("История версий").classes(SECTION_DIVIDER_HEADER)
 
-            if not versions:
-                with versions_container:
-                    ui.label('Версии не найдены').classes('text-slate-400 text-sm')
-            else:
-                with versions_container:
-                    for v in versions:
-                        with ui.row().classes('w-full items-center justify-between py-2 border-b last:border-0'):
-                            with ui.row().classes('gap-4 items-center'):
-                                ui.label(f'v{v.version_number}').classes('text-sm font-semibold text-slate-900')
-                                ui.label(v.link_method or '').classes('text-xs text-slate-400')
-                                ui.label(v.created_at or '').classes('text-xs text-slate-400')
+        _db2 = _client_manager.get_db(state.current_client)
+        versions = await run.io_bound(get_version_group, _db2, int(doc_id))
 
-                            if v.contract_id != int(doc_id):
-                                with ui.row().classes('gap-2'):
-                                    # Per D-17: Сравнить — показывает diff полей inline
-                                    async def _show_diff(other_id: int = v.contract_id) -> None:
-                                        try:
-                                            other = await run.io_bound(_db2.get_contract_by_id, other_id)
-                                        except Exception as e:
-                                            ui.notify("Не удалось загрузить версию документа.", type="negative")
-                                            return
-                                        if other is None:
-                                            return
-                                        meta_current = _dict_to_metadata(contract)
-                                        meta_other = _dict_to_metadata(other)
-                                        try:
-                                            diffs = await run.io_bound(diff_versions, meta_current, meta_other)
-                                        except Exception as e:
-                                            ui.notify("Не удалось сравнить версии.", type="negative")
-                                            return
-                                        _render_diff_table(versions_container, diffs)
+        if not versions:
+            ui.label("Версии не найдены").classes("text-slate-400 text-sm py-2")
+        else:
+            versions_container = ui.column().classes("w-full gap-0")
+            with versions_container:
+                for i, v in enumerate(versions):
+                    is_last = (i == len(versions) - 1)
+                    with ui.row().classes("w-full gap-3 items-start"):
 
-                                    ui.button('Сравнить', on_click=_show_diff).props('flat dense no-caps').classes('text-xs text-indigo-600')
+                        # Timeline: вертикальная линия + точка
+                        with ui.column().classes("items-center gap-0 pt-1"):
+                            ui.element("div").classes(VERSION_DOT)
+                            if not is_last:
+                                ui.element("div").classes(VERSION_LINE).style("height:36px")
 
-                                    # Per D-18: Скачать redline через FastAPI route
-                                    ui.link(
-                                        'Скачать с правками',
-                                        f'/download/redline/{doc_id}/{v.contract_id}'
-                                    ).classes('text-xs text-indigo-600 underline')
+                        # Версия данные
+                        with ui.column().classes("flex-1 pb-4 gap-1"):
+                            with ui.row().classes("items-center gap-3 w-full"):
+                                ui.label(f"v{v.version_number}").classes("text-sm font-semibold text-slate-900")
+                                if v.link_method:
+                                    ui.label(v.link_method).classes("text-xs text-slate-400")
+                                if v.created_at:
+                                    ui.label(v.created_at).classes("text-xs text-slate-400")
+
+                                if v.contract_id != int(doc_id):
+                                    with ui.row().classes("gap-2 ml-auto"):
+                                        async def _show_diff(other_id: int = v.contract_id) -> None:
+                                            try:
+                                                other = await run.io_bound(_db2.get_contract_by_id, other_id)
+                                            except Exception:
+                                                ui.notify("Не удалось загрузить версию документа.", type="negative")
+                                                return
+                                            if other is None:
+                                                return
+                                            meta_current = _dict_to_metadata(contract)
+                                            meta_other = _dict_to_metadata(other)
+                                            try:
+                                                diffs = await run.io_bound(diff_versions, meta_current, meta_other)
+                                            except Exception:
+                                                ui.notify("Не удалось сравнить версии.", type="negative")
+                                                return
+                                            diff_container = ui.column().classes("w-full mt-2")
+                                            _render_diff_table(diff_container, diffs)
+
+                                        ui.button("Сравнить", on_click=_show_diff).props("flat dense no-caps").classes("text-xs text-indigo-600")
+                                        ui.link(
+                                            "Скачать с правками",
+                                            f"/download/redline/{doc_id}/{v.contract_id}"
+                                        ).classes("text-xs text-indigo-600 underline")
