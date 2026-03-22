@@ -109,6 +109,15 @@ None — OllamaProvider полностью реализован. Post-processing
 - Phase 5 (PROC-01): добавить вызов `sanitize_metadata` в `ai_extractor.py` после ответа OllamaProvider
 - Phase 5 (PROC-02): пропуск анонимизации для `active_provider='ollama'` (ПД не покидают машину)
 
+## Self-Check: PASSED
+
+- providers/ollama.py: FOUND
+- config.py: FOUND
+- main.py: FOUND
+- 04-02-SUMMARY.md: FOUND
+- Commit 3278bba (Task 1): FOUND
+- Commit 8109d23 (Task 2): FOUND
+
 ---
 *Phase: 04-server-provider*
 *Completed: 2026-03-21*

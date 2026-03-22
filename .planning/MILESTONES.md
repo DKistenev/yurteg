@@ -1,5 +1,23 @@
 # Milestones
 
+## v0.7 Визуальный продукт (Shipped: 2026-03-22)
+
+**Phases completed:** 4 phases, 10 plans, 3 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- One-liner:
+- 1. [Rule — Minor] 5 hero-enter элементов вместо 4
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+
+---
+
 ## v0.6 UI-редизайн (Shipped: 2026-03-22)
 
 **Phases completed:** 7 phases, 18 plans, 24 tasks

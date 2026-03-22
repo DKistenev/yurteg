@@ -8,29 +8,21 @@
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current Milestone: v0.7 Визуальный продукт
+## Current State (после v0.7)
 
-**Goal:** Полная переработка визуального слоя — из wireframe в дерзкий, уверенный продукт с характером
+**Shipped:** v0.7 Визуальный продукт (2026-03-22)
+- 4 фазы, 10 планов, 34 requirements
+- Дизайн-система: tokens.css с 62 --yt-* CSS variables, @layer discipline
+- Dark chrome header: лого-марка «Ю», filled indigo CTA, active tab indicator
+- Hero splash: тёмный full-screen с IBM Plex Sans 700, staggered entrance
+- Registry: stats bar, filled status badges, AG Grid theming, rich empty state
+- Document card: breadcrumbs, section dividers, amber AI-ревью, timeline версий
+- Templates: color-coded карточки с type icons и hover lift
+- Settings: structured sections с dividers, sidebar active state
+- Animations: skeleton loading, card stagger, page fade, micro-interactions
+- Footer, consistent hover states across all screens
 
-**Target features:**
-- Дизайн-система с нуля: тема, палитра, типографика с весом, spacing scale, тени, радиусы
-- Splash: hero-секция на весь экран, крупная типографика, визуальная уверенность
-- Registry: заголовок, stats bar, фильтры с весом, rich empty state, таблица с плотностью
-- Карточка документа: breadcrumbs, структурированные блоки, визуальное разделение
-- Шаблоны: карточки с тенями, цветные badges типов, rich empty state
-- Настройки: секции с заголовками и разделителями, визуальная структура
-- Header: визуальный вес, лого-марка, accent CTA
-- Сквозное: footer, transitions, hover states, consistent spacing
-
-**Key context:** Референс — RunPod (дерзость, визуальный вес, hero-секции). Полная переработка, не патчи. Функционал не трогаем — только визуал. DMG/EXE → v0.8.
-
-## Current State (после v0.6)
-
-**Shipped:** v0.6 UI-редизайн (2026-03-22)
-- 7 фаз, 18 планов, 40/40 requirements
-- Полная миграция Streamlit → NiceGUI с SPA-архитектурой
-- IBM Plex Sans, slate/indigo палитра, AG Grid, FullCalendar
-- Impeccable design skills прогнаны: /audit, /harden, /normalize, /colorize, /polish, /distill, /onboard, /clarify, /typeset, /extract, /animate, /arrange, /optimize
+**Next:** v0.8 Доставка — DMG для macOS, EXE для Windows
 
 ## Codebase
 
@@ -39,7 +31,7 @@
 **Tech stack:** Python 3.10+, NiceGUI (native desktop), SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz, huggingface_hub
 **AI:** QWEN 1.5B локальная (по умолчанию), ZAI GLM-4.7 (облако), OpenRouter (fallback)
 **Inference:** llama-server (llama.cpp) с GBNF грамматикой, автоскачивание модели с HuggingFace
-**Доставка:** Планируется DMG для macOS, EXE для Windows (v0.7)
+**Доставка:** Планируется DMG для macOS, EXE для Windows (v0.8)
 
 ## Requirements
 
@@ -82,20 +74,17 @@
 - ✓ Страница настроек (провайдер, анонимизация, Telegram) — v0.6
 - ✓ Empty state и onboarding при первом запуске — v0.6
 - ✓ Календарь как переключатель вида реестра — v0.6
+- ✓ Дизайн-система: tokens.css с --yt-* CSS variables, @layer discipline — v0.7
+- ✓ Dark chrome header с лого-маркой «Ю» и filled indigo CTA — v0.7
+- ✓ Hero splash с тёмным фоном и staggered entrance — v0.7
+- ✓ Stats bar, filled status badges, AG Grid --ag-* theming — v0.7
+- ✓ Rich empty state с CTA и карточками возможностей — v0.7
+- ✓ Карточка документа: breadcrumbs, section dividers, amber AI-ревью — v0.7
+- ✓ Color-coded template карточки с type icons и hover lift — v0.7
+- ✓ Settings: structured sections, sidebar active state — v0.7
+- ✓ Skeleton loading, card stagger, page fade, footer — v0.7
 
 ### Active
-
-- [ ] Дизайн-система: tokens.css, палитра, типографика с ролевым маппингом, фон ≠ белый (v0.7)
-- [ ] Dark chrome header с лого-маркой и filled CTA (v0.7)
-- [ ] Hero splash с dark surface и визуальной уверенностью (v0.7)
-- [ ] Registry: stats bar, filled badges, AG Grid theming, filter bar, rich empty state (v0.7)
-- [ ] Карточка документа: breadcrumbs, визуально различимые секции (v0.7)
-- [ ] Шаблоны: color-coded карточки с type icons, не generic shadow (v0.7)
-- [ ] Настройки: секции с разделителями, sidebar structure (v0.7)
-- [ ] Анимации: page transitions, stagger, micro-interactions, skeleton loading (v0.7)
-- [ ] Сквозное: footer, hover states, visual seam check (v0.7)
-
-### Deferred
 
 - [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.8)
 - [ ] Сборка EXE для Windows (v0.8)
@@ -123,7 +112,7 @@
 | 1 | **Архитектура + функционал** | ✅ Завершена (v0.4) |
 | 2 | **Локальная LLM** | ✅ Завершена (v0.5) |
 | 3 | **UI-редизайн** | ✅ Завершена (v0.6) — NiceGUI, реестр-центричная архитектура, Impeccable polish |
-| 4 | **Визуальный продукт** | Полная переработка визуала (v0.7) |
+| 4 | **Визуальный продукт** | ✅ Завершена (v0.7) — tokens.css, dark chrome, hero splash, visual density |
 | 5 | DMG/EXE сборка | Доставка конечным пользователям (v0.8) |
 
 ## Constraints
@@ -155,6 +144,11 @@
 | Design tokens + UI helpers (v0.6) | Извлечены повторяющиеся стили в app/styles.py + хелперы в ui_helpers.py | ✓ Done (v0.6) |
 | AG Grid pagination (v0.6) | domLayout: normal + paginationAutoPageSize вместо autoHeight — предотвращает freeze на 500+ документов | ✓ Done (v0.6) |
 | FullCalendar lazy-load (v0.6) | CDN грузится только при клике на календарь, а не при каждом запуске | ✓ Done (v0.6) |
+| tokens.css + --yt-* prefix (v0.7) | Единая дизайн-система, --yt-* избегает --fc-* FullCalendar коллизий | ✓ Done (v0.7) |
+| Dark chrome header (v0.7) | RunPod-стиль «dark chrome + light content» — 80% визуальной идентичности | ✓ Done (v0.7) |
+| @layer discipline (v0.7) | components + overrides для безопасных Quasar переопределений | ✓ Done (v0.7) |
+| AG Grid --ag-* theming (v0.7) | Отдельная система вне @layer — .ag-theme-quartz scope | ✓ Done (v0.7) |
+| Фон slate-100 (v0.7) | Убрать «белую комнату» — карточки всплывают над серым фоном | ✓ Done (v0.7) |
 
 ## Evolution
 
@@ -174,4 +168,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after v0.7 milestone start — Визуальный продукт*
+*Last updated: 2026-03-22 after v0.7 milestone — Визуальный продукт shipped*

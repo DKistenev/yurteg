@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
-status: Milestone complete
+status: v0.7 milestone complete
 stopped_at: Completed 17-polish/17-03-PLAN.md
-last_updated: "2026-03-22T20:12:34.273Z"
+last_updated: "2026-03-22T20:17:29.097Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
