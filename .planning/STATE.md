@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-22T11:08:12.819Z"
+stopped_at: Completed 13-design-polish-calendar 13-01-PLAN.md
+last_updated: "2026-03-22T12:53:42.984Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 18
+  completed_plans: 15
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 12 — onboarding
+**Current focus:** Phase 13 — design-polish-calendar
 
 ## Current Position
 
-Phase: 13
-Plan: Not started
+Phase: 13 (design-polish-calendar) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Plan: Not started
 | Phase 11-settings-templates P03 | 5min | 1 tasks | 1 files |
 | Phase 12-onboarding P01 | 2min | 2 tasks | 3 files |
 | Phase 12-onboarding P02 | 3min | 2 tasks | 2 files |
+| Phase 13-design-polish-calendar P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -194,6 +195,8 @@ Recent decisions affecting current work:
 - [Phase 12-onboarding]: load_settings() вызывается внутри root() per-connection, не на уровне модуля
 - [Phase 12-onboarding]: Empty state: show only when rows==0 AND no filter — prevents false show on filtered 0-result
 - [Phase 12-onboarding]: Tour JS-Python bridge: hidden NiceGUI button clicked by endTour() JS
+- [Phase 13-design-polish-calendar]: Font injection order: _FONT_CSS must be first add_head_html call — ensures IBM Plex Sans loads before any element renders
+- [Phase 13-design-polish-calendar]: Source-level test inspection: read main.py as text via pathlib to avoid ui.run() side-effect during pytest
 
 ### Pending Todos
 
@@ -214,6 +217,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 12-02-PLAN.md
+Stopped at: Completed 13-design-polish-calendar 13-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7

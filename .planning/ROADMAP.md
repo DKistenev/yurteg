@@ -147,9 +147,9 @@ Plans:
   2. Весь интерфейс использует светлую тему с одним акцентным цветом (без cyan, glassmorphism, gradient text)
   3. Типографика читается чётко: заголовок карточки, метки полей и тело заметки визуально отличаются по размеру и весу
   4. Появление строк в реестре при первой загрузке анимировано (staggered reveal, не мгновенный рендер)
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 Plans:
-- [ ] 13-01-PLAN.md — Global CSS (font, animations, FullCalendar CDN), _STATUS_CSS/_ACTIONS_CSS migration, AppState, test scaffold
+- [x] 13-01-PLAN.md — Global CSS (font, animations, FullCalendar CDN), _STATUS_CSS/_ACTIONS_CSS migration, AppState, test scaffold
 - [ ] 13-02-PLAN.md — Per-file palette migration: gray→slate, gray-900→indigo-600 across all pages and components
 - [ ] 13-03-PLAN.md — Calendar toggle + FullCalendar component in registry
 - [ ] 13-04-PLAN.md — Full-suite verification + visual checkpoint
@@ -170,4 +170,4 @@ Plans:
 | 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 3/3 | Complete    | 2026-03-22 |
 | 12. Onboarding | v0.6 | 2/2 | Complete    | 2026-03-22 |
-| 13. Design Polish + Calendar | v0.6 | 0/4 | Planning complete | - |
+| 13. Design Polish + Calendar | v0.6 | 1/4 | In Progress|  |
