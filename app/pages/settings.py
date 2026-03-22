@@ -32,10 +32,10 @@ def build() -> None:
     active_section: list[str] = ["ИИ"]  # mutable container для захвата в closures
     nav_buttons: dict[str, ui.button] = {}
 
-    with ui.row().classes("w-full min-h-screen gap-0"):
+    with ui.row().classes("w-full flex-1 gap-0"):
         # --- Левая навигация ---
         with ui.column().classes(
-            "w-52 min-h-screen border-r border-slate-200 bg-white p-4 gap-1"
+            "w-52 self-stretch border-r border-slate-200 bg-white p-4 gap-1"
         ):
             ui.label("Настройки").classes(
                 SECTION_DIVIDER_HEADER + " px-1 mb-2"

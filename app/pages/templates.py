@@ -56,7 +56,7 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
     with container:
         if not templates:
             # Rich empty state (TMPL-03)
-            with ui.column().classes("w-full items-center justify-center py-20"):
+            with ui.column().classes("w-full items-center justify-center py-10"):
                 ui.icon(TMPL_EMPTY_ICON).props("size=64px").classes("text-slate-300")
                 ui.label("Шаблоны не добавлены").classes(TMPL_EMPTY_TITLE)
                 ui.label(
@@ -65,7 +65,7 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                 if on_add:
                     ui.button(
                         "Добавить первый шаблон", on_click=on_add
-                    ).classes(BTN_ACCENT_FILLED).props("no-caps")
+                    ).classes(BTN_ACCENT_FILLED).props('no-caps aria-label="Добавить первый шаблон договора"')
             return
 
         with ui.grid(columns=2).classes("w-full gap-4"):
@@ -89,7 +89,7 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
 
     with ui.card().classes(
         "overflow-hidden cursor-default border border-slate-200 shadow-none rounded-xl"
-    ).style("padding:0"):
+    ).style("padding:0").props(f'role="article" aria-label="Шаблон: {tmpl.name}"'):
         with ui.row().classes("w-full gap-0").style("min-height:100%"):
             # 4px color-coded left bar
             with ui.element("div").style(
@@ -278,7 +278,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
 
 def build() -> None:
     """Страница «Шаблоны» — управление шаблонами-эталонами."""
-    with ui.column().classes("w-full p-8"):
+    with ui.column().classes("w-full max-w-5xl mx-auto p-8"):
         # cards_ref используется через closure — заполняется после создания заголовка
         cards_ref: list[ui.column] = []
 
