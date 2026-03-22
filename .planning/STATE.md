@@ -1,31 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.6
-milestone_name: UI-редизайн
-status: unknown
-stopped_at: Completed 13-04-PLAN.md
-last_updated: "2026-03-22T16:02:52.264Z"
+milestone: v0.7
+milestone_name: Визуальный продукт
+status: planning
+stopped_at: null
+last_updated: "2026-03-22T18:00:00.000Z"
 last_activity: 2026-03-22
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 18
-  completed_plans: 18
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-21)
+See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 13 — design-polish-calendar
+**Current focus:** Defining requirements for v0.7
 
 ## Current Position
 
-Phase: 13
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-22 — Milestone v0.7 started
 
 ## Performance Metrics
 

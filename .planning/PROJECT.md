@@ -8,6 +8,22 @@
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
+## Current Milestone: v0.7 Визуальный продукт
+
+**Goal:** Полная переработка визуального слоя — из wireframe в дерзкий, уверенный продукт с характером
+
+**Target features:**
+- Дизайн-система с нуля: тема, палитра, типографика с весом, spacing scale, тени, радиусы
+- Splash: hero-секция на весь экран, крупная типографика, визуальная уверенность
+- Registry: заголовок, stats bar, фильтры с весом, rich empty state, таблица с плотностью
+- Карточка документа: breadcrumbs, структурированные блоки, визуальное разделение
+- Шаблоны: карточки с тенями, цветные badges типов, rich empty state
+- Настройки: секции с заголовками и разделителями, визуальная структура
+- Header: визуальный вес, лого-марка, accent CTA
+- Сквозное: footer, transitions, hover states, consistent spacing
+
+**Key context:** Референс — RunPod (дерзость, визуальный вес, hero-секции). Полная переработка, не патчи. Функционал не трогаем — только визуал. DMG/EXE → v0.8.
+
 ## Current State (после v0.6)
 
 **Shipped:** v0.6 UI-редизайн (2026-03-22)
@@ -15,8 +31,6 @@
 - Полная миграция Streamlit → NiceGUI с SPA-архитектурой
 - IBM Plex Sans, slate/indigo палитра, AG Grid, FullCalendar
 - Impeccable design skills прогнаны: /audit, /harden, /normalize, /colorize, /polish, /distill, /onboard, /clarify, /typeset, /extract, /animate, /arrange, /optimize
-
-**Next:** v0.7 Доставка — DMG для macOS, EXE для Windows
 
 ## Codebase
 
@@ -71,9 +85,18 @@
 
 ### Active
 
-- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.7)
-- [ ] Сборка EXE для Windows (v0.7)
-- [ ] Автообновление или уведомление о новых версиях (v0.7)
+- [ ] Полная переработка визуального слоя — дизайн-система, тема, типографика (v0.7)
+- [ ] Hero splash/onboarding с визуальным характером (v0.7)
+- [ ] Registry с визуальной плотностью и rich empty state (v0.7)
+- [ ] Визуально структурированные настройки и шаблоны (v0.7)
+- [ ] Header с визуальным весом, accent CTA, лого-марка (v0.7)
+- [ ] Сквозные микро-детали: footer, transitions, hover states (v0.7)
+
+### Deferred
+
+- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.8)
+- [ ] Сборка EXE для Windows (v0.8)
+- [ ] Автообновление или уведомление о новых версиях (v0.8)
 
 ### Out of Scope
 
@@ -97,7 +120,8 @@
 | 1 | **Архитектура + функционал** | ✅ Завершена (v0.4) |
 | 2 | **Локальная LLM** | ✅ Завершена (v0.5) |
 | 3 | **UI-редизайн** | ✅ Завершена (v0.6) — NiceGUI, реестр-центричная архитектура, Impeccable polish |
-| 4 | DMG/EXE сборка | Доставка конечным пользователям (v0.7) |
+| 4 | **Визуальный продукт** | Полная переработка визуала (v0.7) |
+| 5 | DMG/EXE сборка | Доставка конечным пользователям (v0.8) |
 
 ## Constraints
 
@@ -147,4 +171,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after v0.6 milestone — UI-редизайн shipped*
+*Last updated: 2026-03-22 after v0.7 milestone start — Визуальный продукт*
