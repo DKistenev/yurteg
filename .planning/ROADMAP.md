@@ -132,9 +132,9 @@ Plans:
   3. После загрузки модели splash закрывается, открывается реестр с empty state «Загрузить первые документы»
   4. При повторном запуске splash и wizard не показываются — приложение открывается сразу
   5. После первой обработки запускается guided tour с подсветкой: реестр → фильтры → загрузка
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 12-01-PLAN.md — Splash screen + wizard, main.py splash gate
+- [x] 12-01-PLAN.md — Splash screen + wizard, main.py splash gate
 - [ ] 12-02-PLAN.md — Empty state реестра, guided tour overlay
 
 ### Phase 13: Design Polish + Calendar
@@ -164,5 +164,5 @@ Plans:
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
 | 11. Settings + Templates | v0.6 | 3/3 | Complete    | 2026-03-22 |
-| 12. Onboarding | v0.6 | 0/2 | In progress | - |
+| 12. Onboarding | v0.6 | 1/2 | In Progress|  |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |

@@ -55,10 +55,10 @@
 
 ### Онбординг
 
-- [ ] **ONBR-01**: Splash screen при первом запуске с прогрессом загрузки модели и setup wizard (Telegram, провайдер)
+- [x] **ONBR-01**: Splash screen при первом запуске с прогрессом загрузки модели и setup wizard (Telegram, провайдер)
 - [ ] **ONBR-02**: Empty state реестра при пустой базе — центрированный CTA «Загрузить первые документы»
-- [ ] **ONBR-03**: Флаг «первый запуск» — splash и wizard показываются только один раз, при повторных запусках пропускаются
-- [ ] **ONBR-04**: Краткое описание возможностей приложения на splash screen (что делает ЮрТэг, 2-3 предложения)
+- [x] **ONBR-03**: Флаг «первый запуск» — splash и wizard показываются только один раз, при повторных запусках пропускаются
+- [x] **ONBR-04**: Краткое описание возможностей приложения на splash screen (что делает ЮрТэг, 2-3 предложения)
 - [ ] **ONBR-05**: Guided tour после первой обработки — пошаговая подсветка элементов (реестр → фильтры → загрузка)
 
 ### Дизайн
@@ -122,10 +122,10 @@
 | SETT-03 | Phase 11 | Complete |
 | SETT-04 | Phase 11 | Complete |
 | SETT-05 | Phase 11 | Complete |
-| ONBR-01 | Phase 12 | Pending |
+| ONBR-01 | Phase 12 | Complete |
 | ONBR-02 | Phase 12 | Pending |
-| ONBR-03 | Phase 12 | Pending |
-| ONBR-04 | Phase 12 | Pending |
+| ONBR-03 | Phase 12 | Complete |
+| ONBR-04 | Phase 12 | Complete |
 | ONBR-05 | Phase 12 | Pending |
 | DSGN-01 | Phase 13 | Pending |
 | DSGN-02 | Phase 13 | Pending |

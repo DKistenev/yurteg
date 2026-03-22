@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-22T10:04:28.554Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-22T10:59:18.912Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 11 — settings-templates
+**Current focus:** Phase 12 — onboarding
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
+Phase: 12 (onboarding) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Plan: Not started
 | Phase 11-settings-templates P01 | 5min | 1 tasks | 4 files |
 | Phase 11-settings-templates P02 | 3min | 1 tasks | 1 files |
 | Phase 11-settings-templates P03 | 5min | 1 tasks | 1 files |
+| Phase 12-onboarding P01 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,8 @@ Recent decisions affecting current work:
 - [Phase 11-settings-templates]: SETT-05 покрыт header dropdown в Phase 8 — новый код не нужен
 - [Phase 11-settings-templates]: Settings nav: ui.button + content.clear() — не ui.tabs; API-ключ скрыт для ollama; dot-символ для Telegram статуса
 - [Phase 11-settings-templates]: cards_ref list pattern for forward-reference to container inside NiceGUI closure — avoids nonlocal scope issues
+- [Phase 12-onboarding]: render_splash() как full-page component, не ui.dialog — чистый layout без overlay артефактов
+- [Phase 12-onboarding]: load_settings() вызывается внутри root() per-connection, не на уровне модуля
 
 ### Pending Todos
 
@@ -208,6 +211,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 11-03-PLAN.md
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
