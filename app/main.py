@@ -166,6 +166,11 @@ def root() -> None:
         "/templates": templates.build,
         "/settings": settings.build,
     })
+    # Footer — минимальный, только версия (per CONTEXT.md: «только версия, минимальный»)
+    with ui.element('footer').classes(
+        "w-full py-3 px-8 flex justify-end items-center border-t border-slate-200 bg-white"
+    ):
+        ui.label("ЮрТэг v0.7").classes("text-xs text-slate-400")
 
 
 # ── Redline download route (Phase 9, D-18) ────────────────────────────────────

@@ -70,7 +70,9 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
 
         with ui.grid(columns=2).classes("w-full gap-4"):
             for tmpl in templates:
-                _render_card(tmpl, container, on_add=on_add)
+                # ANIM-02: wrapper div с .card-enter для stagger-эффекта (не на ui.card напрямую)
+                with ui.element('div').classes("card-enter"):
+                    _render_card(tmpl, container, on_add=on_add)
 
 
 def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> None:

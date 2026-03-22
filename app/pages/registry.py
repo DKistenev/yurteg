@@ -183,7 +183,14 @@ def build() -> None:
             file_label = ui.label("").classes("text-xs text-slate-400")
             error_col = ui.column().classes("gap-1")
 
+        # Skeleton loader — показывается до инициализации AG Grid (ANIM-04)
+        skeleton_container = ui.column().classes("w-full px-6 pt-2")
+        with skeleton_container:
+            for _ in range(5):
+                ui.element('div').classes("skeleton-row")
+
         grid_container = ui.column().classes("w-full")
+        grid_container.set_visibility(False)
 
         # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
         calendar_container = ui.column().classes("w-full px-6 py-4")
@@ -457,6 +464,8 @@ def build() -> None:
 
     async def _init() -> None:
         await _refresh_stats()
+        skeleton_container.set_visibility(False)
+        grid_container.set_visibility(True)
         with grid_container:
             grid = await render_registry_table(state)
             grid_ref["grid"] = grid
