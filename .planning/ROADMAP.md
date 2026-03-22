@@ -115,9 +115,9 @@ Plans:
   2. Изменение провайдера сохраняется при потере фокуса и применяется к следующей обработке без перезапуска приложения
   3. Страница «Шаблоны» показывает список существующих шаблонов с операциями добавить / редактировать / удалить
   4. Новый шаблон привязывается к типу документа, и в карточке документа доступен в выпадающем списке при запуске ревью
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 11-01-PLAN.md — Service layer gaps: settings persistence, delete/update template, check_connection
+- [x] 11-01-PLAN.md — Service layer gaps: settings persistence, delete/update template, check_connection
 - [ ] 11-02-PLAN.md — Settings page: left nav + AI/Обработка/Telegram sections
 - [ ] 11-03-PLAN.md — Templates page: card grid with add/edit/delete flows
 
@@ -159,6 +159,6 @@ Plans:
 | 8. Registry View | v0.6 | 3/3 | Complete   | 2026-03-21 |
 | 9. Document Detail Card | v0.6 | 2/2 | Complete   | 2026-03-21 |
 | 10. Pipeline Wiring | v0.6 | 2/2 | Complete    | 2026-03-21 |
-| 11. Settings + Templates | v0.6 | 0/3 | Not started | - |
+| 11. Settings + Templates | v0.6 | 1/3 | In Progress|  |
 | 12. Onboarding | v0.6 | 0/? | Not started | - |
 | 13. Design Polish + Calendar | v0.6 | 0/? | Not started | - |

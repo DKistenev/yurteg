@@ -42,16 +42,16 @@
 ### Шаблоны
 
 - [ ] **TMPL-01**: Отдельный таб «Шаблоны» верхнего уровня
-- [ ] **TMPL-02**: Список шаблонов с операциями создания, редактирования и удаления
+- [x] **TMPL-02**: Список шаблонов с операциями создания, редактирования и удаления
 - [ ] **TMPL-03**: Привязка шаблона к типу документа
 
 ### Настройки
 
 - [ ] **SETT-01**: Отдельная страница «Настройки» с группировкой по секциям
-- [ ] **SETT-02**: Переключение AI-провайдера (ollama / zai / openrouter) с сохранением на blur
+- [x] **SETT-02**: Переключение AI-провайдера (ollama / zai / openrouter) с сохранением на blur
 - [ ] **SETT-03**: Настройка анонимизации (выбор сущностей для маскировки)
-- [ ] **SETT-04**: Настройка Telegram-бота (привязка, статус подключения)
-- [ ] **SETT-05**: Переключение клиента через иконку профиля (top-left)
+- [x] **SETT-04**: Настройка Telegram-бота (привязка, статус подключения)
+- [x] **SETT-05**: Переключение клиента через иконку профиля (top-left)
 
 ### Онбординг
 
@@ -114,13 +114,13 @@
 | PROC-03 | Phase 10 | Complete |
 | PROC-04 | Phase 10 | Complete |
 | TMPL-01 | Phase 11 | Pending |
-| TMPL-02 | Phase 11 | Pending |
+| TMPL-02 | Phase 11 | Complete |
 | TMPL-03 | Phase 11 | Pending |
 | SETT-01 | Phase 11 | Pending |
-| SETT-02 | Phase 11 | Pending |
+| SETT-02 | Phase 11 | Complete |
 | SETT-03 | Phase 11 | Pending |
-| SETT-04 | Phase 11 | Pending |
-| SETT-05 | Phase 11 | Pending |
+| SETT-04 | Phase 11 | Complete |
+| SETT-05 | Phase 11 | Complete |
 | ONBR-01 | Phase 12 | Pending |
 | ONBR-02 | Phase 12 | Pending |
 | ONBR-03 | Phase 12 | Pending |

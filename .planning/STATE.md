@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-21T23:33:56.592Z"
-last_activity: 2026-03-21
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-22T09:57:45.718Z"
+last_activity: 2026-03-22
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 12
+  completed_plans: 10
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-21)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 10 — pipeline-wiring
+**Current focus:** Phase 11 — settings-templates
 
 ## Current Position
 
-Phase: 11
-Plan: Not started
+Phase: 11 (settings-templates) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Plan: Not started
 | Phase 09-document-detail-card P02 | 1min | 2 tasks | 2 files |
 | Phase 10-pipeline-wiring P01 | 2 | 2 tasks | 2 files |
 | Phase 10-pipeline-wiring P02 | 5min | 2 tasks | 2 files |
+| Phase 11-settings-templates P01 | 5min | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -180,6 +181,9 @@ Recent decisions affecting current work:
 - [Phase 10-pipeline-wiring]: on_upload passed as render_header() argument (not stored in AppState) — cleaner typing, no mutable callback in dataclass
 - [Phase 10-pipeline-wiring]: Table refresh deferred to pipeline completion (not per-file) — avoids WebSocket flood at 20+ files
 - [Phase 10-pipeline-wiring]: state._on_upload dynamic attribute bridges callback from registry's build() to main.py — avoids threading callback through ui.sub_pages routing
+- [Phase 11-settings-templates]: load_settings/save_setting в config.py как module-level функции, не методы Config — Config dataclass, persistence отдельная ответственность
+- [Phase 11-settings-templates]: save_setting мерджит в существующий JSON, не перезаписывает — позволяет обновлять отдельные ключи независимо
+- [Phase 11-settings-templates]: SETT-05 покрыт header dropdown в Phase 8 — новый код не нужен
 
 ### Pending Todos
 
@@ -199,7 +203,7 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-21
-Stopped at: Completed 10-02-PLAN.md
+Last activity: 2026-03-22
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
