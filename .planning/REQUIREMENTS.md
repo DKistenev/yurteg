@@ -30,12 +30,12 @@
 
 ### Registry
 
-- [ ] **REGI-01**: Stats bar над реестром (документы · истекают · требуют внимания)
-- [ ] **REGI-02**: Filled semantic status badges (green/amber/red) вместо text-only
-- [ ] **REGI-03**: AG Grid theming через --ag-* CSS variables с .ag-theme-quartz scope
+- [x] **REGI-01**: Stats bar над реестром (документы · истекают · требуют внимания)
+- [x] **REGI-02**: Filled semantic status badges (green/amber/red) вместо text-only
+- [x] **REGI-03**: AG Grid theming через --ag-* CSS variables с .ag-theme-quartz scope
 - [ ] **REGI-04**: Rich empty state — мощный CTA с визуальным якорем и карточками возможностей
-- [ ] **REGI-05**: Заголовок «Документы» с визуальным весом
-- [ ] **REGI-06**: Фильтр-бар с визуальным весом — segment buttons с filled active state
+- [x] **REGI-05**: Заголовок «Документы» с визуальным весом
+- [x] **REGI-06**: Фильтр-бар с визуальным весом — segment buttons с filled active state
 
 ### Карточка документа
 
@@ -102,12 +102,12 @@
 | SPLS-01 | Phase 15 | Complete |
 | SPLS-02 | Phase 15 | Complete |
 | SPLS-03 | Phase 15 | Complete |
-| REGI-01 | Phase 16 | Pending |
-| REGI-02 | Phase 16 | Pending |
-| REGI-03 | Phase 16 | Pending |
+| REGI-01 | Phase 16 | Complete |
+| REGI-02 | Phase 16 | Complete |
+| REGI-03 | Phase 16 | Complete |
 | REGI-04 | Phase 16 | Pending |
-| REGI-05 | Phase 16 | Pending |
-| REGI-06 | Phase 16 | Pending |
+| REGI-05 | Phase 16 | Complete |
+| REGI-06 | Phase 16 | Complete |
 | CARD-01 | Phase 16 | Complete |
 | CARD-02 | Phase 16 | Complete |
 | CARD-03 | Phase 16 | Complete |

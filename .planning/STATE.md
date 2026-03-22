@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
 status: Ready to execute
-stopped_at: Completed 16-registry-card/16-03-PLAN.md
-last_updated: "2026-03-22T19:43:21.634Z"
+stopped_at: Completed 16-registry-card/16-01-PLAN.md
+last_updated: "2026-03-22T19:43:55.678Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 ## Current Position
 
 Phase: 16 (Registry + Card) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Plan: 2 of 3
 | Phase 14-header P02 | 5 | 1 tasks | 1 files |
 | Phase 15-splash P01 | 5 | 1 tasks | 1 files |
 | Phase 16-registry-card P03 | 8 | 2 tasks | 2 files |
+| Phase 16-registry-card P01 | 7 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,9 @@ Recent decisions affecting current work:
 - [Phase 15-splash]: NiceGUI текст в произвольных HTML-тегах — через ui.html() внутри with-блока, не .text атрибут
 - [Phase 16-registry-card]: amber-500 (#f59e0b) для AI-ревью accent — контрастирует с indigo, визуально маркирует AI-контент
 - [Phase 16-registry-card]: Section dividers через plain ui.label с SECTION_DIVIDER_HEADER — не через ui.card wrapper
+- [Phase 16-registry-card]: AG Grid theming via .ag-theme-quartz with --ag-* CSS variables mapped from --yt-* tokens (no @layer)
+- [Phase 16-registry-card]: Status pill class names are API contracts — do not rename (status-active etc.)
+- [Phase 16-registry-card]: Pitfall 7 guard: disable .ag-row animation before segment filter to prevent replay
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 16-registry-card/16-03-PLAN.md
+Stopped at: Completed 16-registry-card/16-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14

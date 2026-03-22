@@ -104,7 +104,7 @@ Plans:
   6. Rich empty state с CTA и описанием возможностей
 **Plans**: 3 plans
 Plans:
-- [ ] 16-01-PLAN.md — AG Grid theming + filled status pills + stats bar + heading + filter bar (REGI-01,02,03,05,06)
+- [x] 16-01-PLAN.md — AG Grid theming + filled status pills + stats bar + heading + filter bar (REGI-01,02,03,05,06)
 - [ ] 16-02-PLAN.md — rich empty state с CTA и тремя карточками возможностей (REGI-04)
 - [x] 16-03-PLAN.md — документ карточка: breadcrumbs, section dividers, amber AI-ревью, timeline версий (CARD-01,02,03)
 **UI hint**: yes
@@ -145,5 +145,5 @@ Plans:
 | 13. Design Polish + Calendar | v0.6 | 4/4 | Complete | 2026-03-22 |
 | 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
 | 15. Splash | v0.7 | 1/1 | Complete    | 2026-03-22 |
-| 16. Registry + Card | v0.7 | 1/3 | In Progress|  |
+| 16. Registry + Card | v0.7 | 2/3 | In Progress|  |
 | 17. Полировка: templates, settings, анимации | v0.7 | 0/TBD | Not started | - |
