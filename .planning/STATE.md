@@ -64,6 +64,16 @@ Recent decisions affecting current work:
 - [v0.7 Review]: TMPL-01 переписан — color-coded accent + type icon, не generic shadow+rounded
 - [v0.7 Review]: CARD-03 переписан — визуально различимые блоки (метаданные ≠ ревью ≠ версии)
 - [v0.7 Review]: DSGN-03 дополнен ролевым маппингом типографики (hero/title/section/body)
+- [v0.7 Gray Zone]: Фон контентных зон = slate-100 (#f1f5f9) — белые карточки «всплывают» над фоном
+- [v0.7 Gray Zone]: Лого-марка = indigo квадрат rounded-lg с белой «Ю» внутри (как Slack/Notion)
+- [v0.7 Gray Zone]: Nav header переименовать «Документы» → «Реестр»; остальное без изменений
+- [v0.7 Gray Zone]: Splash = wizard 2 шага (приветствие → Telegram), но с hero-дизайном
+- [v0.7 Gray Zone]: Прогресс-бар модели GGUF остаётся на splash
+- [v0.7 Gray Zone]: Stats bar = на светлом фоне страницы, крупный шрифт, не тёмная полоса
+- [v0.7 Gray Zone]: Empty state реестра = CTA «Выбрать папку» + 3 пункта что произойдёт
+- [v0.7 Gray Zone]: AI-ревью accent = amber/orange (на моё усмотрение, отличать AI от фактов)
+- [v0.7 Gray Zone]: Footer = только версия, минимальный
+- [v0.7 Gray Zone]: Page transitions = на моё усмотрение (fade или slide)
 
 ### Pending Todos
 
