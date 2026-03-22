@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-22T09:57:45.718Z"
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-22T10:00:55.742Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 12
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-21)
 ## Current Position
 
 Phase: 11 (settings-templates) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -84,6 +84,8 @@ Plan: 2 of 3
 | Phase 10-pipeline-wiring P01 | 2 | 2 tasks | 2 files |
 | Phase 10-pipeline-wiring P02 | 5min | 2 tasks | 2 files |
 | Phase 11-settings-templates P01 | 5min | 1 tasks | 4 files |
+| Phase 11-settings-templates P02 | 3min | 1 tasks | 1 files |
+| Phase 11-settings-templates P03 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -184,6 +186,8 @@ Recent decisions affecting current work:
 - [Phase 11-settings-templates]: load_settings/save_setting в config.py как module-level функции, не методы Config — Config dataclass, persistence отдельная ответственность
 - [Phase 11-settings-templates]: save_setting мерджит в существующий JSON, не перезаписывает — позволяет обновлять отдельные ключи независимо
 - [Phase 11-settings-templates]: SETT-05 покрыт header dropdown в Phase 8 — новый код не нужен
+- [Phase 11-settings-templates]: Settings nav: ui.button + content.clear() — не ui.tabs; API-ключ скрыт для ollama; dot-символ для Telegram статуса
+- [Phase 11-settings-templates]: cards_ref list pattern for forward-reference to container inside NiceGUI closure — avoids nonlocal scope issues
 
 ### Pending Todos
 
@@ -204,6 +208,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 11-01-PLAN.md
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
