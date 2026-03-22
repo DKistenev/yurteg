@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7
-milestone_name: Визуальный продукт
-status: v0.7 milestone complete
-stopped_at: Completed 17-polish/17-03-PLAN.md
-last_updated: "2026-03-22T20:17:29.097Z"
+milestone: v0.7.1
+milestone_name: UI Polish & Fixes
+status: planning
+stopped_at: null
+last_updated: "2026-03-22T23:00:00.000Z"
 last_activity: 2026-03-22
 progress:
-  total_phases: 4
-  completed_phases: 3
-  total_plans: 10
-  completed_plans: 9
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State

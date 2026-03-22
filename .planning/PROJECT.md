@@ -84,7 +84,17 @@
 - ✓ Settings: structured sections, sidebar active state — v0.7
 - ✓ Skeleton loading, card stagger, page fade, footer — v0.7
 
+## Current Milestone: v0.7.1 UI Polish & Fixes
+
+**Goal:** Починить все проблемы из аудита v0.7 — layout, onboarding, demo-данные, баги
+
 ### Active
+
+- [ ] Fix layout: центрирование всех страниц, stats bar, footer (v0.7.1)
+- [ ] Guided tour + кнопка повторного запуска + demo-данные (v0.7.1)
+- [ ] Лого «Юр» + visual polish (v0.7.1)
+
+### Deferred
 
 - [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.8)
 - [ ] Сборка EXE для Windows (v0.8)
@@ -168,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after v0.7 milestone — Визуальный продукт shipped*
+*Last updated: 2026-03-22 after v0.7.1 milestone start — UI Polish & Fixes*
