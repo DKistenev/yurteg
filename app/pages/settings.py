@@ -6,7 +6,7 @@ Phase 11, Plan 02.
 """
 from nicegui import run, ui
 
-from app.styles import TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY
+from app.styles import TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY, SECTION_DIVIDER_HEADER
 from config import load_settings, save_setting
 from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
@@ -35,14 +35,14 @@ def build() -> None:
     with ui.row().classes("w-full min-h-screen gap-0"):
         # --- Левая навигация ---
         with ui.column().classes(
-            "w-48 min-h-screen border-r border-slate-200 bg-slate-50 p-3 gap-1.5"
+            "w-52 min-h-screen border-r border-slate-200 bg-white p-4 gap-1"
         ):
             ui.label("Настройки").classes(
-                TEXT_LABEL_SECTION + " px-3 py-2"
+                SECTION_DIVIDER_HEADER + " px-1 mb-2"
             )
             for section in _NAV_ITEMS:
                 btn = ui.button(section).props("flat no-caps").classes(
-                    "w-full text-left justify-start text-slate-600 bg-transparent px-3 py-2 rounded-lg transition-colors duration-150 hover:bg-slate-50"
+                    "w-full text-left justify-start text-slate-600 bg-transparent px-3 py-2 rounded-lg transition-colors duration-150"
                 )
                 nav_buttons[section] = btn
 
@@ -56,13 +56,13 @@ def build() -> None:
         for name, btn in nav_buttons.items():
             if name == section:
                 btn.classes(
-                    remove="text-slate-600 bg-transparent",
-                    add="text-slate-900 bg-white shadow-sm rounded-lg",
+                    remove="text-slate-600 bg-transparent hover:bg-slate-100",
+                    add="text-indigo-700 bg-indigo-50 rounded-lg font-medium",
                 )
             else:
                 btn.classes(
-                    remove="text-slate-900 bg-white shadow-sm rounded-lg",
-                    add="text-slate-600 bg-transparent",
+                    remove="text-indigo-700 bg-indigo-50 font-medium",
+                    add="text-slate-600 hover:bg-slate-100 bg-transparent",
                 )
         content.clear()
         with content:
@@ -77,19 +77,17 @@ def build() -> None:
     for section in _NAV_ITEMS:
         nav_buttons[section].on_click(lambda s=section: _switch(s))
 
-    # Инициализация — открываем ИИ секцию
-    _switch("ИИ")
-
     # --- Секция AI ---
 
     def _render_ai_section() -> None:
         s = load_settings()
         current_provider = s.get("active_provider", "ollama")
 
-        ui.label("ИИ-помощник").classes(TEXT_HEADING)
+        ui.label("ИИ-помощник").classes(TEXT_HEADING + " mb-1")
         ui.label(
-            "Выберите модель для извлечения метаданных из документов."
-        ).classes(TEXT_SECONDARY)
+            "Выберите провайдера для извлечения метаданных из документов. Локальная модель работает без интернета и бесплатна."
+        ).classes(TEXT_SECONDARY + " mb-4")
+        ui.element('div').classes("border-t border-slate-200 w-full mb-4")
 
         # API key row — показываем только для облачных провайдеров
         api_key_row = ui.row().classes("w-full items-center gap-3")
@@ -134,10 +132,11 @@ def build() -> None:
         saved_types = s.get("anonymize_types")
         current_types: set[str] = set(saved_types) if saved_types is not None else all_keys
 
-        ui.label("Защита данных").classes(TEXT_HEADING)
+        ui.label("Защита данных").classes(TEXT_HEADING + " mb-1")
         ui.label(
-            "Какие персональные данные скрывать перед отправкой на обработку:"
-        ).classes(TEXT_SECONDARY + " mb-2")
+            "Выберите, какие персональные данные скрывать перед отправкой на обработку ИИ."
+        ).classes(TEXT_SECONDARY + " mb-4")
+        ui.element('div').classes("border-t border-slate-200 w-full mb-4")
 
         def _on_checkbox_change(key: str, checked: bool) -> None:
             if checked:
@@ -153,9 +152,7 @@ def build() -> None:
                 on_change=lambda e, k=key: _on_checkbox_change(k, e.value),
             ).classes("text-sm text-slate-700")
 
-        ui.separator().classes("my-4")
-
-        ui.label("Предупреждения").classes("text-base font-semibold text-slate-900 mt-4")
+        ui.label("Предупреждения").classes(SECTION_DIVIDER_HEADER + " mt-4")
         warning_days = s.get("warning_days", 30)
         inp = ui.number(
             label="За сколько дней предупреждать об истечении",
@@ -173,10 +170,11 @@ def build() -> None:
     def _render_telegram_section() -> None:
         s = load_settings()
 
-        ui.label("Уведомления в Telegram").classes(TEXT_HEADING)
+        ui.label("Уведомления в Telegram").classes(TEXT_HEADING + " mb-1")
         ui.label(
             "Подключите бота, чтобы получать напоминания об истекающих договорах прямо в мессенджер."
-        ).classes(TEXT_SECONDARY)
+        ).classes(TEXT_SECONDARY + " mb-4")
+        ui.element('div').classes("border-t border-slate-200 w-full mb-4")
 
         url_inp = (
             ui.input(
@@ -226,3 +224,6 @@ def build() -> None:
             ui.button(
                 "Проверить подключение", on_click=_check_telegram
             ).props("flat no-caps size=sm").classes("text-slate-600")
+
+    # Инициализация — открываем ИИ секцию (после определения всех render-функций)
+    _switch("ИИ")
