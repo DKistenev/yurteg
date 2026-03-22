@@ -23,6 +23,7 @@ from nicegui import run, ui
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
 from app.components.ui_helpers import empty_state
+from app.demo_data import insert_demo_contracts
 from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL, BTN_ACCENT_FILLED
 from app.components.registry_table import (
     load_table_data,
@@ -94,6 +95,23 @@ def _render_empty_state(container, state) -> None:
                 "Выбрать папку",
                 on_click=_on_pick_folder,
             ).classes(BTN_ACCENT_FILLED + " text-base px-8 py-3").props('aria-label="Выбрать папку с документами"')
+
+            # ── Demo data button — subtle, не конкурирует с основным CTA ─────
+            async def _on_load_demo():
+                db = _client_manager.get_db(state.current_client)
+                count = await run.io_bound(insert_demo_contracts, db)
+                if count > 0:
+                    ui.notify(f"Загружено {count} тестовых документов", type="positive")
+                else:
+                    ui.notify("Тестовые данные уже загружены", type="info")
+                ui.navigate.to("/")
+
+            ui.button(
+                "Загрузить тестовые данные",
+                on_click=_on_load_demo,
+            ).props('flat no-caps aria-label="Загрузить демо-документы для тестирования"').classes(
+                "text-sm text-slate-500 hover:text-indigo-600 transition-colors duration-150"
+            )
 
             # ── Три карточки возможностей ─────────────────────────────────────
             with ui.row().classes("gap-4 w-full max-w-2xl justify-center flex-wrap"):

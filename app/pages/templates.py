@@ -76,6 +76,49 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                     ui.button(
                         "Добавить первый шаблон", on_click=on_add
                     ).classes(BTN_ACCENT_FILLED).props('no-caps aria-label="Добавить первый шаблон договора"')
+
+            # ── Demo карточка — показывает как выглядит шаблон (PLSH-05) ─────
+            with ui.column().classes("w-full mt-6 gap-2 items-center"):
+                ui.label("Так выглядит шаблон:").classes(
+                    "text-xs font-semibold text-slate-400 uppercase tracking-wide text-center"
+                )
+                colors = TMPL_TYPE_COLORS.get("Договор аренды", TMPL_TYPE_DEFAULT)
+                # Greyed-out версия карточки — opacity + pointer-events-none
+                with ui.element("div").style(
+                    "opacity:0.45;pointer-events:none;max-width:420px;width:100%"
+                ):
+                    with ui.card().classes(
+                        "overflow-hidden border border-slate-200 shadow-none rounded-xl w-full"
+                    ).style("padding:0"):
+                        with ui.row().classes("w-full gap-0"):
+                            # 4px color bar
+                            with ui.element("div").style(
+                                f"width:4px;background:{colors['border']};"
+                                f"border-radius:12px 0 0 12px;flex-shrink:0"
+                            ):
+                                pass
+                            with ui.column().classes("p-5 gap-1 flex-1"):
+                                with ui.row().classes("items-center gap-2 mb-1"):
+                                    ui.html(f'<span style="font-size:1.1rem">{colors["icon"]}</span>')
+                                    ui.label("Договор аренды офиса").classes(
+                                        "font-semibold text-slate-900 text-sm"
+                                    )
+                                badge_html = (
+                                    f'<span style="display:inline-flex;align-items:center;'
+                                    f'padding:2px 8px;border-radius:9999px;font-size:0.7rem;'
+                                    f'font-weight:600;background:{colors["badge_bg"]};'
+                                    f'color:{colors["badge_text"]}">'
+                                    f'{colors["icon"]} Договор аренды</span>'
+                                )
+                                ui.html(badge_html)
+                                ui.label(
+                                    "Настоящий договор аренды нежилого помещения заключён между "
+                                    "арендодателем и арендатором на условиях, изложенных ниже..."
+                                ).classes("text-xs text-slate-400 mt-2 line-clamp-2")
+                                ui.label("12 января 2025").classes("text-xs text-slate-300 mt-1")
+                ui.label("Пример — после добавления шаблона карточка будет настоящей").classes(
+                    "text-xs text-slate-400 text-center"
+                )
             return
 
         with ui.grid(columns=2).classes("w-full gap-4"):
