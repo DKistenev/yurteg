@@ -31,7 +31,7 @@ BTN_FLAT = "text-sm text-slate-400 hover:text-slate-600"
 # ── Segment toggle ────────────────────────────────────────────────────────────
 
 SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
-SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
+SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors duration-150"
 
 # ── View toggle (list/calendar) ───────────────────────────────────────────────
 
