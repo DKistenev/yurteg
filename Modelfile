@@ -1,0 +1,11 @@
+FROM /Users/danilakistenev/.cache/huggingface/hub/models--SuperPuperD--yurteg-1.5b-v3-gguf/snapshots/ced3f576d9102453768eb540997d6ff55e3aa1ce/yurteg-v3-Q4_K_M.gguf
+
+PARAMETER temperature 0.05
+PARAMETER min_p 0.05
+PARAMETER top_p 1.0
+PARAMETER repeat_penalty 1.1
+PARAMETER num_ctx 4096
+PARAMETER num_predict 512
+
+SYSTEM """Извлеки метаданные из юридического документа. Ответ строго на русском языке.
+Отсутствующие данные — null. Даты — YYYY-MM-DD. ФИО — именительный падеж."""

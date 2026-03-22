@@ -1,0 +1,79 @@
+# ============================================================
+# ЮрТэг — DPO v2 Fine-Tuning Config для RunPod/Axolotl
+# ЗАПУСКАТЬ ПОСЛЕ SFT v2! Берёт SFT-адаптер и дополирует
+# Датасет: 75 DPO-пар, 5 категорий ошибок, tool call формат
+# ============================================================
+
+# --- Модель (та же база + SFT v2 адаптер) ---
+base_model: Qwen/Qwen2.5-1.5B-Instruct
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+
+# Загрузить SFT v2 LoRA-адаптер
+lora_model_dir: ./outputs/yurteg-qwen2.5-1.5b-sft-v2
+
+# --- Квантизация ---
+load_in_8bit: false
+load_in_4bit: true
+
+# --- DPO датасет ---
+rl: dpo
+datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template.default
+    chat_template: tokenizer_default
+    field_messages: prompt
+    roles_to_train:
+      - assistant
+    data_files:
+      - dpo_train.jsonl
+
+val_set_size: 0
+val_datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template.default
+    chat_template: tokenizer_default
+    field_messages: prompt
+    data_files:
+      - dpo_val.jsonl
+
+# --- Результат ---
+output_dir: ./outputs/yurteg-qwen2.5-1.5b-dpo-v2
+
+# --- LoRA ---
+adapter: qlora
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lora_target_linear: true
+
+# --- Обучение (осторожнее, DPO — тонкая настройка) ---
+sequence_len: 4096
+sample_packing: false
+micro_batch_size: 1
+gradient_accumulation_steps: 4
+num_epochs: 3
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.00005
+warmup_ratio: 0.1
+weight_decay: 0.01
+
+# --- Точность ---
+bf16: auto
+tf32: true
+
+# --- Оптимизация ---
+gradient_checkpointing: true
+flash_attention: true
+
+# --- Логирование ---
+logging_steps: 1
+evals_per_epoch: 2
+saves_per_epoch: 1
+save_total_limit: 2
+
+seed: 42
+
+special_tokens:
+  pad_token: "<|endoftext|>"

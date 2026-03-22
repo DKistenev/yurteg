@@ -81,7 +81,7 @@ def render_tour(on_complete: Callable) -> None:
     # Tooltip max-width in px (matches positionTooltip calc)
     TW = 300
 
-    tour_html = f"""
+    tour_overlay_html = f"""
 <div id="tour-overlay" style="
     position: fixed;
     inset: 0;
@@ -102,8 +102,9 @@ def render_tour(on_complete: Callable) -> None:
     box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1);
     display: none;
 "></div>
+"""
 
-<script>
+    tour_script = f"""<script>
 (function() {{
     const STEPS = {steps_js};
     let currentStep = 0;
@@ -243,4 +244,5 @@ def render_tour(on_complete: Callable) -> None:
 </script>
 """
 
-    ui.html(tour_html)
+    ui.html(tour_overlay_html)
+    ui.add_body_html(tour_script)

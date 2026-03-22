@@ -111,7 +111,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
     var path = window.location.pathname;
     document.querySelectorAll('a[data-path]').forEach(function(el) {
       var elPath = el.getAttribute('data-path');
-      var isActive = (path === elPath) || (path === '/' && elPath === '/');
+      var isActive = (path === elPath);
       el.style.color = isActive ? '#ffffff' : '';
       el.style.borderBottomColor = isActive ? '#4f46e5' : 'transparent';
       el.style.fontWeight = isActive ? '600' : '500';
@@ -119,7 +119,19 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
   }
   updateNav();
   window.addEventListener('popstate', updateNav);
+  window.addEventListener('hashchange', updateNav);
   document.addEventListener('nicegui:navigate', updateNav);
+  // Intercept pushState/replaceState for SPA navigation
+  var _push = history.pushState;
+  history.pushState = function() {
+    _push.apply(history, arguments);
+    updateNav();
+  };
+  var _replace = history.replaceState;
+  history.replaceState = function() {
+    _replace.apply(history, arguments);
+    updateNav();
+  };
 })();
 </script>
 """)
@@ -139,7 +151,7 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     """Диалог добавления нового клиента."""
     menu.close()
 
-    with ui.dialog() as dlg, ui.card().classes("p-0 min-w-[420px] overflow-hidden shadow-xl"):
+    with ui.dialog() as dlg, ui.card().classes("p-0 min-w-[420px] max-w-[520px] overflow-hidden shadow-xl"):
         # Заголовок с indigo-полосой
         with ui.element("div").style(
             "background:#4f46e5;padding:20px 24px 16px;"

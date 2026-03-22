@@ -70,30 +70,32 @@ COLUMN_DEFS = [
     {
         "headerName": "",
         "field": "has_children",
+        "maxWidth": 40,
         "width": 40,
         "sortable": False,
         "filter": False,
         "resizable": False,
         "cellRenderer": _EXPAND_CELL_RENDERER,
+        "suppressSizeToFit": True,
     },
     {
         "headerName": "Тип документа",
         "field": "contract_type",
-        "flex": 2,
+        "minWidth": 180,
         "filter": "agTextColumnFilter",
         "sortable": True,
     },
     {
         "headerName": "Контрагент",
         "field": "counterparty",
-        "flex": 2,
+        "minWidth": 180,
         "filter": "agTextColumnFilter",
         "sortable": True,
     },
     {
         "headerName": "Статус",
         "field": "computed_status",
-        "width": 160,
+        "minWidth": 180,
         "sortable": True,
         "filter": "agTextColumnFilter",
         "cellRenderer": STATUS_CELL_RENDERER,
@@ -101,7 +103,7 @@ COLUMN_DEFS = [
     {
         "headerName": "Сумма",
         "field": "amount",
-        "width": 140,
+        "minWidth": 150,
         "sortable": True,
         "filter": "agTextColumnFilter",
         "cellStyle": {"fontVariantNumeric": "tabular-nums"},
@@ -373,17 +375,17 @@ async def render_registry_table(state: "AppState"):
         {
             "columnDefs": COLUMN_DEFS,
             "rowData": [],
-            "domLayout": "autoHeight",
             "defaultColDef": {
                 "sortable": True,
                 "resizable": True,
             },
             "rowSelection": "single",
             "pagination": True,
-            "paginationAutoPageSize": True,
-            "suppressPropertyNamesCheck": True,
-        }
-    ).classes("w-full")
+            "paginationPageSize": 20,
+        },
+        html_columns=[3],  # Status column (index 3) renders HTML from cellRenderer
+        theme="quartz",
+    ).classes("w-full").style("height: 520px;")
 
     return grid
 

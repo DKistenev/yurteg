@@ -127,10 +127,16 @@ ui.add_head_html("""
 """, shared=True)
 
 # Content area background — не белый (DSGN-05)
+# min-h-screen + flex col on nicegui-content pushes footer to bottom
 ui.add_head_html("""
 <style>
   body { background: var(--yt-surface-bg) !important; }
-  .nicegui-content { background: var(--yt-surface-bg); }
+  .nicegui-content {
+    background: var(--yt-surface-bg);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
 </style>
 """, shared=True)
 
@@ -160,15 +166,16 @@ def root() -> None:
             await state._on_upload(path)
 
     render_header(state, on_upload=_handle_upload)
-    ui.sub_pages({
-        "/": registry.build,
-        "/document/{doc_id}": document.build,
-        "/templates": templates.build,
-        "/settings": settings.build,
-    })
+    with ui.column().classes("flex-1 w-full"):
+        ui.sub_pages({
+            "/": registry.build,
+            "/document/{doc_id}": document.build,
+            "/templates": templates.build,
+            "/settings": settings.build,
+        })
     # Footer — минимальный, только версия (per CONTEXT.md: «только версия, минимальный»)
     with ui.element('footer').classes(
-        "w-full py-3 px-8 flex justify-center items-center border-t border-slate-200 bg-white"
+        "w-full py-3 px-8 flex justify-center items-center border-t border-slate-200 bg-white shrink-0"
     ):
         ui.label("ЮрТэг v0.7.1").classes("text-xs text-slate-400")
 

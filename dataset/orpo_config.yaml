@@ -1,0 +1,79 @@
+# ============================================================
+# ЮрТэг — ORPO v3 Config для RunPod/Axolotl
+# Два датасета: SFT (705) + Preference pairs (381)
+# Формат: Qwen-native tool call, короткий промпт
+# ============================================================
+
+# --- Модель ---
+base_model: Qwen/Qwen2.5-1.5B-Instruct
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+
+# --- Квантизация (QLoRA 4-bit) ---
+load_in_8bit: false
+load_in_4bit: true
+
+# --- ORPO режим ---
+rl: orpo
+orpo_alpha: 0.2
+
+# --- Датасет (единый: preference + SFT-as-preference) ---
+chat_template: tokenizer_default
+
+datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template.argilla
+    data_files:
+      - v3_preference_train.jsonl
+
+val_set_size: 0
+val_datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template.argilla
+    data_files:
+      - v3_preference_val.jsonl
+
+# --- Результат ---
+output_dir: ./outputs/yurteg-qwen2.5-1.5b-orpo-v3
+
+# --- LoRA ---
+adapter: qlora
+lora_r: 64
+lora_alpha: 128
+lora_dropout: 0.05
+lora_target_linear: true
+
+# --- Длина и упаковка ---
+sequence_len: 4096
+sample_packing: false
+pad_to_sequence_len: true
+train_on_inputs: false
+
+# --- Обучение ---
+micro_batch_size: 1
+gradient_accumulation_steps: 8
+num_epochs: 5
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.00008
+warmup_ratio: 0.1
+weight_decay: 0.01
+
+# --- Точность ---
+bf16: auto
+tf32: true
+
+# --- Оптимизация ---
+gradient_checkpointing: true
+flash_attention: true
+
+# --- Логирование ---
+logging_steps: 5
+evals_per_epoch: 4
+saves_per_epoch: 1
+save_total_limit: 3
+
+seed: 42
+
+special_tokens:
+  pad_token: "<|endoftext|>"

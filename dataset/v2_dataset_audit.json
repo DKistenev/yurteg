@@ -1,0 +1,18 @@
+{
+  "audit_summary": {
+    "total_examples": 660,
+    "examples_with_non_russian_content": 0,
+    "percentage": "0.0%",
+    "note": "All 660 examples contain only tool_call structures (JSON responses). No plain text outside tool_call detected. Tool calls are technical structures and inherently contain JSON keys/values with English terms (name, arguments, document_type, counterparty, subject, etc.), which are necessary structural elements and not model-generated natural language."
+  },
+  "problems": [],
+  "methodology": {
+    "excluded": "tool_call XML tags and their contents",
+    "checked_for": [
+      "English words (3+ letters, excluding enum: once/monthly/quarterly/yearly/income/expense/null/true/false)",
+      "Chinese characters (Unicode CJK range)",
+      "Latin abbreviations (2+ uppercase letters)"
+    ],
+    "result": "Clean dataset - no non-Russian content found in natural language responses"
+  }
+}

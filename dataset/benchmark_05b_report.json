@@ -1,0 +1,2050 @@
+{
+  "timestamp": "2026-03-22 18:50:09",
+  "summary_05b": {
+    "label": "Qwen 0.5B (база)",
+    "total": 60,
+    "clean": 0,
+    "clean_pct": 0.0,
+    "crashes": 4,
+    "code_switch": 71,
+    "chinese": 0,
+    "format_errors": 0,
+    "empty_type": 56,
+    "bad_date": 0,
+    "avg_time": 7.3,
+    "min_time": 2.9,
+    "max_time": 17.1
+  },
+  "summary_15b": {
+    "label": "Qwen 1.5B v3 (ORPO) — из прошлого теста",
+    "clean": 51,
+    "total": 60,
+    "clean_pct": 85.0,
+    "crashes": 0,
+    "code_switch": 0,
+    "chinese": 0,
+    "avg_time": 19.6
+  },
+  "results_05b": [
+    {
+      "file": "01_трёхсторонний.txt",
+      "time": 8.2,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: True",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Объект",
+        "date_signed": "2025-01-15",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "8 500 000 руб.",
+          "20% НДС",
+          "40% промежуточный платёж",
+          "30% окончательный расчёт"
+        ],
+        "parties": [
+          "ООО «АльфаСтрой»",
+          "ООО «БетаТех»",
+          "АО «ГаммаФинанс»"
+        ],
+        "confidence": 0.9,
+        "is_template": true,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "02_ип_форматы.txt",
+      "time": 10.5,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Услуги",
+        "date_signed": "2025-02-03",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "380 000 (триста восемьдесят тысяч)",
+          "190 000 рублей"
+        ],
+        "parties": [
+          "ИП Захаров Р.В.",
+          "ОГРНИП 321237500123456",
+          "ИНН 231234567890",
+          "р/с 40802810900000007890"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "03_шаблон.txt",
+      "time": 8.1,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор о закупке",
+        "counterparty": null,
+        "subject": "Услуги",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1.1. Исполнитель обязуется по заданию Заказчика оказать следующие услуги: _____________________________________________________________ (далее — «Услуги»), а Заказчик обязуется принять и оплатить Услуги в порядке и на условиях настоящего Договора."
+        ],
+        "parties": [
+          "Исполнитель",
+          "Заказчик"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "04_гпх_похож_на_трудовой.txt",
+      "time": 9.6,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в special_conditions: ['разработка программного обеспечения для внутренней ERP-сис",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Услуги",
+        "date_signed": "2025-10-15",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "разработка программного обеспечения для внутренней ERP-системы Заказчика",
+          "техническая поддержка пользователей на рабочих местах (понедельник — пятница)",
+          " участие в ежедневных совещаниях команды разработки в 09:30",
+          "ведение технической документации согласно корпоративным стандартам Заказчика"
+        ],
+        "parties": [
+          "ООО «ДигиталСофт»",
+          "Никитин Илья Андреевич"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "05_трудовой.txt",
+      "time": 10.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Трудовой договор",
+        "counterparty": null,
+        "subject": "Договор поставки",
+        "date_signed": "1304-01-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "85 000 (восемьдесят пять тысяч)",
+          "25%",
+          "21 250 рублей в месяц"
+        ],
+        "parties": [
+          "ООО «СибирьАгро», ОГРН 1025400123456, ИНН 5401234567",
+          "Туманов Григорий Евгеньевич"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "06_найм_жилья.txt",
+      "time": 11.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Квартира",
+        "date_signed": "2025-03-31",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "35 000 (тридцать пять тысяч) рублей",
+          "35 000 (тридцати пяти тысяч) рублей"
+        ],
+        "parties": [
+          "Смирнов Виктор Олегович",
+          "Орлова Анастасия Дмитриевна"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "07_сложные_платежи.txt",
+      "time": 17.1,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор аренды",
+        "counterparty": null,
+        "subject": "Помещение",
+        "date_signed": "2025-03-01",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "280 000 (двести восемьдесят тысяч) рублей в месяц, в том числе НДС 20% — 46 666,67 рублей",
+          "45 000 — 60 000 рублей в месяц в зависимости от сезона",
+          "840 000 (восемьсот сорок тысяч) рублей (в том числе НДС 20% — 140 000 рублей)",
+          "3 (трёх) месячных постоянных арендных плат",
+          "8500 рублей в месяц (НДС не предусмотрен, поскольку услуга оказывается третьей организацией напрямую)"
+        ],
+        "parties": [
+          "ООО «КазаньРиэлти»",
+          "ООО «Кулинарный Дом”"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "08_длинный.txt",
+      "time": 27.6,
+      "issues": [
+        "CRASH"
+      ],
+      "response": null
+    },
+    {
+      "file": "09_расписка.txt",
+      "time": 5.5,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в subject: Toyota Camry",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Toyota Camry",
+        "date_signed": "2025-03-12",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "150 000 (ста пятидесяти тысяч) рублей"
+        ],
+        "parties": [
+          "Власов Антон Геннадьевич",
+          "Крылова Павла Иванович"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "10_ocr_мусор.txt",
+      "time": 7.9,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Д0Г0В0Р ОКАЗАНИЯ УСЛУГ N9 77/2О25",
+        "date_signed": "2025-12-31",
+        "date_start": "2025-02-08",
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "г. Самара",
+          "ул. Пятая просека, д. 9О"
+        ],
+        "parties": [
+          "Исполнитель",
+          "Заказчик"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "11_не_юридический.txt",
+      "time": 11.7,
+      "document_type": null,
+      "counterparty": "Борщ",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": null,
+        "counterparty": "Борщ",
+        "subject": "Борщ",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Говядину залить холодной водой (3 л), довести до кипения, снять пену. Варить на небольшом огне 1,5 часа до готовности.",
+          "Свёклу натереть на крупной тёрке.",
+          "Лук и морковь нарезать и обжарить до золотистого цвета.",
+          "В кипящий бульон добавить нарезанный кубиком картофель.",
+          "Свёклу натереть на крупной тёрке.",
+          "Лук и морковь нарезать и обжарить до золотистого цвета.",
+          "В кипящий бульон добавить нарезанный кубиком картофель.",
+          "Свёклу натереть на крупной тёрке.",
+          "Лук и морковь нарезать и обжарить до золотистого цвета.",
+          "В кипящий бульон добавить нарезанный кубиком картофель."
+        ],
+        "parties": [
+          "Борщ",
+          "Говядину"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "12_допсоглашение.txt",
+      "time": 21.0,
+      "issues": [
+        "CRASH"
+      ],
+      "response": null
+    },
+    {
+      "file": "13_претензия.txt",
+      "time": 10.8,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор строительного подряда",
+        "counterparty": null,
+        "subject": "Объект",
+        "date_signed": "2024-04-10",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "4 200 000 (четыре миллиона двести тысяч)",
+          "2 940 000 рублей"
+        ],
+        "parties": [
+          "ООО «Развитие Территорий»",
+          "ООО «СтройГрупп»"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "14_суммы_форматы.txt",
+      "time": 25.5,
+      "issues": [
+        "CRASH"
+      ],
+      "response": null
+    },
+    {
+      "file": "15_субаренда.txt",
+      "time": 10.6,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "Помещение",
+        "date_signed": "2025-03-18",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "85 кв. м"
+        ],
+        "parties": [
+          "ООО «МегаХолл»",
+          "ООО «ФудКорт Экспресс”"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "16_цессия.txt",
+      "time": 18.0,
+      "issues": [
+        "CRASH"
+      ],
+      "response": null
+    },
+    {
+      "file": "17_мировое.txt",
+      "time": 10.0,
+      "document_type": null,
+      "counterparty": "ООО 'СтройМаркет'",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "ООО 'СтройМаркет' / ОГРН 1027739123456, ИНН 7701345678",
+        "counterparty": "ООО 'СтройМаркет'",
+        "subject": "Дело № 2-4417/2025",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "до 20.12.2025: 400 000 руб.",
+          "до 20.01.2026: 400 000 руб.",
+          "до 20.02.2026: 400 000 руб."
+        ],
+        "parties": [
+          "ООО 'СтройМаркет'",
+          "ИП Громов Денис Аркадьевич"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "18_поручительство.txt",
+      "time": 9.2,
+      "document_type": null,
+      "counterparty": "Кредитор",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор ПОРУЧИТЕЛЬСТВА",
+        "counterparty": "Кредитор",
+        "subject": "Портал",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1.1. Поручитель обязуется отвечать перед Кредитором за исполнение Барановым Александром Михайловичем (далее — «Заёмщик») обязательств по Кредитному договору № КД-2025/889 от 28.08.2025 на сумму 3 500 000 (три миллиона пятьсот тысяч) рублей сроком на 60 (шестьдесят) месяцев под 18,5% годовых.",
+          "1.2. Поручитель отвечает перед Кредитором солидарно с Заёмщиком."
+        ],
+        "parties": [
+          "Кредитор",
+          "Портал"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "19_лицензия_по.txt",
+      "time": 8.9,
+      "document_type": null,
+      "counterparty": "ООО 'Цифровые Технологии'",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в contract_type: licensing",
+        "code-switch в special_conditions: [\"1.1. Лицензиар предоставляет Лицензиату неисключительную л",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "licensing",
+        "counterparty": "ООО 'Цифровые Технологии'",
+        "subject": "предоставление права использования программного обеспечения",
+        "date_signed": null,
+        "date_start": "2025-07-01",
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1.1. Лицензиар предоставляет Лицензиату неисключительную лицензию на использование программного обеспечения 'LegalDoc Pro' v.3.2 (свидетельство о государственной регистрации ПО № 2024617890 от 12.03.2024) на условиях настоящего Договора.",
+          "1.2. Лицензия предоставляется для использования на территории Российской Федерации, без права передачи третьим лицам.",
+          "1.3. Способы использования: воспроизведение на 5 (пяти) рабочих станциях Лицензиата, хранение в памяти ЭВМ."
+        ],
+        "parties": [
+          "ООО 'Цифровые Технологии'",
+          "ООО 'Правовой Сервис'"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "20_комиссия.txt",
+      "time": 5.2,
+      "document_type": null,
+      "counterparty": "ООО 'УралПром'",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "ООО 'УралПром'",
+        "subject": "Реализация промышленного оборудования",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "2 400 000 (два миллиона четыреста тысяч) рублей за единицу оборудования"
+        ],
+        "parties": [
+          "ООО 'УралПром'",
+          "ИП Захарова Н.С."
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "21_акт_сверки.txt",
+      "time": 6.2,
+      "document_type": null,
+      "counterparty": "ООО 'Торговый Дом ",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: True",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Торговый Дом ",
+        "subject": "Сторона 1",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "сальдо на начало периода (задолженность Стороны 2): 145 000,00 руб.",
+          "обороты за период: 380 000,00 руб."
+        ],
+        "parties": [
+          "ООО 'Торговый Дом ",
+          "ООО 'Логистик Партнёр'"
+        ],
+        "confidence": 1.0,
+        "is_template": true,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "22_уведомление_расторжение.txt",
+      "time": 4.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "Техническое обслуживание оборудования № ТО-55/2024",
+        "date_signed": "2025-11-03",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "8.3"
+        ],
+        "parties": [
+          "ООО «ТехСервис Плюс»",
+          "ООО «ИнвестПроект»"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "23_протокол_разногласий.txt",
+      "time": 7.6,
+      "document_type": null,
+      "counterparty": "ООО 'АгроХолдинг 'Юг' (Поставщик)",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'АгроХолдинг 'Юг' (Поставщик)",
+        "subject": "Договор поставки № П-2025/116",
+        "date_signed": "2401-10-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Пункт 3.2 (Сроки поставки): 'Поставка осуществляется в течение 21 (двадцати одного) календарного дня с момента получения предоплаты'",
+          "Редакция Поставщика: 'Поставка осуществляется в течение 21 (двадцати одного) календарного дня с момента получения предоплаты'"
+        ],
+        "parties": [
+          "ООО 'АгроХолдинг 'Юг' (Поставщик)",
+          "ООО 'Розничные Сети' (Покупатель)"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "24_строительный_подряд.txt",
+      "time": 8.7,
+      "document_type": null,
+      "counterparty": "Подрядчик",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор строительного подряда",
+        "counterparty": "Подрядчик",
+        "subject": "Заказчик",
+        "date_signed": "2025-05-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1.1. Подрядчик обязуется в установленный настоящим Договором срок построить по заданию Заказчика жилой дом переменной этажности (5–9 этажей) площадью застройки 2 340 кв. м по адресу: г. Краснодар, ул. Линейная, д. 58",
+          "1.2. Строительство ведётся в соответствии с проектной документацией, получившей положительное заключение государственной экспертизы № 23-1-1-0047-25 от 20.03.2025"
+        ],
+        "parties": [
+          "Подрядчик",
+          "Заказчик"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "25_гпх_физлицо.txt",
+      "time": 5.7,
+      "document_type": null,
+      "counterparty": "ООО 'Медиаконтент'",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Медиаконтент'",
+        "subject": "Разработка и написание текстов для корпоративного блога",
+        "date_signed": null,
+        "date_start": "2025-08-31",
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "45 000 (сорок пять тысяч) рублей в месяц"
+        ],
+        "parties": [
+          "ООО 'Медиаконтент'",
+          "Исполнитель"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "26_счёт_фактура.txt",
+      "time": 6.6,
+      "document_type": null,
+      "counterparty": "ООО «Промышленные Решения», АО «Технопарк Измайлово»",
+      "amount": null,
+      "confidence": 1,
+      "issues": [
+        "code-switch в is_template: True",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО «Промышленные Решения», АО «Технопарк Измайлово»",
+        "subject": "СЧЁТ-ФАКТУРА № 1247 от '10' ноября 2025 г.",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Счет № 1247 от 10.11.2025"
+        ],
+        "parties": [
+          "ООО «Промышленные Решения»",
+          "АО «Технопарк Измайлово»"
+        ],
+        "confidence": 1,
+        "is_template": true,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "27_займ_физлица.txt",
+      "time": 8.9,
+      "document_type": null,
+      "counterparty": "Ковалёв Сергея Михайлович, паспорт серии 50 14 № 345678, выдан УМВД России по Новосибирской области 22.04.2014",
+      "amount": "150 000 (сто пятьдесят тысяч) рублей 00 копеек",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор займа",
+        "counterparty": "Ковалёв Сергея Михайлович, паспорт серии 50 14 № 345678, выдан УМВД России по Новосибирской области 22.04.2014",
+        "subject": "Займодавец",
+        "date_signed": "2025-09-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": "150 000 (сто пятьдесят тысяч) рублей 00 копеек",
+        "special_conditions": [
+          "Сумма займа не начисляется"
+        ],
+        "parties": [
+          "Ковалёв Сергея Михайлович",
+          "Заёмщик"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "28_аренда_тс_экипаж.txt",
+      "time": 8.7,
+      "document_type": null,
+      "counterparty": "ООО 'РостовТранс' / Шевченко П.И.",
+      "amount": "180 000 руб.",
+      "confidence": 1,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор аренды",
+        "counterparty": "ООО 'РостовТранс' / Шевченко П.И.",
+        "subject": "Арендная плата",
+        "date_signed": "2025-10-31",
+        "date_start": null,
+        "date_end": null,
+        "amount": "180 000 руб.",
+        "special_conditions": [
+          "ПРЕДМЕТ ДОГОВОРА"
+        ],
+        "parties": [
+          "ООО 'РостовТранс' / Шевченко П.И.",
+          "ООО 'АгроЛогистика' / Власенко Н.А."
+        ],
+        "confidence": 1,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "29_nda.txt",
+      "time": 9.8,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в contract_type: NDA",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "NDA",
+        "counterparty": null,
+        "subject": "Соглашение о конфиденциальности и нейтрализации",
+        "date_signed": "2025-02-10",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Конфиденциальная информация",
+          "Режим конфиденциальности",
+          "Услуги",
+          "Последний срок"
+        ],
+        "parties": [
+          "ООО «Стратегические Решения», ОГРН 1147746234567, ИНН 7731456789",
+          "ООО «Консалтинг Групп», ОГРН 1157746567890"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "30_иностранный.txt",
+      "time": 14.3,
+      "document_type": null,
+      "counterparty": "ООО 'РосИнтегра', ОГРН 1167746123456, ИНН 7729345678",
+      "amount": "48 000 EUR",
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в subject: ПРОGRAMМНОГО ОБЕСПЕЧЕНЯ",
+        "code-switch в parties: [\"ООО 'РосИнтегра', ОГРН 1167746123456, ИНН 7729345678\", 'So",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'РосИнтегра', ОГРН 1167746123456, ИНН 7729345678",
+        "subject": "ПРОGRAMМНОГО ОБЕСПЕЧЕНЯ",
+        "date_signed": "2025-03-15",
+        "date_start": null,
+        "date_end": null,
+        "amount": "48 000 EUR",
+        "special_conditions": [
+          "4.2.2.5.3.1. Настоящий Договор регулируется и толкуется в соответствии с законодательством Российской Федерации.",
+          "4.2.2.5.3.2. Все споры передаются на рассмотрение Международного коммерческого арбитражного суда при Торгово-промышленной палате РФ (МКАС при ТПП РФ), г. Москва, на русском языке."
+        ],
+        "parties": [
+          "ООО 'РосИнтегра', ОГРН 1167746123456, ИНН 7729345678",
+          "SoftWare Solutions GmbH, зарегистрированная по адресу: Schwarzenbergplatz 7, 1030 Wien, Österreich, регистрационный номер FN 543210 a"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "31_приказ.txt",
+      "time": 13.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в special_conditions: ['1. НАЗНАЧИТЬ с «01» декабря 2025 года Меркулову Евгению Се",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор аренды",
+        "counterparty": null,
+        "subject": "ООО «Гранд Холдинг»",
+        "date_signed": "2025-12-11",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1. НАЗНАЧИТЬ с «01» декабря 2025 года Меркулову Евгению Сергеевну на должность финансового директора ООО «Гранд Холдинг».",
+          "2. Установить Меркуловой Е.С. должностной оклад в размере 380 000 (триста восемьдесят тысяч) рублей в месяц, ежеквартальную премию по итогам работы в размере до 50% оклада при выполнении KPI.",
+          "3. Меркуловой Е.С. в срок до «15» декабря 2025 г.:",
+          "3.1. принять дела от и.о. финансового директора Сорокина Л.Д.;",
+          "3.2. провести инвентаризацию финансовой документации;",
+          "3.3. представить на утверждение бюджет Общества на 2026 год."
+        ],
+        "parties": [
+          "ООО «Гранд Холдинг»",
+          "Меркулову Евгению Сергеевну"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "32_дарение.txt",
+      "time": 5.9,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Дарение",
+        "counterparty": null,
+        "subject": "Информация о предмете документа",
+        "date_signed": "2026-01-05",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Получила"
+        ],
+        "parties": [
+          "Крылов Дмитрий Алексеевич",
+          "Одаряемая"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "33_оферта.txt",
+      "time": 9.2,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "ПУБЛИЧНАЯ ОФЕРТА",
+        "counterparty": null,
+        "subject": "на оказание юридических консультационных услуг",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "АКЦЕПТ ОФЕРТЫ",
+          "1.1. Акцептом настоящей Оферты является оплата Заказчиком выбранного тарифа.",
+          "2. ПРЕДМЕТ",
+          "2.1. Исполнитель оказывает юридические консультации в письменной форме (по электронной почте) в рамках выбранного Заказчиком тарифа."
+        ],
+        "parties": [
+          "ООО «ЛегалАссист»",
+          "ОГРН 1197746234567, ИНН 7720345678"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "34_сумма_с_ндс.txt",
+      "time": 10.8,
+      "document_type": null,
+      "counterparty": "ООО 'Веб-Студия ",
+      "amount": null,
+      "confidence": 0.95,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Веб-Студия ",
+        "subject": "Разработка и передача сайта",
+        "date_signed": null,
+        "date_start": "2025-06-16",
+        "date_end": "2025-09-16",
+        "amount": null,
+        "special_conditions": [
+          "Стоимость без НДС: 375 000 (триста семьдесят пять тысяч) рублей 00 копеек.",
+          "НДС (20%): 75 000 (семьдесят пять тысяч) рублей 00 копеек."
+        ],
+        "parties": [
+          "ООО 'Веб-Студия ",
+          "Исполнитель",
+          "ООО 'Веб-Студия ",
+          "Заказчик"
+        ],
+        "confidence": 0.95,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "35_смешанный.txt",
+      "time": 9.4,
+      "document_type": null,
+      "counterparty": "ООО «ТехноОфис» / Нурмухаметов Р.Ф.",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "SMЕШАННЫЙ ДОГОВОР",
+        "counterparty": "ООО «ТехноОфис» / Нурмухаметов Р.Ф.",
+        "subject": "СМЕШАННЫЙ ДОГОВОР № СМ-2025/05",
+        "date_signed": null,
+        "date_start": "2025-04-01",
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "620 000 (шестьсот двадцать тысяч) рублей",
+          "300 000 (пятнадцать тысяч) рублей"
+        ],
+        "parties": [
+          "ООО «ТехноОфис» / Нурмухаметов Р.Ф.",
+          "ООО «КазаньБизнес» / Сафина Л.Р."
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": "monthly",
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "36_простой_русский.txt",
+      "time": 4.1,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "Услуги по уборке офисного помещения",
+        "date_signed": "2026-01-15",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "15 000 рублей в месяц"
+        ],
+        "parties": [
+          "Заказчик: _______________ / Петров И.С.",
+          "Исполнитель: _______________ / Иванов А.П."
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "37_ит_термины.txt",
+      "time": 6.4,
+      "document_type": null,
+      "counterparty": "ООО 'ТехноСофт' ООО 'БизнесПро'",
+      "amount": "80 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в subject: Договор о технической поддержке программного обеспечения (Sa",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'ТехноСофт' ООО 'БизнесПро'",
+        "subject": "Договор о технической поддержке программного обеспечения (SaaS-платформа)",
+        "date_signed": "2016-01-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": "80 000 руб.",
+        "special_conditions": [
+          "Ежемесячная плата за обслуживание составляет 80 000 рублей."
+        ],
+        "parties": [
+          "ООО 'ТехноСофт'",
+          "ООО 'БизнесПро'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "38_англ_контрагент.txt",
+      "time": 5.5,
+      "document_type": null,
+      "counterparty": "ООО 'Цифровые решения' - Кузнецова Андрей Викторович",
+      "amount": "450 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в subject: Programmное обеспечение Microsoft Office 365",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Цифровые решения' - Кузнецова Андрей Викторович",
+        "subject": "Programmное обеспечение Microsoft Office 365",
+        "date_signed": "2026-01-22",
+        "date_start": null,
+        "date_end": null,
+        "amount": "450 000 руб.",
+        "special_conditions": [
+          "450 000 рублей"
+        ],
+        "parties": [
+          "ООО 'Цифровые решения'",
+          "Кузнецова Андрей Викторович"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "39_медицина.txt",
+      "time": 5.6,
+      "document_type": null,
+      "counterparty": "ООО 'Клиника Здоровье' Волкова С.М.",
+      "amount": "120 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "ООО 'Клиника Здоровье' Волкова С.М.",
+        "subject": "Заказчику медицинских услуг",
+        "date_signed": "2501-03-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": "120 000 руб.",
+        "special_conditions": [
+          "Ежемесячный абонемент на 30 сотрудников — 120 000 рублей."
+        ],
+        "parties": [
+          "ООО 'Клиника Здоровье'",
+          "ООО 'Корпоратив Плюс'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "40_маркетинг.txt",
+      "time": 4.8,
+      "document_type": null,
+      "counterparty": "ООО 'Агентство Рост' ООО 'Продажи Онлайн'",
+      "amount": "60000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "ООО 'Агентство Рост' ООО 'Продажи Онлайн'",
+        "subject": "Маркетинговые услуги",
+        "date_signed": "2801-02-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": "60000 руб.",
+        "special_conditions": [
+          "60000 рублей в месяц"
+        ],
+        "parties": [
+          "ООО 'Агентство Рост'",
+          "ООО 'Продажи Онлайн'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "41_доверенность.txt",
+      "time": 4.4,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Захарова Елена Михайловна",
+        "date_signed": "2026-02-10",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "свидетельство"
+        ],
+        "parties": [
+          "Захарова Елена Михайловна",
+          "Захарова Дмитрий Олегович"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "42_гарантийное_письмо.txt",
+      "time": 4.4,
+      "document_type": null,
+      "counterparty": "ООО 'Строй Инвест'",
+      "amount": "3 500 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Строй Инвест'",
+        "subject": "Гарантийное письмо",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": "3 500 000 руб.",
+        "special_conditions": [
+          "г. Москва",
+          "12 февраля 2026 года"
+        ],
+        "parties": [
+          "ООО 'Строй Инвест'",
+          "Генеральному директору Морозову А.В."
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "43_приказ_увольнение.txt",
+      "time": 3.9,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Приказ",
+        "counterparty": null,
+        "subject": "Приказ № 43-К",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "О прекращении трудового договора"
+        ],
+        "parties": [
+          "ООО «АЛЬФА ТРЕЙД»",
+          "Соколову Марину Дмитриевну"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "44_протокол_собрания.txt",
+      "time": 4.5,
+      "document_type": null,
+      "counterparty": "ООО «МЕРИДИАН»",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "ООО «МЕРИДИАН»",
+        "subject": "Общее собрание участников",
+        "date_signed": "2026-02-18",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "г. Москва, ул. Профсоюзная, д. 45, офис 301."
+        ],
+        "parties": [
+          "ООО «МЕРИДИАН»"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "45_устав.txt",
+      "time": 4.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор аренды",
+        "counterparty": null,
+        "subject": "Общество с ограниченной ответственностью 'ГОРИЗОНТ'",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Уставный капитал Общества составляет 10 000 (десять тысяч) рублей.",
+          "Уставный капитал разделён на 100 долей номинальной стоимостью 100 рублей каждая."
+        ],
+        "parties": [
+          "Общество",
+          "Румянцев О.Б."
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "46_согласие_пд.txt",
+      "time": 5.2,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "СОГЛАСИЕ НА ОБРАБОТКУ ПЕРСОНАЛЬНЫХ ДАННЫХ",
+        "date_signed": "2026-02-22",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "g. Москва",
+          "22 февраля 2026 года"
+        ],
+        "parties": [
+          "Ольга Николаевна Воробьёва",
+          "Ольга Николаевна Воробьёва",
+          "Юридический консалтинговый агент ООО «Клиника Будущего»"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "47_акт_приёма.txt",
+      "time": 5.0,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Прием-передача",
+        "counterparty": null,
+        "subject": "помещение № 47",
+        "date_signed": "2520-02-25",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "Арендодатель передал, а Арендатор принял во временное владение и пользование нежилое помещение"
+        ],
+        "parties": [
+          "ООО «Инвест Недвижимость», именуемое далее «Арендодатель»",
+          "ООО «Торговый Дом», именуемое далее «Арендатор»"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "48_справка.txt",
+      "time": 4.6,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": null,
+        "subject": "Справка",
+        "date_signed": "2820-02-20",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "95 000 (девяносто пять тысяч) рублей в месяц"
+        ],
+        "parties": [
+          "Максиму Александровичу",
+          "Настоящие"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "49_счёт_нам_платят.txt",
+      "time": 6.0,
+      "document_type": null,
+      "counterparty": "ООО «Правовые Решения»",
+      "amount": "250 000,00 рублей",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО «Правовые Решения»",
+        "subject": "Юридическое сопровождение сделки по приобретению недвижимости",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": "250 000,00 рублей",
+        "special_conditions": [
+          "1 единица"
+        ],
+        "parties": [
+          "ООО «Правовые Решения»",
+          "ООО «Альянс Капитал”"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "50_акт_наши_услуги.txt",
+      "time": 5.0,
+      "document_type": null,
+      "counterparty": "ООО 'КонсалтПро' (Исполнитель)",
+      "amount": "170 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'КонсалтПро' (Исполнитель)",
+        "subject": "Сторона №1: ООО 'КонсалтПро'",
+        "date_signed": "2026-03-05",
+        "date_start": null,
+        "date_end": null,
+        "amount": "170 000 руб.",
+        "special_conditions": [
+          "80 000 руб.",
+          "40 000 руб.",
+          "50 000 руб."
+        ],
+        "parties": [
+          "ООО 'КонсалтПро'",
+          "ООО 'Ритейл Групп'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": "income"
+      }
+    },
+    {
+      "file": "51_договор_мы_исполнитель.txt",
+      "time": 7.1,
+      "document_type": null,
+      "counterparty": "ООО 'Аудит Эксперт' (далее — Исполнитель, именно мы оказываем услуги и получаем деньги), в лице директора Соловьёва Игоря Александровича, действующего на основании Устава",
+      "amount": "320 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "ООО 'Аудит Эксперт' (далее — Исполнитель, именно мы оказываем услуги и получаем деньги), в лице директора Соловьёва Игоря Александровича, действующего на основании Устава",
+        "subject": "Договор",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": "320 000 руб.",
+        "special_conditions": [
+          "1.1. Исполнитель (мы) оказывает Заказчику услуги аудита бухгалтерской отчётности за 2025 год."
+        ],
+        "parties": [
+          "ООО 'Аудит Эксперт'",
+          "ООО 'Завод Металл'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "52_аренда_мы_арендодатель.txt",
+      "time": 5.2,
+      "document_type": null,
+      "counterparty": "OFO Office Center",
+      "amount": "180 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в contract_type: Arrendation Contract",
+        "code-switch в counterparty: OFO Office Center",
+        "code-switch в parties: ['OFO Office Center', 'OFO Office Center']",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Arrendation Contract",
+        "counterparty": "OFO Office Center",
+        "subject": "120 кв. м нежилое помещение",
+        "date_signed": "2026-03-10",
+        "date_start": null,
+        "date_end": null,
+        "amount": "180 000 руб.",
+        "special_conditions": [
+          "Eжемесячная арендная плата составляет 180 000 (сто восемьдесят тысяч) рублей",
+          "Арендатор перечисляет плату на расчётный счёт Арендодателя не позднее 10-го числа каждого месяца"
+        ],
+        "parties": [
+          "OFO Office Center",
+          "OFO Office Center"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "53_лицензия_мы_лицензиар.txt",
+      "time": 4.3,
+      "document_type": null,
+      "counterparty": "ООО 'СофтЛаб'",
+      "amount": "500 000 руб.",
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в contract_type: licensing",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "licensing",
+        "counterparty": "ООО 'СофтЛаб'",
+        "subject": "Договор поставки",
+        "date_signed": "2026-03-12",
+        "date_start": null,
+        "date_end": null,
+        "amount": "500 000 руб.",
+        "special_conditions": [
+          "500 000 (пятьсот тысяч) рублей"
+        ],
+        "parties": [
+          "ООО 'СофтЛаб'",
+          "ООО 'Корп Автоматизация'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "54_без_суммы.txt",
+      "time": 4.7,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "ОКАЗАНИЯ КОНСУЛЬТАЦИОННЫХ УСЛУГ № 54",
+        "date_signed": "2026-03-15",
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "ПРЕДМЕТ ДОГОВОРА"
+        ],
+        "parties": [
+          "ООО «Консультант», именуемое далее 'Исполнитель'",
+          "ООО «Клиент», именуемое далее 'Заказчик'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "55_без_дат.txt",
+      "time": 6.5,
+      "document_type": null,
+      "counterparty": "ООО 'Поставщик'",
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ООО 'Поставщик'",
+        "subject": "Договор поставки № 55",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1. ПРЕДМЕТ",
+          "1.2. Количество и ассортимент определяются спецификацией, являющейся неотъемлемой частью настоящего договора.",
+          "3. Срок поставки, срок действия договора и прочие временны́е параметры определяются дополнительными соглашениями.",
+          "4. ПРИЁМКА",
+          "4.1. Приёмка товара осуществляется по количеству и качеству при его передаче Покупателю.",
+          "4.2. При обнаружении недостатков Покупатель направляет претензию."
+        ],
+        "parties": [
+          "ООО 'Поставщик'",
+          "ООО 'Покупатель'"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "56_минимум_инфо.txt",
+      "time": 2.9,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в special_conditions: ['25 000 EUR']",
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор аренды",
+        "counterparty": null,
+        "subject": "50 000 рублей",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "25 000 EUR"
+        ],
+        "parties": [
+          "Петров Василий Иванович",
+          "Сидорова Николая Фёдоровича"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "57_пустой_шаблон.txt",
+      "time": 3.1,
+      "document_type": null,
+      "counterparty": null,
+      "amount": null,
+      "confidence": 1.0,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": null,
+        "subject": "Услуги",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "ПРЕДМЕТ ДОГОВОРА"
+        ],
+        "parties": [
+          "Заказчик",
+          "Исполнитель"
+        ],
+        "confidence": 1.0,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "58_ооо.txt",
+      "time": 4.7,
+      "document_type": null,
+      "counterparty": "ОБЩИЕ СОЗВОЕННЫЕ АНАЛИТИКА",
+      "amount": "1 750 000 руб.",
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ОБЩИЕ СОЗВОЕННЫЕ АНАЛИТИКА",
+        "subject": "Общество с ограниченной ответственностью 'АТЛАНТ'",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": "1 750 000 руб.",
+        "special_conditions": [
+          "1.1",
+          "1.2"
+        ],
+        "parties": [
+          "ОБЩИЕ СОЗВОЕННЫЕ АНАЛИТИКА",
+          "ОБЩИЕ СОЗВОЕННЫЕ АНАЛИТИКА"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "59_ао_пао.txt",
+      "time": 6.7,
+      "document_type": null,
+      "counterparty": "Акционерное общество 'Промышленные Активы'",
+      "amount": null,
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор",
+        "counterparty": "Акционерное общество 'Промышленные Активы'",
+        "subject": "ОКАЗАНИИ ФИНАНСОВЫХ УСЛУГ № 59",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": null,
+        "special_conditions": [
+          "1.1. Публичное акционерное общество 'СберБанк' открывает Акционерному обществу 'Промышленные Активы' кредитную линию с лимитом 50 000 000 рублей.",
+          "2.1. Процентная ставка: 18% годовых.",
+          "2.2. Срок пользования кредитной линией: 24 месяца.",
+          "2.3. Погашение: ежемесячно, равными долями."
+        ],
+        "parties": [
+          "ПАО 'СберБанк'",
+          "АО 'Промышленные Активы'"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": null,
+        "payment_direction": null
+      }
+    },
+    {
+      "file": "60_ип_формат.txt",
+      "time": 6.2,
+      "document_type": null,
+      "counterparty": "ОГРНИП 312774612345678, ИНН 772345678901",
+      "amount": "5 000 руб.",
+      "confidence": 0.9,
+      "issues": [
+        "code-switch в is_template: False",
+        "пустой document_type: None"
+      ],
+      "response": {
+        "contract_type": "Договор поставки",
+        "counterparty": "ОГРНИП 312774612345678, ИНН 772345678901",
+        "subject": "техническое обслуживание оргтехники и офисного оборудования",
+        "date_signed": null,
+        "date_start": null,
+        "date_end": null,
+        "amount": "5 000 руб.",
+        "special_conditions": [
+          "1.1. Индивидуальный предприниматель Сидоров Пётр Иванович оказывает Заказчику услуги по техническому обслуживанию оргтехники и офисного оборудования.",
+          "1.2. Перечень оборудования согласовывается в заявках Заказчика."
+        ],
+        "parties": [
+          "ИП Сидоров Пётр Иванович",
+          "ООО «ТоргДом»"
+        ],
+        "confidence": 0.9,
+        "is_template": false,
+        "payment_terms": null,
+        "payment_amount": null,
+        "payment_frequency": "monthly",
+        "payment_direction": null
+      }
+    }
+  ],
+  "results_15b": null
+}

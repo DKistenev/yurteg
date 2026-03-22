@@ -2,7 +2,7 @@
 # Restricts llama-server output to valid JSON matching the ContractMetadata schema.
 # Enum fields are strictly constrained; strings allow Cyrillic + Latin + common punctuation.
 
-root ::= "{" ws
+root ::= "{" ws (
     "\"contract_type\""    ws ":" ws str-or-null ws ","  ws
     "\"counterparty\""     ws ":" ws str-or-null ws ","  ws
     "\"subject\""          ws ":" ws str-or-null ws ","  ws
@@ -18,7 +18,7 @@ root ::= "{" ws
     "\"payment_amount\""   ws ":" ws number-or-null ws "," ws
     "\"payment_frequency\"" ws ":" ws payment-frequency ws "," ws
     "\"payment_direction\"" ws ":" ws payment-direction
-    ws "}"
+) ws "}"
 
 # Enum: payment_frequency
 payment-frequency ::= "\"monthly\"" | "\"quarterly\"" | "\"yearly\"" | "\"once\"" | "null"

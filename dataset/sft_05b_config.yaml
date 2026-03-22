@@ -1,0 +1,76 @@
+# ============================================================
+# ЮрТэг — SFT для Qwen 0.5B (Этап 1 из 2)
+# Датасет: 612 примеров, 64 типа, чистый JSON (без tool_call)
+# RunPod: Axolotl, любой GPU 16GB+
+# ============================================================
+
+# --- Модель ---
+base_model: Qwen/Qwen2.5-0.5B-Instruct
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+
+# --- Квантизация (QLoRA 4-bit) ---
+load_in_8bit: false
+load_in_4bit: true
+
+# --- Датасет ---
+chat_template: tokenizer_default
+
+datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template
+    data_files:
+      - 05b_sft_train.jsonl
+
+val_set_size: 0
+val_datasets:
+  - path: SuperPuperD/yurteg-legal-sft
+    type: chat_template
+    data_files:
+      - 05b_sft_val.jsonl
+
+# --- Результат ---
+output_dir: ./outputs/yurteg-qwen2.5-0.5b-sft
+
+# --- LoRA ---
+adapter: qlora
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.05
+lora_target_linear: true
+
+# --- Длина и упаковка ---
+sequence_len: 4096
+sample_packing: false
+pad_to_sequence_len: true
+train_on_inputs: false
+
+# --- Обучение ---
+# 0.5B меньше, можно увеличить batch
+micro_batch_size: 2
+gradient_accumulation_steps: 4
+num_epochs: 8
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.0001
+warmup_ratio: 0.1
+weight_decay: 0.01
+
+# --- Точность ---
+bf16: auto
+tf32: true
+
+# --- Оптимизация ---
+gradient_checkpointing: true
+flash_attention: true
+
+# --- Логирование ---
+logging_steps: 5
+evals_per_epoch: 4
+saves_per_epoch: 1
+save_total_limit: 3
+
+seed: 42
+
+special_tokens:
+  pad_token: "<|endoftext|>"

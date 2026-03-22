@@ -167,7 +167,7 @@ def build() -> None:
                 cal_btn.props('aria-label="Вид календарём"')
 
         # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
-        with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row"):
+        with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row") as search_row:
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")
@@ -205,7 +205,7 @@ def build() -> None:
             for _ in range(5):
                 ui.element('div').classes("skeleton-row")
 
-        grid_container = ui.column().classes("w-full")
+        grid_container = ui.column().classes("w-full px-6")
         grid_container.set_visibility(False)
 
         # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
@@ -333,6 +333,7 @@ def build() -> None:
                 list_btn.classes(TOGGLE_INACTIVE)
                 cal_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
                 cal_btn.classes(TOGGLE_ACTIVE)
+                search_row.set_visibility(False)
                 grid_container.set_visibility(False)
                 calendar_container.set_visibility(True)
                 await _show_calendar()
@@ -341,6 +342,7 @@ def build() -> None:
                 list_btn.classes(TOGGLE_ACTIVE)
                 cal_btn.classes(remove=TOGGLE_ACTIVE + " " + TOGGLE_INACTIVE)
                 cal_btn.classes(TOGGLE_INACTIVE)
+                search_row.set_visibility(True)
                 grid_container.set_visibility(True)
                 calendar_container.set_visibility(False)
         finally:
@@ -354,10 +356,6 @@ def build() -> None:
         active_segment["value"] = key
         _apply_segment_classes(key)
         if grid_ref["grid"]:
-            # Pitfall 7: отключаем row animation перед фильтрацией, чтобы не replay
-            await ui.run_javascript(
-                "document.querySelectorAll('.ag-row').forEach(r => r.style.animation = 'none')"
-            )
             await load_table_data(grid_ref["grid"], state, key)
 
     # Debounced search — per Pitfall 6 from RESEARCH, 300ms debounce

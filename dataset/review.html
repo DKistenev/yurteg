@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЮрТэг — Ревьюер датасета</title>
+<style>
+  :root {
+    --bg: #f4f4f5;
+    --surface: #ffffff;
+    --border: #d4d4d8;
+    --text: #18181b;
+    --muted: #71717a;
+    --ok: #16a34a;
+    --error: #dc2626;
+    --warn: #d97706;
+    --ok-bg: #dcfce7;
+    --error-bg: #fee2e2;
+    --warn-bg: #fef3c7;
+    --accent: #2563eb;
+    --accent-bg: #dbeafe;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ─── Шапка ─── */
+  #header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  #header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  h1 { font-size: 15px; font-weight: 600; flex-shrink: 0; }
+  #load-btn {
+    padding: 5px 12px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #load-btn:hover { opacity: 0.85; }
+  #file-input { display: none; }
+  #stats {
+    display: flex;
+    gap: 14px;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+  .stat { display: flex; gap: 4px; color: var(--muted); }
+  .stat-val { font-weight: 600; color: var(--text); }
+  #export-btn {
+    margin-left: auto;
+    padding: 5px 12px;
+    background: var(--ok);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  #export-btn:disabled { opacity: 0.35; cursor: default; }
+  #export-btn:not(:disabled):hover { opacity: 0.85; }
+  #progress-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+  #progress-bar {
+    height: 100%;
+    background: var(--ok);
+    border-radius: 2px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  /* ─── Фильтры ─── */
+  #filters {
+    display: none;
+    gap: 8px;
+    padding: 8px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  #filters select, #filter-conf {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+  }
+  #filter-conf { width: 75px; }
+  .filter-label { font-size: 13px; color: var(--muted); }
+
+  /* ─── Категории ─── */
+  #categories {
+    display: none;
+    gap: 6px;
+    padding: 6px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .cat-btn {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 12px;
+    background: white;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .cat-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .cat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .cat-count {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 2px;
+  }
+
+  /* ─── Источник файла ─── */
+  #source-selector {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+  }
+  .source-btn {
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    font-size: 11px;
+    background: white;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .source-btn:hover { border-color: var(--accent); }
+  .source-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+
+  /* ─── Пустое состояние ─── */
+  #empty-state {
+    text-align: center;
+    padding: 100px 20px;
+    color: var(--muted);
+  }
+  #empty-state strong { font-size: 16px; color: var(--text); }
+  #empty-state p { margin-top: 8px; font-size: 13px; }
+
+  /* ─── Карточка ─── */
+  #card-area {
+    display: none;
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 20px;
+  }
+  #card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: #fafafa;
+    gap: 12px;
+  }
+  #card-filename {
+    font-weight: 600;
+    font-size: 13px;
+    word-break: break-all;
+    flex: 1;
+  }
+  #card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  #card-counter { font-size: 13px; color: var(--muted); }
+  .status-badge {
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .status-ok     { background: var(--ok-bg);    color: var(--ok); }
+  .status-error  { background: var(--error-bg); color: var(--error); }
+  .status-pending{ background: #f4f4f5;         color: var(--muted); }
+
+  #card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 720px) { #card-body { grid-template-columns: 1fr; } }
+
+  #card-text {
+    padding: 16px;
+    border-right: 1px solid var(--border);
+  }
+  #card-meta { padding: 16px; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  #text-preview {
+    background: #f4f4f5;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 210px;
+    overflow-y: auto;
+    color: #3f3f46;
+  }
+  #text-length {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .field {
+    display: flex;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+    align-items: flex-start;
+  }
+  .field:last-child { border-bottom: none; }
+  .field-name {
+    color: var(--muted);
+    min-width: 110px;
+    flex-shrink: 0;
+    font-size: 12px;
+    padding-top: 1px;
+  }
+  .field-value { color: var(--text); word-break: break-word; flex: 1; }
+  .field-value.null { color: #bbb; font-style: italic; }
+  .field-value.doc-type { font-weight: 600; color: var(--accent); }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag {
+    background: var(--accent-bg);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+  }
+  .tag.condition { background: var(--warn-bg); color: var(--warn); }
+  .tag.more      { background: #f4f4f5;        color: var(--muted); }
+
+  /* ─── Футер карточки ─── */
+  #card-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: #fafafa;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  #confidence-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 150px;
+  }
+  #conf-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  #conf-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  #conf-bar { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  #conf-val { font-size: 12px; font-weight: 600; white-space: nowrap; min-width: 30px; }
+  #actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    background: white;
+    transition: background 0.1s;
+  }
+  .btn-ok    { border-color: var(--ok);    color: var(--ok); }
+  .btn-ok:hover  { background: var(--ok-bg); }
+  .btn-ok.active { background: var(--ok-bg); font-weight: 700; }
+  .btn-skip  { color: var(--muted); }
+  .btn-skip:hover { background: #f4f4f5; }
+
+  /* ─── Меню типов ошибок ─── */
+  .err-menu {
+    position: relative;
+    display: inline-block;
+  }
+  .btn-err   { border-color: var(--error); color: var(--error); }
+  .btn-err:hover  { background: var(--error-bg); }
+  .btn-err.active { background: var(--error-bg); font-weight: 700; }
+  .err-dropdown {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    min-width: 220px;
+    z-index: 20;
+    overflow: hidden;
+  }
+  .err-menu.open .err-dropdown { display: block; }
+  .err-option {
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    color: var(--text);
+  }
+  .err-option:last-child { border-bottom: none; }
+  .err-option:hover { background: var(--error-bg); }
+  .err-option .err-key {
+    display: inline-block;
+    background: #f4f4f5;
+    color: var(--muted);
+    font-size: 10px;
+    padding: 0 4px;
+    border-radius: 2px;
+    margin-left: 6px;
+    font-family: monospace;
+  }
+  .err-tag {
+    display: inline-block;
+    background: var(--error-bg);
+    color: var(--error);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+  }
+
+  /* ─── Навигация ─── */
+  #nav {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+  }
+  .nav-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    background: white;
+    font-size: 13px;
+  }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+  .nav-btn:not(:disabled):hover { background: #f4f4f5; }
+  #nav-info { font-size: 13px; color: var(--muted); min-width: 80px; text-align: center; }
+  #kbd-hint {
+    display: none;
+    text-align: center;
+    font-size: 11px;
+    color: #a1a1aa;
+    padding: 0 0 16px;
+  }
+
+  /* ─── Нет записей ─── */
+  #no-records {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div id="header-top">
+    <h1>ЮрТэг — Ревьюер датасета</h1>
+    <div id="source-selector">
+      <button class="source-btn active" onclick="switchSource('labeled_data.jsonl')">Основной</button>
+      <button class="source-btn" onclick="switchSource('labeled_data_fixed.jsonl')">Исправленные</button>
+    </div>
+    <button id="load-btn" onclick="document.getElementById('file-input').click()">
+      Загрузить JSONL
+    </button>
+    <input type="file" id="file-input" accept=".jsonl,.json">
+    <div id="stats">
+      <span class="stat">Всего: <span class="stat-val" id="s-total">—</span></span>
+      <span class="stat">ОК: <span class="stat-val" id="s-ok" style="color:var(--ok)">0</span></span>
+      <span class="stat">Ошибок: <span class="stat-val" id="s-error" style="color:var(--error)">0</span></span>
+      <span class="stat">На проверке: <span class="stat-val" id="s-pending">—</span></span>
+    </div>
+    <button id="export-btn" disabled onclick="saveReviewed()">Сохранить результат</button>
+  </div>
+  <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+</div>
+
+<div id="filters">
+  <select id="filter-status" onchange="applyFilters()">
+    <option value="all">Все записи</option>
+    <option value="pending" selected>На проверке</option>
+    <option value="ok">ОК</option>
+    <option value="error">Ошибка</option>
+  </select>
+  <select id="filter-type" onchange="applyFilters()">
+    <option value="">Все типы</option>
+  </select>
+  <span class="filter-label">Уверенность &lt;</span>
+  <input type="number" id="filter-conf" min="0" max="1" step="0.05"
+         placeholder="1.0" title="Показать только записи с уверенностью ниже этого значения"
+         onchange="applyFilters()">
+</div>
+
+<div id="categories"></div>
+
+<div id="empty-state">
+  <strong>Загрузите файл labeled_data.jsonl</strong>
+  <p>Нажмите «Загрузить JSONL» и выберите файл с результатами разметки</p>
+</div>
+
+<div id="card-area">
+  <div id="no-records">Нет записей, соответствующих фильтрам</div>
+  <div id="card">
+    <div id="card-header">
+      <span id="card-filename"></span>
+      <div id="card-header-right">
+        <span id="card-status-badge" class="status-badge"></span>
+        <span id="card-counter"></span>
+      </div>
+    </div>
+    <div id="card-body">
+      <div id="card-text">
+        <div class="section-title">Текст документа</div>
+        <div id="text-preview"></div>
+        <div id="text-length"></div>
+      </div>
+      <div id="card-meta">
+        <div class="section-title">Метаданные</div>
+        <div id="meta-fields"></div>
+      </div>
+    </div>
+    <div id="card-footer">
+      <div id="confidence-wrap">
+        <span id="conf-label">Уверенность:</span>
+        <div id="conf-bar-wrap"><div id="conf-bar"></div></div>
+        <span id="conf-val"></span>
+      </div>
+      <div id="actions">
+        <button class="btn btn-ok" id="btn-ok" onclick="approve()">ОК</button>
+        <div class="err-menu" id="err-menu">
+          <button class="btn btn-err" id="btn-err" onclick="toggleErrMenu()">Ошибка</button>
+          <div class="err-dropdown">
+            <div class="err-option" onclick="rejectWith('wrong_type')">Неверный тип документа <span class="err-key">1</span></div>
+            <div class="err-option" onclick="rejectWith('template')">Это шаблон документа <span class="err-key">2</span></div>
+            <div class="err-option" onclick="rejectWith('wrong_party')">Контрагент / ФИО <span class="err-key">3</span></div>
+            <div class="err-option" onclick="rejectWith('wrong_data')">Даты / сумма / предмет <span class="err-key">4</span></div>
+            <div class="err-option" onclick="rejectWith('other')">Другое <span class="err-key">5</span></div>
+          </div>
+        </div>
+        <button class="btn btn-skip" onclick="skip()">Пропустить</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="nav">
+    <button class="nav-btn" id="nav-prev" onclick="goTo(currentIndex - 1)">&larr;</button>
+    <span id="nav-info"></span>
+    <button class="nav-btn" id="nav-next" onclick="goTo(currentIndex + 1)">&rarr;</button>
+  </div>
+  <div id="kbd-hint">
+    Клавиши: &larr; &rarr; навигация &nbsp;|&nbsp; ] — ОК &nbsp;|&nbsp; 1-5 — тип ошибки &nbsp;|&nbsp; Пробел — пропустить
+  </div>
+</div>
+
+<script>
+let records = [];        // все загруженные записи
+let reviews = {};        // { id: { status: "ok"|"error"|"pending", error_type: "wrong_type"|... } }
+let filtered = [];       // индексы в records, прошедшие фильтр
+let currentIndex = 0;    // позиция в filtered
+let storageKey = '';
+let currentSource = 'labeled_data.jsonl';
+let activeCategory = 'all';
+
+// ─── Категории документов ─────────────────────────────────────────────────────
+const CATEGORIES = {
+  'ПД':            ['ПД', 'персональн', 'обработк'],
+  'Договоры':      ['Договор'],
+  'Корпоративные': ['Устав', 'Протокол', 'Решение', 'Корпоративн'],
+  'Кадровые':      ['Приказ', 'Трудов', 'должностн', 'инструкц'],
+  'Положения':     ['Положение', 'Политика', 'Регламент'],
+};
+
+function getCategory(docType) {
+  if (!docType) return 'Прочее';
+  const upper = docType;
+  for (const [cat, keywords] of Object.entries(CATEGORIES)) {
+    for (const kw of keywords) {
+      if (upper.includes(kw)) return cat;
+    }
+  }
+  return 'Прочее';
+}
+
+const ERROR_LABELS = {
+  wrong_type:  'Неверный тип',
+  wrong_party: 'Контрагент/ФИО',
+  wrong_data:  'Даты/сумма',
+  template:    'Шаблон',
+  other:       'Другое',
+};
+
+function getStatus(id) {
+  const r = reviews[id];
+  if (!r) return 'pending';
+  return typeof r === 'string' ? r : (r.status || 'pending');
+}
+function getErrorType(id) {
+  const r = reviews[id];
+  if (!r || typeof r === 'string') return null;
+  return r.error_type || null;
+}
+
+// ─── Загрузка файла ──────────────────────────────────────────────────────────
+
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  storageKey = 'yt_reviews_' + file.name;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    parseJSONL(ev.target.result);
+    loadFromStorage();
+    populateTypeFilter();
+    populateCategories();
+    applyFilters();
+    renderStats();
+    document.getElementById('filters').style.display = 'flex';
+    document.getElementById('card-area').style.display = 'block';
+    document.getElementById('empty-state').style.display = 'none';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+function parseJSONL(text) {
+  records = [];
+  for (const line of text.trim().split('\n')) {
+    if (!line.trim()) continue;
+    try { records.push(JSON.parse(line)); } catch(e) {}
+  }
+}
+
+function loadFromStorage() {
+  reviews = {};
+  const saved = localStorage.getItem(storageKey);
+  if (saved) { try { reviews = JSON.parse(saved); } catch(e) {} }
+}
+
+function saveToStorage() {
+  if (storageKey) localStorage.setItem(storageKey, JSON.stringify(reviews));
+}
+
+// ─── Фильтры ─────────────────────────────────────────────────────────────────
+
+function applyFilters() {
+  const status  = document.getElementById('filter-status').value;
+  const type    = document.getElementById('filter-type').value;
+  const confRaw = document.getElementById('filter-conf').value;
+  const confMax = confRaw !== '' ? parseFloat(confRaw) : Infinity;
+
+  filtered = [];
+  for (let i = 0; i < records.length; i++) {
+    const r  = records[i];
+    const rv = getStatus(r.id);
+    if (status !== 'all' && rv !== status) continue;
+    if (type && (r.output?.document_type || '') !== type) continue;
+    if (isFinite(confMax) && (r.output?.confidence ?? 1) >= confMax) continue;
+    if (activeCategory !== 'all') {
+      const cat = getCategory(r.output?.document_type);
+      if (cat !== activeCategory) continue;
+    }
+    filtered.push(i);
+  }
+  // Сортировка по типу документа — похожие рядом
+  filtered.sort((a, b) => {
+    const ta = (records[a].output?.document_type || '').toLowerCase();
+    const tb = (records[b].output?.document_type || '').toLowerCase();
+    return ta.localeCompare(tb, 'ru');
+  });
+  currentIndex = 0;
+  renderCard();
+}
+
+function populateTypeFilter() {
+  const types = [...new Set(records.map(r => r.output?.document_type).filter(Boolean))].sort();
+  const sel = document.getElementById('filter-type');
+  sel.innerHTML = '<option value="">Все типы</option>';
+  for (const t of types) {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  }
+}
+
+function populateCategories() {
+  const catEl = document.getElementById('categories');
+  // Подсчёт записей по категориям
+  const counts = { all: records.length };
+  for (const r of records) {
+    const cat = getCategory(r.output?.document_type);
+    counts[cat] = (counts[cat] || 0) + 1;
+  }
+  catEl.innerHTML = '';
+  // Кнопка "Все"
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-btn' + (activeCategory === 'all' ? ' active' : '');
+  allBtn.innerHTML = `Все <span class="cat-count">${counts.all}</span>`;
+  allBtn.onclick = () => { activeCategory = 'all'; populateCategories(); applyFilters(); };
+  catEl.appendChild(allBtn);
+  // Кнопки категорий
+  const allCats = [...Object.keys(CATEGORIES), 'Прочее'];
+  for (const cat of allCats) {
+    if (!counts[cat]) continue;
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (activeCategory === cat ? ' active' : '');
+    btn.innerHTML = `${cat} <span class="cat-count">${counts[cat]}</span>`;
+    btn.onclick = () => { activeCategory = cat; populateCategories(); applyFilters(); };
+    catEl.appendChild(btn);
+  }
+  catEl.style.display = 'flex';
+}
+
+async function switchSource(filename) {
+  if (location.protocol === 'file:') return;
+  // Обновить кнопки
+  currentSource = filename;
+  for (const btn of document.querySelectorAll('.source-btn')) {
+    btn.classList.toggle('active', btn.textContent.includes(
+      filename.includes('fixed') ? 'Исправленные' : 'Основной'
+    ));
+  }
+  try {
+    const res = await fetch(filename);
+    if (!res.ok) {
+      alert(`Файл ${filename} не найден. Возможно, ещё нет исправленных записей.`);
+      return;
+    }
+    const text = await res.text();
+    storageKey = 'yt_reviews_' + filename;
+    parseJSONL(text);
+    const savedSize = localStorage.getItem(storageKey + '_size');
+    if (savedSize !== String(records.length)) {
+      reviews = {};
+      localStorage.removeItem(storageKey);
+      localStorage.setItem(storageKey + '_size', String(records.length));
+    } else {
+      loadFromStorage();
+    }
+    activeCategory = 'all';
+    populateTypeFilter();
+    populateCategories();
+    applyFilters();
+    renderStats();
+  } catch(e) {
+    alert('Ошибка загрузки: ' + e.message);
+  }
+}
+
+// ─── Рендер карточки ─────────────────────────────────────────────────────────
+
+function renderCard() {
+  const noRec  = document.getElementById('no-records');
+  const card   = document.getElementById('card');
+  const nav    = document.getElementById('nav');
+  const kbHint = document.getElementById('kbd-hint');
+
+  if (filtered.length === 0) {
+    noRec.style.display = 'block';
+    card.style.display  = 'none';
+    nav.style.display   = 'none';
+    kbHint.style.display = 'none';
+    return;
+  }
+  noRec.style.display  = 'none';
+  card.style.display   = 'block';
+  nav.style.display    = 'flex';
+  kbHint.style.display = 'block';
+
+  const r  = records[filtered[currentIndex]];
+  const rv = reviews[r.id] || 'pending';
+  const o  = r.output || {};
+
+  // Заголовок
+  document.getElementById('card-filename').textContent = r.source_file || r.id || '';
+  document.getElementById('card-counter').textContent  = `${currentIndex + 1} из ${filtered.length}`;
+
+  const badge = document.getElementById('card-status-badge');
+  const labels = { ok: 'ОК', error: 'Ошибка', pending: 'На проверке' };
+  const errType = getErrorType(r.id);
+  let badgeText = labels[rv] || rv;
+  if (rv === 'error' && errType && ERROR_LABELS[errType]) {
+    badgeText += ': ' + ERROR_LABELS[errType];
+  }
+  badge.textContent = badgeText;
+  badge.className   = 'status-badge status-' + rv;
+
+  // Текст
+  document.getElementById('text-preview').textContent = r.text_preview || '';
+  document.getElementById('text-length').textContent  =
+    r.text_length ? `${r.text_length.toLocaleString('ru')} символов` : '';
+
+  // Метаданные
+  const fieldsEl = document.getElementById('meta-fields');
+  fieldsEl.innerHTML = '';
+
+  const addField = (name, value, cls) => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    const n = document.createElement('span');
+    n.className = 'field-name'; n.textContent = name;
+    const v = document.createElement('span');
+    v.className = 'field-value' + (cls ? ' ' + cls : '');
+    if (value == null || value === '') { v.textContent = '—'; v.classList.add('null'); }
+    else v.textContent = value;
+    div.append(n, v);
+    fieldsEl.appendChild(div);
+  };
+
+  const addTags = (name, items, cls) => {
+    if (!items || items.length === 0) return;
+    const div = document.createElement('div');
+    div.className = 'field';
+    const n = document.createElement('span');
+    n.className = 'field-name'; n.textContent = name;
+    const tags = document.createElement('div');
+    tags.className = 'tags field-value';
+    const show = items.slice(0, 4);
+    for (const item of show) {
+      const t = document.createElement('span');
+      t.className = 'tag' + (cls ? ' ' + cls : '');
+      t.textContent = item.length > 55 ? item.slice(0, 55) + '…' : item;
+      tags.appendChild(t);
+    }
+    if (items.length > 4) {
+      const t = document.createElement('span');
+      t.className = 'tag more'; t.textContent = '+' + (items.length - 4);
+      tags.appendChild(t);
+    }
+    div.append(n, tags);
+    fieldsEl.appendChild(div);
+  };
+
+  addField('Тип документа', o.document_type, 'doc-type');
+  addField('Контрагент',    o.counterparty);
+  addField('Предмет',       o.subject);
+  addField('Дата подп.',    o.date_signed);
+
+  const range = [o.date_start, o.date_end].filter(Boolean).join(' — ');
+  addField('Начало / Конец', range || null);
+  addField('Сумма', o.amount);
+
+  addTags('Стороны',   o.parties,            '');
+  addTags('Условия',   o.special_conditions, 'condition');
+
+  // Уверенность
+  const conf    = o.confidence ?? 0;
+  const confBar = document.getElementById('conf-bar');
+  const confVal = document.getElementById('conf-val');
+  confBar.style.width      = (conf * 100) + '%';
+  confBar.style.background = conf >= 0.8 ? 'var(--ok)' : conf >= 0.5 ? 'var(--warn)' : 'var(--error)';
+  confVal.textContent  = conf.toFixed(2);
+  confVal.style.color  = conf >= 0.8 ? 'var(--ok)' : conf >= 0.5 ? 'var(--warn)' : 'var(--error)';
+
+  // Кнопки
+  document.getElementById('btn-ok').classList.toggle('active',  rv === 'ok');
+  document.getElementById('btn-err').classList.toggle('active', rv === 'error');
+
+  updateNavButtons();
+}
+
+function updateNavButtons() {
+  document.getElementById('nav-prev').disabled = currentIndex <= 0;
+  document.getElementById('nav-next').disabled = currentIndex >= filtered.length - 1;
+  document.getElementById('nav-info').textContent =
+    filtered.length > 0 ? `${currentIndex + 1} / ${filtered.length}` : 'нет записей';
+}
+
+// ─── Действия ────────────────────────────────────────────────────────────────
+
+function setReview(status, errorType) {
+  if (filtered.length === 0) return;
+  closeErrMenu();
+  const r    = records[filtered[currentIndex]];
+  const prev = getStatus(r.id);
+
+  if (prev === status && status !== 'error') {
+    // Повторный клик ОК — снять оценку
+    reviews[r.id] = { status: 'pending' };
+  } else {
+    reviews[r.id] = { status, error_type: errorType || null };
+    // Авто-переход при первой оценке
+    if (prev === 'pending' && currentIndex < filtered.length - 1) {
+      currentIndex++;
+    }
+  }
+  saveToStorage();
+  renderStats();
+  renderCard();
+}
+
+function approve() { setReview('ok'); }
+function rejectWith(errorType) { setReview('error', errorType); }
+
+function toggleErrMenu() {
+  document.getElementById('err-menu').classList.toggle('open');
+}
+function closeErrMenu() {
+  document.getElementById('err-menu').classList.remove('open');
+}
+// Закрыть меню при клике вне
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.err-menu')) closeErrMenu();
+});
+function skip() {
+  if (currentIndex < filtered.length - 1) { currentIndex++; renderCard(); }
+}
+function goTo(idx) {
+  if (idx < 0 || idx >= filtered.length) return;
+  currentIndex = idx;
+  renderCard();
+}
+
+// ─── Статистика ──────────────────────────────────────────────────────────────
+
+function renderStats() {
+  let ok = 0, error = 0, pending = 0;
+  for (const r of records) {
+    const rv = getStatus(r.id);
+    if (rv === 'ok') ok++;
+    else if (rv === 'error') error++;
+    else pending++;
+  }
+  const total = records.length;
+  document.getElementById('s-total').textContent   = total;
+  document.getElementById('s-ok').textContent      = ok;
+  document.getElementById('s-error').textContent   = error;
+  document.getElementById('s-pending').textContent = pending;
+  const pct = total > 0 ? (ok + error) / total * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('export-btn').disabled = (ok + error) === 0;
+}
+
+// ─── Экспорт ─────────────────────────────────────────────────────────────────
+
+async function saveReviewed() {
+  const isFixed = currentSource.includes('fixed');
+  const okRecords = records.filter(r => getStatus(r.id) === 'ok');
+  const errorRecords = records.filter(r => getStatus(r.id) === 'error');
+
+  const okLines = okRecords.map(r => JSON.stringify({ ...r, review_status: 'ok' }));
+  const errorLines = errorRecords.map(r => JSON.stringify({
+    ...r,
+    review_status: 'error',
+    error_type: getErrorType(r.id) || 'other',
+  }));
+
+  if (okLines.length === 0 && errorLines.length === 0) {
+    alert('Нечего сохранять — сначала проверьте записи');
+    return;
+  }
+
+  const btn = document.getElementById('export-btn');
+  btn.disabled = true;
+  btn.textContent = 'Сохраняю...';
+
+  try {
+    const results = [];
+
+    if (okLines.length > 0) {
+      // Исправленные одобренные → добавить к основному reviewed (append)
+      const filename = isFixed ? 'labeled_data_reviewed_fixed.jsonl' : 'labeled_data_reviewed.jsonl';
+      const res = await fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-ndjson', 'X-Filename': filename },
+        body: okLines.join('\n'),
+      });
+      const data = await res.json();
+      results.push(`ОК: ${data.count} записей → ${filename}`);
+    }
+
+    if (errorLines.length > 0) {
+      const filename = isFixed ? 'labeled_data_errors_v2.jsonl' : 'labeled_data_errors.jsonl';
+      const res = await fetch('/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-ndjson', 'X-Filename': filename },
+        body: errorLines.join('\n'),
+      });
+      const data = await res.json();
+      results.push(`Ошибки: ${data.count} записей → ${filename}`);
+    }
+
+    btn.textContent = 'Сохранено!';
+    setTimeout(() => { btn.textContent = 'Сохранить результат'; btn.disabled = false; }, 2000);
+    const msg = isFixed
+      ? 'Сохранено в папку dataset/\n\n' + results.join('\n') + '\n\nОдобренные исправления нужно объединить с основным датасетом.'
+      : 'Сохранено в папку dataset/\n\n' + results.join('\n');
+    alert(msg);
+  } catch(e) {
+    btn.textContent = 'Сохранить результат';
+    btn.disabled = false;
+    alert('Не удалось сохранить. Убедитесь, что serve.py запущен.');
+  }
+}
+
+// ─── Клавиатура ──────────────────────────────────────────────────────────────
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (filtered.length === 0) return;
+  switch (e.key) {
+    case 'ArrowRight': goTo(currentIndex + 1); break;
+    case 'ArrowLeft':  goTo(currentIndex - 1); break;
+    case ']': case 'ъ': case 'Ъ': approve(); break;
+    case '1': rejectWith('wrong_type');  break;
+    case '2': rejectWith('template');    break;
+    case '3': rejectWith('wrong_party'); break;
+    case '4': rejectWith('wrong_data');  break;
+    case '5': rejectWith('other');       break;
+    case ' ': e.preventDefault(); skip(); break;
+  }
+});
+
+// ─── Автозагрузка при запуске через HTTP-сервер ──────────────────────────────
+
+(async function autoLoad() {
+  if (location.protocol === 'file:') return; // не работает без сервера
+  try {
+    const res = await fetch('labeled_data.jsonl');
+    if (!res.ok) return;
+    const text = await res.text();
+    storageKey = 'yt_reviews_labeled_data.jsonl';
+    parseJSONL(text);
+    // Сброс флагов при изменении датасета: если размер изменился — очищаем
+    const savedSize = localStorage.getItem(storageKey + '_size');
+    if (savedSize !== String(records.length)) {
+      reviews = {};
+      localStorage.removeItem(storageKey);
+      localStorage.setItem(storageKey + '_size', String(records.length));
+    } else {
+      loadFromStorage();
+    }
+    populateTypeFilter();
+    populateCategories();
+    applyFilters();
+    renderStats();
+    document.getElementById('filters').style.display = 'flex';
+    document.getElementById('card-area').style.display = 'block';
+    document.getElementById('empty-state').style.display = 'none';
+  } catch(e) { /* файл не найден — пользователь загрузит вручную */ }
+})();
+</script>
+</body>
+</html>

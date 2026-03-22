@@ -30,7 +30,7 @@ function showCalTooltip(info) {
     '<div style="font-size:11px;color:#94a3b8;">' + typeLabel + '</div>' +
     '<div style="font-size:14px;font-weight:600;color:#0f172a;margin-top:2px;">' + (props.counterparty || ev.title) + '</div>' +
     '<div style="font-size:13px;color:#475569;margin-top:2px;">' + detail + '</div>' +
-    '<div style="font-size:13px;color:#4f46e5;font-weight:600;cursor:pointer;margin-top:8px;" onclick="window.location.href=\'/document/' + props.contract_id + '\'">Открыть →</div>';
+    '<div style="font-size:13px;color:#4f46e5;font-weight:600;cursor:pointer;margin-top:8px;" onclick="history.pushState(null,\'\',\'/document/' + props.contract_id + '\');window.dispatchEvent(new PopStateEvent(\'popstate\'));document.getElementById(\'cal-tooltip\').style.display=\'none\'">Открыть →</div>';
   var rect = info.el.getBoundingClientRect();
   tooltip.style.display = 'block';
   tooltip.style.top = (rect.bottom + 8) + 'px';
