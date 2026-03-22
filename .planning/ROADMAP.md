@@ -58,7 +58,11 @@ Full details: `.planning/milestones/v0.7-ROADMAP.md`
   4. Лого: «Юр» в indigo квадрате + «Тэг» белым
   5. Inactive segments с border/bg, calendar toggle с labels
   6. hero-enter:nth-child(5) работает, dead CSS удалён
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 18-01-PLAN.md — Stats bar fix + registry centering + AG Grid warnings
+- [ ] 18-02-PLAN.md — Logo + dialog restyle + templates/settings centering
+- [ ] 18-03-PLAN.md — Footer + segments + calendar toggle + CSS cleanup
 **UI hint**: yes
 
 ### Phase 19: Onboarding + Demo Data
@@ -78,5 +82,5 @@ Full details: `.planning/milestones/v0.7-ROADMAP.md`
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 18. Layout + Visual Fixes | v0.7.1 | 0/TBD | Not started | - |
+| 18. Layout + Visual Fixes | v0.7.1 | 0/3 | Not started | - |
 | 19. Onboarding + Demo Data | v0.7.1 | 0/TBD | Not started | - |
