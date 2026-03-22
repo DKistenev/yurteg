@@ -388,6 +388,23 @@ def build() -> None:
                 list_btn.set_visibility(False)
                 cal_btn.set_visibility(False)
                 _render_empty_state(grid_container, state)
+            elif not rows:
+                # Filtered search returned 0 results — show helpful message inside grid area
+                with grid_container:
+                    no_results = ui.column().classes("py-8 flex flex-col items-center gap-2")
+                    with no_results:
+                        ui.label("Ничего не найдено").classes("text-sm font-semibold text-slate-500")
+                        ui.label("Попробуйте другой запрос или сбросьте фильтры").classes("text-xs text-slate-400")
+
+                        async def _reset_filters():
+                            state.filter_search = ""
+                            active_segment["value"] = "all"
+                            await load_table_data(grid, state, "all")
+                            no_results.delete()
+
+                        ui.button("Сбросить фильтры", on_click=_reset_filters).props(
+                            "flat no-caps"
+                        ).classes("text-xs text-indigo-600")
             elif rows:
                 # Tour: show after first processing, one time only (per D-14, D-18)
                 settings = load_settings()

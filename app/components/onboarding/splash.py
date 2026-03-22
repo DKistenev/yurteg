@@ -146,6 +146,12 @@ def render_splash() -> None:
                     await run.io_bound(manager.ensure_model, on_progress)
                 except Exception as exc:
                     logger.warning("ensure_model завершился с ошибкой: %s", exc)
+                    ui.notify(
+                        "Не удалось загрузить модель. Проверьте интернет-соединение "
+                        "или выберите облачный провайдер в настройках.",
+                        type="negative",
+                        timeout=10000,
+                    )
 
                 # Pitfall 1 guard: гарантируем 1.0 даже если ensure_model не вызвал on_progress
                 loop.call_soon_threadsafe(progress_bar.set_value, 1.0)
