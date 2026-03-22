@@ -46,7 +46,7 @@ Declared values (multiples of 4px — consistent with existing NiceGUI Tailwind 
 
 Exceptions:
 - Splash screen logo area: `pb-8` (32px) below logo before heading — to create visual anchor
-- Progress bar section: `py-3` (12px) vertical — compact, secondary to wizard content
+- Progress bar section: `py-2` (8px) vertical — compact, secondary to wizard content
 - Guided tour tooltip: `p-4` (16px) internal padding, `max-w-xs` (256px) width cap
 
 **Source:** Existing app code (`px-6 py-3 gap-4 gap-2 p-8 gap-6` patterns confirmed in registry.py, settings.py, header.py).
@@ -267,7 +267,7 @@ Tooltip positioning:
 | Start | First pipeline completion + `tour_completed` absent/false | Overlay renders, step 1 shown |
 | Next step | User clicks «Далее» | Spotlight moves to next target element, tooltip repositions |
 | Skip | User clicks «Пропустить тур» | `save_setting('tour_completed', True)`, overlay removed |
-| Complete | User clicks «Завершить» on step 3 | Same as skip |
+| Complete | User clicks «Завершить тур» on step 3 | Same as skip |
 | Never shown again | `tour_completed: true` in settings | Condition check in registry `build()` after table load |
 
 ---
@@ -280,7 +280,7 @@ Tooltip positioning:
 | Primary CTA (wizard step 2) | «Сохранить и начать» |
 | Primary CTA (wizard step 1) | «Далее: Telegram →» |
 | Primary CTA (tour steps 1-2) | «Далее →» |
-| Primary CTA (tour step 3) | «Завершить» |
+| Primary CTA (tour step 3) | «Завершить тур» |
 | Skip link (wizard) | «Пропустить» |
 | Skip link (tour) | «Пропустить тур» |
 | Splash heading | «Добро пожаловать!» |
