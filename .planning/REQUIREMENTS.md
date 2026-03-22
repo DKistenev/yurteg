@@ -45,9 +45,9 @@
 
 ### Шаблоны
 
-- [ ] **TMPL-01**: Карточки с color-coded левой полосой (4px) по типу документа, иконкой типа в accent-цвете, shadow-md hover lift — визуально различимы друг от друга с первого взгляда
-- [ ] **TMPL-02**: Цветные badges типов документов
-- [ ] **TMPL-03**: Rich empty state — иконка + заголовок + описание что такое шаблоны и зачем, CTA «Добавить первый шаблон»
+- [x] **TMPL-01**: Карточки с color-coded левой полосой (4px) по типу документа, иконкой типа в accent-цвете, shadow-md hover lift — визуально различимы друг от друга с первого взгляда
+- [x] **TMPL-02**: Цветные badges типов документов
+- [x] **TMPL-03**: Rich empty state — иконка + заголовок + описание что такое шаблоны и зачем, CTA «Добавить первый шаблон»
 
 ### Настройки
 
@@ -111,9 +111,9 @@
 | CARD-01 | Phase 16 | Complete |
 | CARD-02 | Phase 16 | Complete |
 | CARD-03 | Phase 16 | Complete |
-| TMPL-01 | Phase 17 | Pending |
-| TMPL-02 | Phase 17 | Pending |
-| TMPL-03 | Phase 17 | Pending |
+| TMPL-01 | Phase 17 | Complete |
+| TMPL-02 | Phase 17 | Complete |
+| TMPL-03 | Phase 17 | Complete |
 | SETT-01 | Phase 17 | Complete |
 | SETT-02 | Phase 17 | Complete |
 | ANIM-01 | Phase 17 | Pending |
