@@ -10,7 +10,6 @@ Per D-16: run.io_bound() для extract_text (blocking I/O).
 from pathlib import Path
 from typing import Optional
 
-import webview
 from nicegui import app, run, ui
 
 import modules.extractor as extractor
@@ -36,14 +35,25 @@ async def _pick_file() -> Optional[Path]:
     """Открывает нативный OS file picker для PDF/DOCX.
 
     Pitfall 5: всегда проверять `if result` перед использованием.
+    RBST-01: graceful fallback в web mode.
     """
-    result = await app.native.main_window.create_file_dialog(
-        dialog_type=webview.OPEN_DIALOG,
-        file_types=("PDF файлы (*.pdf)", "Word документы (*.docx)"),
-    )
-    if not result:
+    try:
+        import webview  # noqa: PLC0415 — local import guard for web mode
+        result = await app.native.main_window.create_file_dialog(
+            dialog_type=webview.OPEN_DIALOG,
+            file_types=("PDF файлы (*.pdf)", "Word документы (*.docx)"),
+        )
+        if not result:
+            return None
+        return Path(result[0])
+    except (ImportError, AttributeError):
+        # Web mode: pywebview недоступен или app.native не инициализирован
+        ui.notify(
+            "Выбор файла недоступен в веб-режиме.",
+            type="warning",
+            timeout=4000,
+        )
         return None
-    return Path(result[0])
 
 
 def _render_cards(container: ui.column, on_add: callable = None) -> None:

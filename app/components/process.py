@@ -12,7 +12,6 @@ import time
 from pathlib import Path
 from typing import Optional
 
-import webview
 from nicegui import app, run, ui
 
 import services.pipeline_service as pipeline_service
@@ -25,16 +24,27 @@ async def pick_folder() -> Optional[Path]:
 
     Per D-03/D-04: app.native.main_window.create_file_dialog с FOLDER_DIALOG.
     Pitfall 1: всегда проверять `if result` перед использованием.
+    RBST-01: в web mode (без pywebview) — graceful fallback с уведомлением.
 
     Returns:
-        Path к выбранной папке или None если юрист отменил диалог.
+        Path к выбранной папке или None если юрист отменил диалог или web mode.
     """
-    result = await app.native.main_window.create_file_dialog(
-        dialog_type=webview.FOLDER_DIALOG,
-    )
-    if not result:
+    try:
+        import webview  # noqa: PLC0415 — local import guard for web mode
+        result = await app.native.main_window.create_file_dialog(
+            dialog_type=webview.FOLDER_DIALOG,
+        )
+        if not result:
+            return None
+        return Path(result[0])
+    except (ImportError, AttributeError):
+        # Web mode: pywebview недоступен или app.native не инициализирован
+        ui.notify(
+            "Выбор папки недоступен в веб-режиме. Используйте кнопку «Загрузить тестовые данные».",
+            type="warning",
+            timeout=5000,
+        )
         return None
-    return Path(result[0])
 
 
 async def start_pipeline(
