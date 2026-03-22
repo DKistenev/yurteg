@@ -39,9 +39,9 @@
 
 ### Карточка документа
 
-- [ ] **CARD-01**: Breadcrumbs навигация
-- [ ] **CARD-02**: Структурированные секции с uppercase заголовками и 1px разделителями
-- [ ] **CARD-03**: Визуально различимые блоки для метаданных (compact key-value), AI-ревью (accent border + иконка), версий (timeline-стиль) — не identical cards
+- [x] **CARD-01**: Breadcrumbs навигация
+- [x] **CARD-02**: Структурированные секции с uppercase заголовками и 1px разделителями
+- [x] **CARD-03**: Визуально различимые блоки для метаданных (compact key-value), AI-ревью (accent border + иконка), версий (timeline-стиль) — не identical cards
 
 ### Шаблоны
 
@@ -108,9 +108,9 @@
 | REGI-04 | Phase 16 | Pending |
 | REGI-05 | Phase 16 | Pending |
 | REGI-06 | Phase 16 | Pending |
-| CARD-01 | Phase 16 | Pending |
-| CARD-02 | Phase 16 | Pending |
-| CARD-03 | Phase 16 | Pending |
+| CARD-01 | Phase 16 | Complete |
+| CARD-02 | Phase 16 | Complete |
+| CARD-03 | Phase 16 | Complete |
 | TMPL-01 | Phase 17 | Pending |
 | TMPL-02 | Phase 17 | Pending |
 | TMPL-03 | Phase 17 | Pending |
