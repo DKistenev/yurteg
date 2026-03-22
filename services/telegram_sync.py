@@ -24,6 +24,16 @@ class TelegramSync:
         """True, если сервер задан и аккаунт привязан."""
         return bool(self.base) and self.chat_id > 0
 
+    def check_connection(self) -> bool:
+        """Проверяет доступность сервера Telegram-бота. GET {base}/health, timeout=5s."""
+        if not self.base:
+            return False
+        try:
+            r = self._client.get(f"{self.base}/health", timeout=5)
+            return r.status_code < 400
+        except Exception:
+            return False
+
     def bind(self, code: str) -> Optional[int]:
         """Отправить код привязки на сервер, вернуть chat_id при успехе.
 

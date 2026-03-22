@@ -1,4 +1,5 @@
 """Централизованная конфигурация приложения."""
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -147,3 +148,28 @@ class Config:
     @property
     def active_model(self) -> str:
         return self.model_prod if self.use_prod_model else self.model_dev
+
+
+# ---------------------------------------------------------------------------
+# Settings persistence — централизованное хранение настроек
+# ---------------------------------------------------------------------------
+
+_SETTINGS_FILE = Path.home() / ".yurteg" / "settings.json"
+
+
+def load_settings() -> dict:
+    """Загружает персистентные настройки из ~/.yurteg/settings.json."""
+    try:
+        if _SETTINGS_FILE.exists():
+            return json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def save_setting(key: str, value) -> None:
+    """Сохраняет один ключ в ~/.yurteg/settings.json (merge, не перезапись)."""
+    s = load_settings()
+    s[key] = value
+    _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _SETTINGS_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")

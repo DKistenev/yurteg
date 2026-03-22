@@ -92,6 +92,34 @@ def list_templates(db: Database, contract_type: Optional[str] = None) -> list[Te
     ]
 
 
+def delete_template(db: Database, template_id: int) -> bool:
+    """Мягкое удаление шаблона (is_active=0). Возвращает True если шаблон найден."""
+    with db._lock:
+        cursor = db.conn.execute(
+            "UPDATE templates SET is_active=0 WHERE id=? AND is_active=1",
+            (template_id,),
+        )
+        db.conn.commit()
+        deleted = cursor.rowcount > 0
+    if deleted:
+        logger.info("Шаблон id=%d деактивирован", template_id)
+    return deleted
+
+
+def update_template(db: Database, template_id: int, name: str, contract_type: str) -> bool:
+    """Обновляет name и contract_type шаблона. Возвращает True если шаблон найден."""
+    with db._lock:
+        cursor = db.conn.execute(
+            "UPDATE templates SET name=?, contract_type=? WHERE id=? AND is_active=1",
+            (name, contract_type, template_id),
+        )
+        db.conn.commit()
+        updated = cursor.rowcount > 0
+    if updated:
+        logger.info("Шаблон id=%d обновлён: name='%s', type='%s'", template_id, name, contract_type)
+    return updated
+
+
 def match_template(
     db: Database,
     document_text: str,
