@@ -34,14 +34,14 @@ def build() -> None:
     with ui.row().classes("w-full min-h-screen gap-0"):
         # --- Левая навигация ---
         with ui.column().classes(
-            "w-48 min-h-screen border-r border-gray-200 bg-gray-50 p-3 gap-1"
+            "w-48 min-h-screen border-r border-slate-200 bg-slate-50 p-3 gap-1"
         ):
             ui.label("Настройки").classes(
-                "text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2"
+                "text-xs font-semibold text-slate-400 uppercase tracking-wide px-3 py-2"
             )
             for section in _NAV_ITEMS:
                 btn = ui.button(section).props("flat no-caps").classes(
-                    "w-full text-left justify-start text-gray-600 bg-transparent px-3 py-2 rounded-lg"
+                    "w-full text-left justify-start text-slate-600 bg-transparent px-3 py-2 rounded-lg transition-colors duration-150 hover:bg-slate-50"
                 )
                 nav_buttons[section] = btn
 
@@ -55,13 +55,13 @@ def build() -> None:
         for name, btn in nav_buttons.items():
             if name == section:
                 btn.classes(
-                    remove="text-gray-600 bg-transparent",
-                    add="text-gray-900 bg-white shadow-sm rounded-lg",
+                    remove="text-slate-600 bg-transparent",
+                    add="text-slate-900 bg-white shadow-sm rounded-lg",
                 )
             else:
                 btn.classes(
-                    remove="text-gray-900 bg-white shadow-sm rounded-lg",
-                    add="text-gray-600 bg-transparent",
+                    remove="text-slate-900 bg-white shadow-sm rounded-lg",
+                    add="text-slate-600 bg-transparent",
                 )
         content.clear()
         with content:
@@ -85,10 +85,10 @@ def build() -> None:
         s = load_settings()
         current_provider = s.get("active_provider", "ollama")
 
-        ui.label("AI-провайдер").classes("text-lg font-medium text-gray-900")
+        ui.label("AI-провайдер").classes("text-lg font-medium text-slate-900")
         ui.label(
             "Выберите модель для извлечения метаданных из документов."
-        ).classes("text-sm text-gray-500")
+        ).classes("text-sm text-slate-500")
 
         # API key row — показываем только для облачных провайдеров
         api_key_row = ui.row().classes("w-full items-center gap-3")
@@ -133,10 +133,10 @@ def build() -> None:
         saved_types = s.get("anonymize_types")
         current_types: set[str] = set(saved_types) if saved_types is not None else all_keys
 
-        ui.label("Анонимизация").classes("text-lg font-medium text-gray-900")
+        ui.label("Анонимизация").classes("text-lg font-medium text-slate-900")
         ui.label(
             "Какие типы персональных данных маскировать при отправке в облачный AI:"
-        ).classes("text-sm text-gray-500 mb-2")
+        ).classes("text-sm text-slate-500 mb-2")
 
         def _on_checkbox_change(key: str, checked: bool) -> None:
             if checked:
@@ -150,11 +150,11 @@ def build() -> None:
                 text=label,
                 value=(key in current_types),
                 on_change=lambda e, k=key: _on_checkbox_change(k, e.value),
-            ).classes("text-sm text-gray-700")
+            ).classes("text-sm text-slate-700")
 
         ui.separator().classes("my-4")
 
-        ui.label("Предупреждения").classes("text-base font-medium text-gray-900 mt-4")
+        ui.label("Предупреждения").classes("text-base font-medium text-slate-900 mt-4")
         warning_days = s.get("warning_days", 30)
         inp = ui.number(
             label="За сколько дней предупреждать об истечении",
@@ -172,10 +172,10 @@ def build() -> None:
     def _render_telegram_section() -> None:
         s = load_settings()
 
-        ui.label("Telegram-бот").classes("text-lg font-medium text-gray-900")
+        ui.label("Telegram-бот").classes("text-lg font-medium text-slate-900")
         ui.label(
             "Подключите бота для получения уведомлений о дедлайнах и отправки документов через Telegram."
-        ).classes("text-sm text-gray-500")
+        ).classes("text-sm text-slate-500")
 
         url_inp = (
             ui.input(
@@ -220,4 +220,4 @@ def build() -> None:
 
             ui.button(
                 "Проверить подключение", on_click=_check_telegram
-            ).props("flat no-caps size=sm").classes("text-gray-600")
+            ).props("flat no-caps size=sm").classes("text-slate-600")

@@ -77,7 +77,7 @@ def render_tour(on_complete: Callable) -> None:
     position: fixed;
     z-index: 50;
     background: white;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
     padding: 16px;
     max-width: 256px;
@@ -111,7 +111,7 @@ def render_tour(on_complete: Callable) -> None:
         savedZIndex = el.style.zIndex;
         el.style.position = 'relative';
         el.style.zIndex = '50';
-        el.style.outline = '2px solid #111827';
+        el.style.outline = '2px solid #4f46e5';
         el.style.outlineOffset = '2px';
         highlightedEl = el;
     }}
@@ -160,19 +160,19 @@ def render_tour(on_complete: Callable) -> None:
         const nextLabel = isLast ? 'Завершить тур' : 'Далее \u2192';
 
         tooltip.innerHTML = `
-            <div style="font-size: 14px; color: #9ca3af; margin-bottom: 8px;">
+            <div style="font-size: 14px; color: #94a3b8; margin-bottom: 8px;">
                 \u0428\u0430\u0433 ${{index + 1}} / ${{STEPS.length}}
             </div>
-            <div style="font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 4px;">
+            <div style="font-size: 20px; font-weight: 600; color: #0f172a; margin-bottom: 4px;">
                 ${{step.title}}
             </div>
-            <div style="font-size: 14px; color: #6b7280; line-height: 1.625; margin-bottom: 16px;">
+            <div style="font-size: 14px; color: #64748b; line-height: 1.625; margin-bottom: 16px;">
                 ${{step.body}}
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <button onclick="endTour()" style="
                     font-size: 14px;
-                    color: #9ca3af;
+                    color: #94a3b8;
                     cursor: pointer;
                     background: none;
                     border: none;
@@ -180,7 +180,7 @@ def render_tour(on_complete: Callable) -> None:
                 ">Пропустить тур</button>
                 <button onclick="${{isLast ? 'endTour' : 'nextStep'}}()" style="
                     padding: 8px 24px;
-                    background: #111827;
+                    background: #4f46e5;
                     color: white;
                     font-size: 14px;
                     font-weight: 600;

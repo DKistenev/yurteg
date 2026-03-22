@@ -36,13 +36,13 @@ def render_splash() -> None:
         with ui.column().classes("max-w-lg w-full mx-auto py-16 px-8 gap-0"):
 
             # Logo
-            ui.label("ЮрТэг").classes("text-3xl font-semibold text-gray-900")
+            ui.label("ЮрТэг").classes("text-3xl font-semibold text-slate-900")
 
             # Welcome heading
-            ui.label("Добро пожаловать!").classes("text-xl font-semibold text-gray-900 mt-8")
+            ui.label("Добро пожаловать!").classes("text-xl font-semibold text-slate-900 mt-8")
 
             # Capability bullets section
-            with ui.column().classes("bg-gray-50 rounded-lg p-4 mt-6 gap-2"):
+            with ui.column().classes("bg-slate-50 rounded-lg p-4 mt-6 gap-2"):
                 _bullets = [
                     "Загрузите папку → получите реестр",
                     "Автосортировка по папкам",
@@ -50,17 +50,17 @@ def render_splash() -> None:
                 ]
                 for text in _bullets:
                     with ui.row().classes("gap-2 items-start"):
-                        ui.label("·").classes("text-gray-400 text-sm shrink-0")
-                        ui.label(text).classes("text-sm text-gray-600 font-normal")
+                        ui.label("·").classes("text-slate-400 text-sm shrink-0")
+                        ui.label(text).classes("text-sm text-slate-600 font-normal")
 
             # Progress bar section
             with ui.column().classes("mt-6 gap-1 w-full"):
                 progress_label = ui.label(
                     f"Загрузка модели (0/{_MODEL_SIZE_MB} МБ)"
-                ).classes("text-sm text-gray-500 font-normal")
+                ).classes("text-sm text-slate-500 font-normal")
                 progress_bar = (
                     ui.linear_progress(value=0)
-                    .props("color=grey-9 track-color=grey-3")
+                    .props("color=indigo track-color=grey-3")
                     .classes("w-full h-1.5 rounded-full")
                 )
 
@@ -84,12 +84,12 @@ def render_splash() -> None:
                 with wizard_area:
                     # Heading
                     ui.label("Подключите Telegram-бот").classes(
-                        "text-xl font-semibold text-gray-900"
+                        "text-xl font-semibold text-slate-900"
                     )
                     # Body
                     ui.label(
                         "Получайте уведомления об истекающих документах прямо в мессенджер."
-                    ).classes("text-sm text-gray-500 font-normal")
+                    ).classes("text-sm text-slate-500 font-normal")
                     # Token input
                     token_input = ui.input(
                         placeholder="110201543:AAHdqTcvCH1vGWJxfSeofSs0K"
@@ -97,20 +97,20 @@ def render_splash() -> None:
                     # Navigation row
                     with ui.row().classes("w-full justify-between items-center"):
                         ui.button("Пропустить").props("flat no-caps").classes(
-                            "text-sm text-gray-400 hover:text-gray-600"
+                            "text-sm text-slate-400 hover:text-slate-600"
                         ).on_click(lambda: _finish())
                         ui.button("Сохранить и начать").props("no-caps").classes(
-                            "px-6 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg"
+                            "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
                         ).on_click(lambda: _save_and_finish(token_input))
 
             # Render step 1 wizard content (navigation only — bullets above)
             with wizard_area:
                 with ui.row().classes("w-full justify-between items-center"):
                     ui.button("Пропустить").props("flat no-caps").classes(
-                        "text-sm text-gray-400 hover:text-gray-600"
+                        "text-sm text-slate-400 hover:text-slate-600"
                     ).on_click(lambda: _finish())
                     ui.button("Далее: Telegram \u2192").props("no-caps").classes(
-                        "px-6 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg"
+                        "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
                     ).on_click(_show_step_2)
 
             # Start model download asynchronously

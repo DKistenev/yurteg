@@ -46,10 +46,10 @@ def _render_cards(container: ui.column) -> None:
         if not templates:
             # Empty state
             with ui.column().classes("w-full items-center justify-center py-16"):
-                ui.label("Нет шаблонов").classes("text-gray-400 text-lg")
+                ui.label("Нет шаблонов").classes("text-slate-400 text-lg")
                 ui.label(
                     "Добавьте первый шаблон-эталон для ревью договоров"
-                ).classes("text-gray-300 text-sm mt-1")
+                ).classes("text-slate-300 text-sm mt-1")
             return
 
         with ui.grid(columns=2).classes("w-full gap-4"):
@@ -60,19 +60,19 @@ def _render_cards(container: ui.column) -> None:
 def _render_card(tmpl, cards_container: ui.column) -> None:
     """Рендерит одну карточку шаблона."""
     with ui.card().classes(
-        "p-4 cursor-default hover:shadow-md transition-shadow"
+        "p-4 cursor-default hover:shadow-md transition-shadow transition-colors duration-150 hover:bg-slate-100"
     ):
         # Имя
-        ui.label(tmpl.name).classes("font-semibold text-gray-900 text-sm")
+        ui.label(tmpl.name).classes("font-semibold text-slate-900 text-sm")
         # Тип документа
-        ui.label(tmpl.contract_type).classes("text-xs text-gray-500 mt-0.5")
+        ui.label(tmpl.contract_type).classes("text-xs text-slate-500 mt-0.5")
         # Preview первых ~200 символов
         preview = (tmpl.content_text or "")[:200]
         ui.label(preview).classes(
-            "text-xs text-gray-400 mt-2 line-clamp-3 overflow-hidden"
+            "text-xs text-slate-400 mt-2 line-clamp-3 overflow-hidden"
         )
         # Дата создания
-        ui.label(tmpl.created_at or "").classes("text-xs text-gray-300 mt-2")
+        ui.label(tmpl.created_at or "").classes("text-xs text-slate-300 mt-2")
         # Кнопки действий
         with ui.row().classes("mt-3 gap-1"):
             ui.button(
@@ -88,7 +88,7 @@ def _render_card(tmpl, cards_container: ui.column) -> None:
 def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
     """Диалог редактирования имени и типа шаблона."""
     with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[400px]"):
-        ui.label("Изменить шаблон").classes("text-lg font-semibold text-gray-900 mb-4")
+        ui.label("Изменить шаблон").classes("text-lg font-semibold text-slate-900 mb-4")
 
         name_input = ui.input(
             label="Название",
@@ -125,8 +125,8 @@ def _open_edit_dialog(tmpl, cards_container: ui.column) -> None:
 def _open_delete_dialog(tmpl, cards_container: ui.column) -> None:
     """Диалог подтверждения удаления шаблона."""
     with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[360px]"):
-        ui.label("Удалить шаблон?").classes("text-lg font-semibold text-gray-900 mb-2")
-        ui.label(f"«{tmpl.name}»").classes("text-gray-600 text-sm mb-4")
+        ui.label("Удалить шаблон?").classes("text-lg font-semibold text-slate-900 mb-2")
+        ui.label(f"«{tmpl.name}»").classes("text-slate-600 text-sm mb-4")
 
         async def _confirm_delete() -> None:
             state = get_state()
@@ -160,7 +160,7 @@ async def _add_template_flow(cards_container: ui.column) -> None:
 
     # Открываем диалог имени и типа
     with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[400px]"):
-        ui.label("Добавить шаблон").classes("text-lg font-semibold text-gray-900 mb-4")
+        ui.label("Добавить шаблон").classes("text-lg font-semibold text-slate-900 mb-4")
 
         name_input = ui.input(
             label="Название",
@@ -172,7 +172,7 @@ async def _add_template_flow(cards_container: ui.column) -> None:
             label="Тип документа",
         ).props("outlined dense use-input").classes("w-full mb-4")
 
-        status_label = ui.label("").classes("text-xs text-gray-400 mb-2")
+        status_label = ui.label("").classes("text-xs text-slate-400 mb-2")
 
         async def _confirm() -> None:
             new_name = name_input.value.strip()
@@ -227,10 +227,10 @@ def build() -> None:
         # Заголовок
         with ui.row().classes("w-full items-start justify-between mb-6"):
             with ui.column().classes("gap-0"):
-                ui.label("Шаблоны").classes("text-2xl font-semibold text-gray-900")
+                ui.label("Шаблоны").classes("text-2xl font-semibold text-slate-900")
                 ui.label(
                     "Эталонные документы для ревью договоров"
-                ).classes("text-sm text-gray-400 mb-4")
+                ).classes("text-sm text-slate-400 mb-4")
 
             cards_ref: list[ui.column] = []
 
