@@ -1,11 +1,12 @@
 /* ЮрТэг Design System — IBM Plex Sans, slate/indigo palette */
 
-/* Typography baseline */
+/* Typography baseline (global reset — вне layer) */
 h1, h2, h3, h4, h5, h6 { line-height: 1.25; }
 p, li, label { line-height: 1.5; }
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
 /* Staggered row animation (80ms steps, cap at row 8) */
+/* AG Grid живёт вне NiceGUI layer system — оставляем без @layer */
 @keyframes row-in {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -24,7 +25,7 @@ p, li, label { line-height: 1.5; }
 .ag-row:nth-child(8)  { animation-delay: 560ms; }
 .ag-row:nth-child(n+9) { animation-delay: 640ms; }
 
-/* Page fade-in */
+/* Page fade-in (global — вне layer) */
 @keyframes page-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
@@ -33,7 +34,7 @@ p, li, label { line-height: 1.5; }
   animation: page-fade-in 200ms ease-out both;
 }
 
-/* Hover-actions (appear on row hover) */
+/* Hover-actions (appear on row hover) — AG Grid API contract, не переименовывать */
 .actions-cell { opacity: 0; transition: opacity 150ms ease; display: flex; align-items: center; justify-content: center; }
 .ag-row:hover .actions-cell { opacity: 1; }
 .action-icon { cursor: pointer; font-size: 1.125rem; color: #64748b; line-height: 1; }
@@ -43,34 +44,39 @@ p, li, label { line-height: 1.5; }
 
 /* ── Button micro-interactions ──────────────────────────────────────────────── */
 
-/* Primary buttons: subtle scale on hover, press feedback on active */
-.q-btn:not(.q-btn--flat) {
-  transition: transform 150ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 150ms ease;
-}
-.q-btn:not(.q-btn--flat):hover {
-  transform: scale(1.02);
-}
-.q-btn:not(.q-btn--flat):active {
-  transform: scale(0.97);
-  transition-duration: 80ms;
-}
+@layer overrides {
+  /* Primary buttons: subtle scale on hover, press feedback on active */
+  .q-btn:not(.q-btn--flat) {
+    transition: transform 150ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 150ms ease;
+  }
+  .q-btn:not(.q-btn--flat):hover {
+    transform: scale(1.02);
+  }
+  .q-btn:not(.q-btn--flat):active {
+    transform: scale(0.97);
+    transition-duration: 80ms;
+  }
 
-/* Flat buttons: color shift only (no scale — too much for text buttons) */
-.q-btn--flat {
-  transition: color 150ms ease, background-color 150ms ease;
+  /* Flat buttons: color shift only (no scale — too much for text buttons) */
+  .q-btn--flat {
+    transition: color 150ms ease, background-color 150ms ease;
+  }
 }
 
 /* ── Dialog transitions ────────────────────────────────────────────────────── */
 
-/* Quasar dialog backdrop */
-.q-dialog__backdrop {
-  transition: opacity 200ms ease !important;
+@layer overrides {
+  /* Quasar dialog backdrop */
+  .q-dialog__backdrop {
+    transition: opacity 200ms ease !important;
+  }
+
+  /* Dialog card entrance: fade + subtle scale from 0.96 */
+  .q-dialog .q-card {
+    animation: dialog-in 250ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
 }
 
-/* Dialog card entrance: fade + subtle scale from 0.96 */
-.q-dialog .q-card {
-  animation: dialog-in 250ms cubic-bezier(0.25, 1, 0.5, 1) both;
-}
 @keyframes dialog-in {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -78,19 +84,19 @@ p, li, label { line-height: 1.5; }
 
 /* ── Card hover lift ───────────────────────────────────────────────────────── */
 
-/* Quasar cards with hover class get a lift effect */
-.q-card {
-  transition: box-shadow 200ms ease, transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
-}
-.q-card:hover {
-  /* Only lift cards that have cursor-pointer or hover:shadow-md (template cards) */
-}
-/* Template cards — explicit hover lift via Tailwind hover:shadow-md */
-.q-card.cursor-default:hover {
-  transform: translateY(-2px);
+@layer components {
+  /* Quasar cards with hover class get a lift effect */
+  .q-card {
+    transition: box-shadow 200ms ease, transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  /* Template cards — explicit hover lift via Tailwind hover:shadow-md */
+  .q-card.cursor-default:hover {
+    transform: translateY(-2px);
+  }
 }
 
 /* ── Status badge pulse (on fresh render) ──────────────────────────────────── */
+/* Вне layer — работает через attribute selector, безопасно */
 
 @keyframes badge-in {
   from { opacity: 0; transform: scale(0.85); }
@@ -102,25 +108,28 @@ p, li, label { line-height: 1.5; }
 
 /* ── Progress bar smoothing ────────────────────────────────────────────────── */
 
-.q-linear-progress__track,
-.q-linear-progress__model {
-  transition: width 500ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+@layer overrides {
+  .q-linear-progress__track,
+  .q-linear-progress__model {
+    transition: width 500ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  /* ── Expansion panel smooth ──────────────────────────────────────────────── */
+
+  .q-expansion-item__content {
+    transition: max-height 300ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .q-expansion-item .q-item__section--avatar .q-icon {
+    transition: transform 200ms ease;
+  }
+
+  /* ── Toast notification slide-in ─────────────────────────────────────────── */
+
+  .q-notification {
+    animation: toast-in 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
 }
 
-/* ── Expansion panel smooth ────────────────────────────────────────────────── */
-
-.q-expansion-item__content {
-  transition: max-height 300ms cubic-bezier(0.25, 1, 0.5, 1);
-}
-.q-expansion-item .q-item__section--avatar .q-icon {
-  transition: transform 200ms ease;
-}
-
-/* ── Toast notification slide-in ───────────────────────────────────────────── */
-
-.q-notification {
-  animation: toast-in 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
-}
 @keyframes toast-in {
   from { opacity: 0; transform: translateY(-12px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -128,22 +137,24 @@ p, li, label { line-height: 1.5; }
 
 /* ── Link underline grow ───────────────────────────────────────────────────── */
 
-/* Nav links: underline slides in from left on hover */
-a.nicegui-link {
-  position: relative;
-}
-a.nicegui-link::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: #0f172a;
-  transition: width 200ms cubic-bezier(0.25, 1, 0.5, 1);
-}
-a.nicegui-link:hover::after {
-  width: 100%;
+@layer components {
+  /* Nav links: underline slides in from left on hover */
+  a.nicegui-link {
+    position: relative;
+  }
+  a.nicegui-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #0f172a;
+    transition: width 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  a.nicegui-link:hover::after {
+    width: 100%;
+  }
 }
 
 /* ── Accessibility: reduced motion ─────────────────────────────────────────── */
@@ -157,7 +168,7 @@ a.nicegui-link:hover::after {
   }
 }
 
-/* FullCalendar theme overrides */
+/* FullCalendar theme overrides — вне layer (специфичность через .fc prefix) */
 .fc { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8125rem; }
 .fc-toolbar-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
 .fc-button { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8125rem; }
@@ -166,3 +177,18 @@ a.nicegui-link:hover::after {
 .fc-daygrid-day-number { color: #475569; font-size: 0.75rem; }
 .fc-daygrid-day.fc-day-today { background-color: #eef2ff !important; }
 .fc-event { border-radius: 3px; font-size: 0.6875rem; padding: 1px 4px; }
+
+/* ── Hero entrance animation (v0.7) ────────────────────────────────────────── */
+@keyframes hero-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@layer components {
+  .hero-enter {
+    animation: hero-slide-up var(--yt-duration-slow) var(--yt-ease-out) both;
+  }
+  .hero-enter:nth-child(1) { animation-delay: 0ms; }
+  .hero-enter:nth-child(2) { animation-delay: 100ms; }
+  .hero-enter:nth-child(3) { animation-delay: 200ms; }
+  .hero-enter:nth-child(4) { animation-delay: 300ms; }
+}

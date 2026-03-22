@@ -49,3 +49,24 @@ TEXT_SECONDARY = "text-sm text-slate-500"
 TEXT_MUTED = "text-sm text-slate-400"
 TEXT_LABEL_UPPER = "text-xs font-normal text-slate-400 uppercase tracking-wide"
 TEXT_LABEL_SECTION = "text-xs font-semibold text-slate-400 uppercase tracking-wide"
+
+# ── v0.7 Design System constants ─────────────────────────────────────────────
+
+# Hero / dark surface typography
+TEXT_HERO = "font-bold text-white tracking-tight leading-tight"
+TEXT_HERO_SUB = "text-lg font-light text-slate-300"
+TEXT_EYEBROW = "text-xs font-semibold text-slate-400 uppercase tracking-widest"
+
+# Stats bar (Phase 16)
+STAT_NUMBER = "text-2xl font-bold tabular-nums"
+STAT_LABEL = "text-xs uppercase tracking-wide"
+
+# Section structural
+SECTION_LABEL = "text-xs font-semibold uppercase tracking-wider"
+DIVIDER = "border-t border-slate-200 my-4"
+
+# Template card (Phase 17)
+TEMPLATE_CARD = "bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
+
+# Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
+BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"

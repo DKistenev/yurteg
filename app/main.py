@@ -67,6 +67,19 @@ app.on_shutdown(_stop_llama)
 app.on_disconnect(_stop_llama)
 atexit.register(_stop_llama)
 
+# Quasar color bridge — синхронизировать --q-primary с --yt-color-accent
+app.colors(
+    primary='#4f46e5',    # --yt-p-indigo-600
+    secondary='#64748b',  # --yt-p-slate-500
+    accent='#4f46e5',
+    positive='#059669',   # green-600
+    negative='#dc2626',   # red-600
+    warning='#d97706',    # amber-600
+    info='#3b82f6',       # blue-500
+    dark='#0f172a',       # --yt-p-slate-900
+    dark_page='#0f172a',
+)
+
 # ── Global design system ──────────────────────────────────────────────────────
 # CSS/JS extracted to app/static/ for maintainability. Load order matters: font first.
 
@@ -74,25 +87,28 @@ from pathlib import Path as _Path
 
 _STATIC = _Path(__file__).parent / "static"
 
-# Font (must load before any rendered element)
+# Font (must load before any rendered element) — weights 300/400/500/600/700 + cyrillic
 ui.add_head_html("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap&subset=cyrillic" rel="stylesheet">
-<style>body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; }</style>
-""")
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap&subset=cyrillic" rel="stylesheet">
+<style>body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; color: var(--yt-color-text-primary); }</style>
+""", shared=True)
+
+# tokens.css — ПЕРВЫМ (CSS custom properties должны быть до всех потребителей)
+ui.add_head_html(f'<style>{(_STATIC / "tokens.css").read_text()}</style>', shared=True)
 
 # FullCalendar CDN — lazy-loaded on first calendar toggle (see _load_fullcalendar_js)
 # Moved from eager <script> to on-demand loading in registry.py _show_calendar()
 
 # Design system CSS (animations, hover-actions, FullCalendar theme)
-ui.add_head_html(f'<style>{(_STATIC / "design-system.css").read_text()}</style>')
+ui.add_head_html(f'<style>{(_STATIC / "design-system.css").read_text()}</style>', shared=True)
 
 # Calendar tooltip container + calendar.js (lightweight, no FullCalendar dependency)
 ui.add_head_html(f"""
 <div id="cal-tooltip" style="position:fixed;z-index:1000;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:12px;max-width:256px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.07);display:none;"></div>
 <script>{(_STATIC / "calendar.js").read_text()}</script>
-""")
+""", shared=True)
 
 # Status badge CSS (Tailwind @layer — literal classes for AG Grid JS cellRenderer)
 ui.add_head_html("""
@@ -108,7 +124,15 @@ ui.add_head_html("""
     .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-700; }
   }
 </style>
-""")
+""", shared=True)
+
+# Content area background — не белый (DSGN-05)
+ui.add_head_html("""
+<style>
+  body { background: var(--yt-surface-bg) !important; }
+  .nicegui-content { background: var(--yt-surface-bg); }
+</style>
+""", shared=True)
 
 # ── UI root ────────────────────────────────────────────────────────────────────
 
