@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
-status: Phase complete — ready for verification
+status: Ready to plan
 stopped_at: Completed 14-header/14-02-PLAN.md
-last_updated: "2026-03-22T19:09:20.079Z"
+last_updated: "2026-03-22T19:15:07.184Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-22)
 
 ## Current Position
 
-Phase: 14 (Фундамент — дизайн-система + header) — EXECUTING
-Plan: 2 of 2
+Phase: 15
+Plan: Not started
 
 ## Performance Metrics
 
