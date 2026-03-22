@@ -2,6 +2,7 @@
 
 Phase 08, Plans 02-03.
 Phase 12, Plan 02 — empty state + guided tour onboarding.
+Phase 13, Plan 03 — calendar toggle: List/Calendar view switching (DSGN-04, D-15).
 Per D-03: сортировка по processed_at DESC (через COLUMN_DEFS hidden column).
 Per D-04: три сегмента — Все · Истекают ⚠ · Требуют внимания.
 Per D-07: текстовый поиск с debounce 300ms через rapidfuzz.
@@ -14,9 +15,10 @@ Per D-19: клики actions не триггерят навигацию.
 Per D-12 (onboarding): empty state при пустой БД без активных фильтров.
 Per D-14 (onboarding): guided tour после первой обработки, один раз.
 """
+import json
 from pathlib import Path
 
-from nicegui import ui
+from nicegui import run, ui
 
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
@@ -30,10 +32,15 @@ from app.components.registry_table import (
 from app.state import get_state
 from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
+from services.payment_service import get_calendar_events
 
 # Segment styling — literal classes per D-24
 _SEG_ACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md bg-indigo-600 text-white transition-colors duration-150"
 _SEG_INACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 transition-colors duration-150"
+
+# Calendar toggle button styles (Phase 13, DSGN-04, D-15)
+_TOGGLE_ACTIVE = "p-2 rounded-md bg-slate-100 text-slate-700"
+_TOGGLE_INACTIVE = "p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors duration-150"
 
 
 def _render_empty_state(container, state) -> None:
@@ -113,6 +120,13 @@ def build() -> None:
                     btn.classes(_SEG_ACTIVE if key == "all" else _SEG_INACTIVE)
                     seg_buttons[key] = btn
 
+            # Calendar toggle — right-aligned (DSGN-04, D-15)
+            with ui.row().classes("ml-auto items-center gap-1"):
+                list_btn = ui.button("≡").props("flat no-caps").classes(_TOGGLE_ACTIVE)
+                list_btn.props('title="Список"')
+                cal_btn = ui.button("⊞").props("flat no-caps").classes(_TOGGLE_INACTIVE)
+                cal_btn.props('title="Календарь"')
+
         # Progress section — hidden by default (D-12)
         progress_section = ui.column().classes("w-full px-6 py-3 gap-2")
         progress_section.set_visibility(False)
@@ -125,6 +139,10 @@ def build() -> None:
             error_col = ui.column().classes("gap-1")
 
         grid_container = ui.column().classes("w-full")
+
+        # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
+        calendar_container = ui.column().classes("w-full px-6")
+        calendar_container.set_visibility(False)
 
     # Build ui_refs for start_pipeline (D-06, D-07, D-08)
     ui_refs: dict = {
@@ -143,6 +161,84 @@ def build() -> None:
         for k, b in seg_buttons.items():
             b.classes(remove=_SEG_ACTIVE + " " + _SEG_INACTIVE)
             b.classes(_SEG_ACTIVE if k == active_key else _SEG_INACTIVE)
+
+    async def _show_calendar() -> None:
+        """Fetch events and render FullCalendar via JS (D-10, D-11, D-12, D-16)."""
+        db = _client_manager.get_db(state.current_client)
+
+        # Payment events — override color to slate-400 (Pitfall 5, D-12)
+        try:
+            payment_events = await run.io_bound(get_calendar_events, db)
+        except Exception:
+            payment_events = []
+        for ev in payment_events:
+            ev["color"] = "#94a3b8"  # slate-400 — all payments same color
+            ev["id"] = f"payment-{ev.get('extendedProps', {}).get('contract_id', 0)}-{ev.get('start', '')}"
+            # Normalise extendedProps to include type=payment
+            if "extendedProps" not in ev:
+                ev["extendedProps"] = {}
+            ev["extendedProps"]["type"] = "payment"
+
+        # Contract end-date events — indigo (D-12)
+        try:
+            contracts = await run.io_bound(db.get_all_results)
+        except Exception:
+            contracts = []
+        end_events: list[dict] = []
+        for c in contracts:
+            date_end = c.get("date_end")
+            if date_end:
+                end_events.append({
+                    "id": f"contract-{c['id']}",
+                    "title": f"{c.get('counterparty', '')} · {c.get('contract_type', '')}",
+                    "start": date_end,
+                    "color": "#4f46e5",  # indigo-600
+                    "extendedProps": {
+                        "type": "end_date",
+                        "contract_id": c["id"],
+                        "counterparty": c.get("counterparty", ""),
+                        "doc_type": c.get("contract_type", ""),
+                    },
+                })
+
+        all_events = payment_events + end_events
+
+        if not all_events:
+            ui.notify(
+                "Не удалось загрузить события календаря. Попробуйте переключить вид.",
+                type="warning",
+            )
+
+        json_str = json.dumps(all_events, ensure_ascii=False, default=str)
+
+        calendar_container.clear()
+        with calendar_container:
+            ui.html('<div id="yurteg-calendar"></div>').classes("w-full")
+
+        # Per Pitfall 2: delay JS init to ensure DOM element exists
+        ui.timer(0.1, lambda: ui.run_javascript(f"window.initCalendar({json_str})"), once=True)
+
+    async def _switch_view(view: str) -> None:
+        """Переключает вид между списком и календарём (DSGN-04, D-15)."""
+        state.calendar_visible = (view == "calendar")
+        if state.calendar_visible:
+            list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+            list_btn.classes(_TOGGLE_INACTIVE)
+            cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+            cal_btn.classes(_TOGGLE_ACTIVE)
+            grid_container.set_visibility(False)
+            calendar_container.set_visibility(True)
+            await _show_calendar()
+        else:
+            list_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+            list_btn.classes(_TOGGLE_ACTIVE)
+            cal_btn.classes(remove=_TOGGLE_ACTIVE + " " + _TOGGLE_INACTIVE)
+            cal_btn.classes(_TOGGLE_INACTIVE)
+            grid_container.set_visibility(True)
+            calendar_container.set_visibility(False)
+
+    list_btn.on_click(lambda: _switch_view("list"))
+    cal_btn.on_click(lambda: _switch_view("calendar"))
 
     async def _switch_segment(key: str) -> None:
         active_segment["value"] = key
@@ -297,6 +393,9 @@ def build() -> None:
                 and active_segment["value"] == "all"
             ):
                 grid.set_visibility(False)
+                # Hide toggle buttons — calendar makes no sense with no data
+                list_btn.set_visibility(False)
+                cal_btn.set_visibility(False)
                 _render_empty_state(grid_container, state)
             elif rows:
                 # Tour: show after first processing, one time only (per D-14, D-18)
