@@ -41,6 +41,9 @@ class AppState:
     filter_status: str = ""
     filter_search: str = ""
 
+    # Calendar toggle (Phase 13)
+    calendar_visible: bool = False
+
 
 def get_state() -> AppState:
     """Return per-connection AppState from app.storage.client (D-05)."""
