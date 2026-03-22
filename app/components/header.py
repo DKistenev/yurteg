@@ -34,14 +34,15 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         "px-6 py-0 flex items-center gap-6 h-14"
     ).style("background: #0f172a; border-bottom: 1px solid #334155; box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);"):
 
-        # Left: logo mark — indigo square «Ю» + wordmark «рТэг»
+        # Left: logo mark — indigo rect «Юр» + wordmark «Тэг»
         with ui.row().classes("items-center gap-2 shrink-0"):
             ui.html(
-                '<div class="w-7 h-7 rounded-lg flex items-center justify-center'
-                ' text-white text-sm font-bold" style="background: #4f46e5;'
-                ' line-height: 1; flex-shrink: 0;">Ю</div>'
+                '<div style="display:flex;align-items:center;justify-content:center;'
+                'width:32px;height:28px;background:#4f46e5;border-radius:8px;'
+                'color:white;font-size:0.8rem;font-weight:700;letter-spacing:-0.02em;'
+                'flex-shrink:0;line-height:1;">Юр</div>'
             )
-            ui.label("рТэг").classes("text-base font-semibold text-white tracking-tight")
+            ui.label("Тэг").classes("text-base font-semibold text-white tracking-tight")
 
         # Center: text-link nav tabs with active indicator
         with ui.row().classes("gap-6 flex-1 justify-center"):
@@ -125,21 +126,38 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     """Диалог добавления нового клиента."""
     menu.close()
 
-    with ui.dialog() as dlg, ui.card():
-        ui.label("Новое рабочее пространство").classes("text-lg font-semibold")
-        name_input = ui.input("Название").props("outlined")
+    with ui.dialog() as dlg, ui.card().classes("p-0 min-w-[420px] overflow-hidden shadow-xl"):
+        # Заголовок с indigo-полосой
+        with ui.element("div").style(
+            "background:#4f46e5;padding:20px 24px 16px;"
+        ):
+            with ui.element("p").style("color:white;font-size:1rem;font-weight:600;margin:0;"):
+                ui.html("Новое рабочее пространство")
+            with ui.element("p").style("color:#c7d2fe;font-size:0.8rem;margin:4px 0 0;"):
+                ui.html("Создайте отдельный реестр для клиента или проекта")
 
-        with ui.row().classes("gap-2 justify-end w-full"):
-            ui.button("Отмена", on_click=dlg.close).props("flat")
+        # Тело диалога
+        with ui.column().classes("p-6 gap-4"):
+            name_input = ui.input(
+                placeholder="Например: ООО Ромашка"
+            ).props('outlined dense label="Название пространства" aria-label="Название рабочего пространства"').classes("w-full").style("font-size:0.875rem;")
 
-            async def _add() -> None:
-                n = name_input.value.strip()
-                if n:
-                    await run.io_bound(cm.add_client, n)
-                    _switch_client(state, n, btn, None)
-                    dlg.close()
+            with ui.row().classes("gap-2 justify-end w-full"):
+                ui.button("Отмена", on_click=dlg.close).props("flat no-caps").classes(
+                    "text-slate-500 text-sm"
+                )
 
-            ui.button("Добавить", on_click=_add).props("flat color=primary")
+                async def _add() -> None:
+                    n = name_input.value.strip()
+                    if n:
+                        await run.io_bound(cm.add_client, n)
+                        _switch_client(state, n, btn, None)
+                        dlg.close()
+
+                ui.button("Создать", on_click=_add).props("no-caps").classes(
+                    "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                    " hover:bg-indigo-700 transition-colors duration-150"
+                )
 
     dlg.open()
 
