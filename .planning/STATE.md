@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.6
 milestone_name: UI-редизайн
 status: unknown
-stopped_at: Completed 13-03-PLAN.md
-last_updated: "2026-03-22T13:01:13.574Z"
+stopped_at: Completed 13-04-PLAN.md
+last_updated: "2026-03-22T13:05:57.705Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -91,6 +91,7 @@ Plan: 4 of 4
 | Phase 13-design-polish-calendar P01 | 3min | 2 tasks | 3 files |
 | Phase 13 P02 | 6min | 2 tasks | 7 files |
 | Phase 13 P03 | 2min | 1 tasks | 1 files |
+| Phase 13-design-polish-calendar P04 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -203,6 +204,8 @@ Recent decisions affecting current work:
 - [Phase 13]: Tour spotlight outline migrated to indigo-600 — spotlight ring treated as accent element
 - [Phase 13]: Payment event colors overridden to #94a3b8 in registry.py — payment_service stays color-neutral
 - [Phase 13]: Calendar toggle: ui.timer(0.1) defers initCalendar JS call until DOM element exists (Pitfall 2)
+- [Phase 13-design-polish-calendar]: test_appstate_has_all_fields count updated 21→22 to match calendar_visible addition from Plan 13-01
+- [Phase 13-design-polish-calendar]: process.py last gray class migrated: text-gray-500 → text-slate-500 — slate palette migration 100% complete
 
 ### Pending Todos
 
@@ -223,6 +226,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 13-03-PLAN.md
+Stopped at: Completed 13-04-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 7
