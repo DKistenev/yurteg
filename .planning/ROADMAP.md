@@ -53,7 +53,7 @@ Full details: `.planning/milestones/v0.6-ROADMAP.md`
 - [x] **Phase 14: Фундамент — дизайн-система + header** — tokens.css, app.colors(), типографика, фон, тёмный chrome header (completed 2026-03-22)
 - [x] **Phase 15: Splash** — hero full-screen, dark surface, staggered entrance (валидация паттерна) (completed 2026-03-22)
 - [x] **Phase 16: Registry + Card** — stats bar, AG Grid theming, фильтр-бар, breadcrumbs, секции (completed 2026-03-22)
-- [ ] **Phase 17: Полировка — templates, settings, анимации, сквозное** — карточки, секции, transitions, footer, visual seam
+- [x] **Phase 17: Полировка — templates, settings, анимации, сквозное** — карточки, секции, transitions, footer, visual seam (completed 2026-03-22)
 
 ## Phase Details
 
@@ -151,4 +151,4 @@ Plans:
 | 14. Фундамент: дизайн-система + header | v0.7 | 2/2 | Complete | 2026-03-22 |
 | 15. Splash | v0.7 | 1/1 | Complete    | 2026-03-22 |
 | 16. Registry + Card | v0.7 | 3/3 | Complete    | 2026-03-22 |
-| 17. Полировка: templates, settings, анимации | v0.7 | 3/4 | In Progress|  |
+| 17. Полировка: templates, settings, анимации | v0.7 | 3/4 | Complete    | 2026-03-22 |
