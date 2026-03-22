@@ -69,6 +69,7 @@
 - ✓ Pipeline wiring: нативный folder picker, async обработка, real-time прогресс — v0.6 Phase 10
 - ✓ Settings (macOS Preferences) + Templates (карточки с CRUD) — v0.6 Phase 11
 - ✓ Onboarding: splash + wizard + empty state + guided tour — v0.6 Phase 12
+- ✓ Design Polish: IBM Plex Sans, slate/indigo palette, animations, FullCalendar — v0.6 Phase 13
 
 ### Active
 
@@ -150,4 +151,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-22 after Phase 12 completion*
+*Last updated: 2026-03-22 after Phase 13 completion — v0.6 MILESTONE COMPLETE*
