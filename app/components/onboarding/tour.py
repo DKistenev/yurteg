@@ -1,10 +1,10 @@
-"""Guided tour overlay — 3-step spotlight tour after first document processing.
+"""Guided tour overlay — 5-step spotlight tour after first document processing.
 
-Phase 12, Plan 02.
-Per D-14: triggered after first pipeline completion, shown once.
-Per D-15: 3 steps — registry table, search/filters row, upload button.
-Per D-16: full-screen overlay + spotlight on target element via JS.
-Per D-18: tour_completed flag saved via config.save_setting.
+Phase 12, Plan 02 (original 3 steps).
+Phase 19, Plan 01 (expanded to 5 steps, visual polish).
+Per ONBR-01: triggered after first pipeline completion, shown once.
+Per ONBR-02: «? Гид» button in header resets flag and reruns tour.
+Steps: upload → navigation tabs → search/filters → calendar toggle → client dropdown.
 
 Implementation: ui.html + JS (per RESEARCH Pattern 5).
 Pitfall 2 guard: setTimeout(startTour, 500) — lets AG Grid finish rendering.
@@ -17,10 +17,16 @@ from app.styles import HEX
 
 TOUR_STEPS = [
     {
-        "target": ".ag-root-wrapper",
-        "title": "Реестр документов",
-        "body": "Это ваш реестр. Кликните на строку для просмотра подробностей.",
-        "position": "center-top",  # tooltip below center of screen, above table
+        "target": "#upload-btn",
+        "title": "Загрузка документов",
+        "body": "Нажмите, чтобы выбрать папку с новыми документами. ЮрТэг обработает их автоматически.",
+        "position": "below-right",
+    },
+    {
+        "target": ".q-header",
+        "title": "Навигация",
+        "body": "Реестр, Шаблоны и Настройки — три раздела приложения. Реестр — главное рабочее пространство.",
+        "position": "center-top",
     },
     {
         "target": ".search-row",
@@ -29,16 +35,22 @@ TOUR_STEPS = [
         "position": "below-left",
     },
     {
-        "target": "#upload-btn",
-        "title": "Загрузка документов",
-        "body": "Нажмите, чтобы выбрать папку с новыми документами для обработки.",
+        "target": "#calendar-toggle",
+        "title": "Вид календаря",
+        "body": "Переключите на вид календаря для просмотра дат платежей и окончания договоров.",
+        "position": "below-right",
+    },
+    {
+        "target": ".q-header .shrink-0:last-child",
+        "title": "Рабочие пространства",
+        "body": "Создавайте отдельные пространства для разных клиентов — каждое со своим реестром и настройками.",
         "position": "below-right",
     },
 ]
 
 
 def render_tour(on_complete: Callable) -> None:
-    """Рендерит guided tour overlay с 3 шагами spotlight.
+    """Рендерит guided tour overlay с 5 шагами spotlight.
 
     Args:
         on_complete: async callback, вызывается когда юрист завершил или пропустил тур.
@@ -66,24 +78,28 @@ def render_tour(on_complete: Callable) -> None:
     import json
     steps_js = json.dumps(steps_json, ensure_ascii=False)
 
+    # Tooltip max-width in px (matches positionTooltip calc)
+    TW = 300
+
     tour_html = f"""
 <div id="tour-overlay" style="
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 40;
+    background: rgba(15,23,42,0.6);
+    z-index: 9000;
     pointer-events: all;
+    display: none;
 "></div>
 
 <div id="tour-tooltip" style="
     position: fixed;
-    z-index: 50;
+    z-index: 9001;
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 16px;
-    max-width: 256px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    padding: 20px 20px 16px;
+    max-width: {TW}px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1);
     display: none;
 "></div>
 
@@ -112,38 +128,53 @@ def render_tour(on_complete: Callable) -> None:
         savedPosition = el.style.position;
         savedZIndex = el.style.zIndex;
         el.style.position = 'relative';
-        el.style.zIndex = '50';
+        el.style.zIndex = '9001';
         el.style.outline = '2px solid {HEX["indigo_600"]}';
-        el.style.outlineOffset = '2px';
+        el.style.outlineOffset = '3px';
         highlightedEl = el;
     }}
 
     function positionTooltip(el, position) {{
         const tooltip = document.getElementById('tour-tooltip');
         const rect = el.getBoundingClientRect();
-        const tw = 256;
-        const margin = 12;
+        const tw = {TW};
+        const margin = 14;
+        const vw = window.innerWidth;
+
+        tooltip.style.transform = 'none';
 
         if (position === 'center-top') {{
-            // Centered horizontally, positioned below top of page (above table content)
-            tooltip.style.top = (rect.top + margin) + 'px';
-            tooltip.style.left = '50%';
-            tooltip.style.transform = 'translateX(-50%)';
+            // Centered horizontally, below the element top edge
+            tooltip.style.top = (rect.bottom + margin) + 'px';
+            const leftPos = Math.max(8, Math.min(vw - tw - 8, (vw - tw) / 2));
+            tooltip.style.left = leftPos + 'px';
         }} else if (position === 'below-left') {{
-            // Below the element, left-aligned
             tooltip.style.top = (rect.bottom + margin) + 'px';
             tooltip.style.left = Math.max(8, rect.left) + 'px';
-            tooltip.style.transform = 'none';
         }} else if (position === 'below-right') {{
-            // Below the element, right-aligned
             tooltip.style.top = (rect.bottom + margin) + 'px';
             tooltip.style.left = Math.max(8, rect.right - tw) + 'px';
-            tooltip.style.transform = 'none';
         }} else {{
             tooltip.style.top = (rect.bottom + margin) + 'px';
             tooltip.style.left = Math.max(8, rect.left) + 'px';
-            tooltip.style.transform = 'none';
         }}
+    }}
+
+    function buildDots(total, active) {{
+        let dots = '<div style="display:flex;gap:5px;justify-content:center;margin-top:14px;">';
+        for (let i = 0; i < total; i++) {{
+            const color = i === active ? '{HEX["indigo_600"]}' : '#e2e8f0';
+            dots += '<div style="width:6px;height:6px;border-radius:50%;background:' + color + ';transition:background 0.2s;"></div>';
+        }}
+        dots += '</div>';
+        return dots;
+    }}
+
+    function buildProgressBar(index, total) {{
+        const pct = Math.round(((index + 1) / total) * 100);
+        return '<div style="width:100%;height:3px;background:#f1f5f9;border-radius:99px;margin-top:6px;overflow:hidden;">'
+             + '<div style="height:3px;background:{HEX["indigo_600"]};width:' + pct + '%;border-radius:99px;transition:width 0.3s;"></div>'
+             + '</div>';
     }}
 
     function showStep(index) {{
@@ -159,39 +190,25 @@ def render_tour(on_complete: Callable) -> None:
         }}
 
         const isLast = index === STEPS.length - 1;
-        const nextLabel = isLast ? 'Завершить тур' : 'Далее \u2192';
+        const nextLabel = isLast ? 'Завершить тур' : '\u0414\u0430\u043b\u0435\u0435 \u2192';
 
-        tooltip.innerHTML = `
-            <div style="font-size: 14px; color: {HEX["slate_400"]}; margin-bottom: 8px;">
-                \u0428\u0430\u0433 ${{index + 1}} / ${{STEPS.length}}
-            </div>
-            <div style="font-size: 20px; font-weight: 600; color: {HEX["slate_900"]}; margin-bottom: 4px;">
-                ${{step.title}}
-            </div>
-            <div style="font-size: 14px; color: {HEX["slate_500"]}; line-height: 1.625; margin-bottom: 16px;">
-                ${{step.body}}
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button onclick="endTour()" style="
-                    font-size: 14px;
-                    color: {HEX["slate_400"]};
-                    cursor: pointer;
-                    background: none;
-                    border: none;
-                    padding: 0;
-                ">Пропустить тур</button>
-                <button onclick="${{isLast ? 'endTour' : 'nextStep'}}()" style="
-                    padding: 8px 24px;
-                    background: {HEX["indigo_600"]};
-                    color: white;
-                    font-size: 14px;
-                    font-weight: 600;
-                    border-radius: 8px;
-                    border: none;
-                    cursor: pointer;
-                ">${{nextLabel}}</button>
-            </div>
-        `;
+        tooltip.innerHTML =
+            '<div style="font-size:12px;font-weight:500;color:{HEX["slate_400"]};letter-spacing:0.04em;text-transform:uppercase;margin-bottom:6px;">'
+            + '\u0428\u0430\u0433 ' + (index + 1) + ' / ' + STEPS.length
+            + buildProgressBar(index, STEPS.length)
+            + '</div>'
+            + '<div style="font-size:17px;font-weight:700;color:{HEX["slate_900"]};margin-bottom:6px;line-height:1.3;">'
+            + step.title
+            + '</div>'
+            + '<div style="font-size:13.5px;color:{HEX["slate_500"]};line-height:1.65;margin-bottom:18px;">'
+            + step.body
+            + '</div>'
+            + '<div style="display:flex;justify-content:space-between;align-items:center;">'
+            + '<button onclick="endTour()" style="font-size:13px;color:{HEX["slate_400"]};cursor:pointer;background:none;border:none;padding:0;transition:color 0.15s;" onmouseover="this.style.color=\'{HEX["slate_500"]}\'" onmouseout="this.style.color=\'{HEX["slate_400"]}\'">Пропустить</button>'
+            + '<button onclick="' + (isLast ? 'endTour' : 'nextStep') + '()" style="padding:10px 28px;background:{HEX["indigo_600"]};color:white;font-size:13.5px;font-weight:600;border-radius:8px;border:none;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'#4338ca\'" onmouseout="this.style.background=\'{HEX["indigo_600"]}\'">' + nextLabel + '</button>'
+            + '</div>'
+            + buildDots(STEPS.length, index);
+
         tooltip.style.display = 'block';
     }}
 
