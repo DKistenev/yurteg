@@ -84,43 +84,43 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DSGN-01 | — | Pending |
-| DSGN-02 | — | Pending |
-| DSGN-03 | — | Pending |
-| DSGN-04 | — | Pending |
-| HEAD-01 | — | Pending |
-| HEAD-02 | — | Pending |
-| HEAD-03 | — | Pending |
-| HEAD-04 | — | Pending |
-| SPLS-01 | — | Pending |
-| SPLS-02 | — | Pending |
-| SPLS-03 | — | Pending |
-| REGI-01 | — | Pending |
-| REGI-02 | — | Pending |
-| REGI-03 | — | Pending |
-| REGI-04 | — | Pending |
-| REGI-05 | — | Pending |
-| CARD-01 | — | Pending |
-| CARD-02 | — | Pending |
-| CARD-03 | — | Pending |
-| TMPL-01 | — | Pending |
-| TMPL-02 | — | Pending |
-| TMPL-03 | — | Pending |
-| SETT-01 | — | Pending |
-| SETT-02 | — | Pending |
-| ANIM-01 | — | Pending |
-| ANIM-02 | — | Pending |
-| ANIM-03 | — | Pending |
-| ANIM-04 | — | Pending |
-| XCUT-01 | — | Pending |
-| XCUT-02 | — | Pending |
-| XCUT-03 | — | Pending |
+| DSGN-01 | Phase 14 | Pending |
+| DSGN-02 | Phase 14 | Pending |
+| DSGN-03 | Phase 14 | Pending |
+| DSGN-04 | Phase 14 | Pending |
+| HEAD-01 | Phase 14 | Pending |
+| HEAD-02 | Phase 14 | Pending |
+| HEAD-03 | Phase 14 | Pending |
+| HEAD-04 | Phase 14 | Pending |
+| SPLS-01 | Phase 15 | Pending |
+| SPLS-02 | Phase 15 | Pending |
+| SPLS-03 | Phase 15 | Pending |
+| REGI-01 | Phase 15 | Pending |
+| REGI-02 | Phase 15 | Pending |
+| REGI-03 | Phase 15 | Pending |
+| REGI-04 | Phase 15 | Pending |
+| REGI-05 | Phase 15 | Pending |
+| CARD-01 | Phase 15 | Pending |
+| CARD-02 | Phase 15 | Pending |
+| CARD-03 | Phase 15 | Pending |
+| TMPL-01 | Phase 16 | Pending |
+| TMPL-02 | Phase 16 | Pending |
+| TMPL-03 | Phase 16 | Pending |
+| SETT-01 | Phase 16 | Pending |
+| SETT-02 | Phase 16 | Pending |
+| ANIM-01 | Phase 16 | Pending |
+| ANIM-02 | Phase 16 | Pending |
+| ANIM-03 | Phase 16 | Pending |
+| ANIM-04 | Phase 16 | Pending |
+| XCUT-01 | Phase 16 | Pending |
+| XCUT-02 | Phase 16 | Pending |
+| XCUT-03 | Phase 14 | Pending |
 
 **Coverage:**
 - v0.7 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31 ⚠️
+- Mapped to phases: 31
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-22*
-*Last updated: 2026-03-22 after initial definition*
+*Last updated: 2026-03-22 — traceability mapped to Phases 14-16 (consolidated)*
