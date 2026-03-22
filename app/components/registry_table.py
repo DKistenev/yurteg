@@ -36,14 +36,15 @@ STATUS_CELL_RENDERER = """(params) => {
         active:      ['\u2714', '\u0414\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442', 'status-active'],
         expiring:    ['\u26a0', '\u0421\u043a\u043e\u0440\u043e \u0438\u0441\u0442\u0435\u043a\u0430\u0435\u0442', 'status-expiring'],
         expired:     ['\u2717', '\u0418\u0441\u0442\u0451\u043a', 'status-expired'],
-        unknown:     ['?', '\u041d\u0435\u0442 \u0434\u0430\u0442\u044b', 'status-unknown'],
-        terminated:  ['\u2716', '\u0420\u0430\u0441\u0442\u043e\u0440\u0433\u043d\u0443\u0442', 'status-terminated'],
+        unknown:     ['', '\u041d\u0435\u0442 \u0434\u0430\u0442\u044b', 'status-unknown'],
+        terminated:  ['', '\u0420\u0430\u0441\u0442\u043e\u0440\u0433\u043d\u0443\u0442', 'status-terminated'],
         extended:    ['\u21bb', '\u041f\u0440\u043e\u0434\u043b\u0451\u043d', 'status-extended'],
-        negotiation: ['~', '\u041d\u0430 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0438', 'status-negotiation'],
+        negotiation: ['', '\u041d\u0430 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0438', 'status-negotiation'],
         suspended:   ['\u23f8', '\u041f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d', 'status-suspended'],
     };
-    const [icon, label, cls] = labels[params.value] || ['?', params.value, 'status-unknown'];
-    return `<span class="${cls}">${icon} ${label}</span>`;
+    const [icon, label, cls] = labels[params.value] || ['', params.value, 'status-unknown'];
+    const iconHtml = icon ? `<span>${icon}</span>` : '';
+    return `<span class="${cls}">${iconHtml}${label}</span>`;
 }"""
 
 # ── Column definitions ─────────────────────────────────────────────────────────
@@ -150,6 +151,39 @@ def _fuzzy_filter(rows: list[dict], query: str) -> list[dict]:
         if all(fuzz.partial_ratio(word, haystack) >= _THRESHOLD for word in words):
             result.append(row)
     return result
+
+
+def _fetch_counts(client_name: str, warning_days: int) -> dict:
+    """Возвращает агрегатные counts для stats bar (REGI-01).
+
+    Синхронная функция — вызывается через run.io_bound().
+    Returns: {"total": int, "expiring": int, "attention": int}
+    """
+    db = _client_manager.get_db(client_name)
+    try:
+        total_row = db.conn.execute(
+            "SELECT COUNT(*) FROM contracts WHERE status = 'done'"
+        ).fetchone()
+        total = total_row[0] if total_row else 0
+
+        expiring_sql = """
+            SELECT COUNT(*) FROM contracts
+            WHERE status = 'done'
+            AND date_end IS NOT NULL
+            AND date_end > date('now')
+            AND date_end <= date('now', '+' || :warning_days || ' days')
+        """
+        exp_row = db.conn.execute(expiring_sql, {"warning_days": warning_days}).fetchone()
+        expiring = exp_row[0] if exp_row else 0
+
+        attention_row = db.conn.execute(
+            "SELECT COUNT(*) FROM contracts WHERE status = 'done' AND (validation_score < 0.7 OR validation_warnings IS NOT NULL AND validation_warnings != '[]')"
+        ).fetchone()
+        attention = attention_row[0] if attention_row else 0
+
+        return {"total": total, "expiring": expiring, "attention": attention}
+    except Exception:
+        return {"total": 0, "expiring": 0, "attention": 0}
 
 
 def build_version_rows(base_rows: list[dict], db) -> list[dict]:
@@ -341,7 +375,7 @@ async def render_registry_table(state: "AppState"):
         {
             "columnDefs": COLUMN_DEFS,
             "rowData": [],
-            "domLayout": "normal",
+            "domLayout": "autoHeight",
             "defaultColDef": {
                 "sortable": True,
                 "resizable": True,
@@ -350,7 +384,7 @@ async def render_registry_table(state: "AppState"):
             "pagination": True,
             "paginationAutoPageSize": True,
         }
-    ).classes("w-full").style("height: calc(100vh - 140px)")
+    ).classes("w-full")
 
     return grid
 
