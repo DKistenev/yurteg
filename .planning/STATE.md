@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.7
 milestone_name: Визуальный продукт
-status: Ready to execute
-stopped_at: Completed 14-header/14-01-PLAN.md
-last_updated: "2026-03-22T19:05:59.263Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 14-header/14-02-PLAN.md
+last_updated: "2026-03-22T19:09:20.079Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -43,6 +43,7 @@ Plan: 2 of 2
 
 *Updated after each plan completion*
 | Phase 14-header P01 | 5 | 2 tasks | 4 files |
+| Phase 14-header P02 | 5 | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [v0.7 Gray Zone]: Page transitions = на моё усмотрение (fade или slide)
 - [Phase 14-header]: tokens.css загружается inline через read_text() — NiceGUI не раздаёт app/static/ напрямую
 - [Phase 14-header]: @layer discipline: overrides для Quasar, components для карточек/ссылок, AG Grid вне layer
+- [Phase 14-header]: Logo mark via ui.html() — NiceGUI ui.element().text не работает напрямую для inline content
+- [Phase 14-header]: CTA filled через .classes('bg-indigo-600 text-white') без Quasar color prop (Pitfall 2 — !important)
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 14-header/14-01-PLAN.md
+Stopped at: Completed 14-header/14-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14

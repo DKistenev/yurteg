@@ -17,10 +17,10 @@
 
 ### Header
 
-- [ ] **HEAD-01**: Dark chrome band — тёмный header как якорь визуальной идентичности
-- [ ] **HEAD-02**: Лого-марка «Ю» с accent цветом
-- [ ] **HEAD-03**: Accent CTA кнопка «Загрузить документы» (filled, не flat)
-- [ ] **HEAD-04**: Навигация с hover states и active indicator
+- [x] **HEAD-01**: Dark chrome band — тёмный header как якорь визуальной идентичности
+- [x] **HEAD-02**: Лого-марка «Ю» с accent цветом
+- [x] **HEAD-03**: Accent CTA кнопка «Загрузить документы» (filled, не flat)
+- [x] **HEAD-04**: Навигация с hover states и active indicator
 
 ### Splash
 
@@ -95,10 +95,10 @@
 | DSGN-04 | Phase 14 | Complete |
 | DSGN-05 | Phase 14 | Complete |
 | XCUT-03 | Phase 14 | Complete |
-| HEAD-01 | Phase 14 | Pending |
-| HEAD-02 | Phase 14 | Pending |
-| HEAD-03 | Phase 14 | Pending |
-| HEAD-04 | Phase 14 | Pending |
+| HEAD-01 | Phase 14 | Complete |
+| HEAD-02 | Phase 14 | Complete |
+| HEAD-03 | Phase 14 | Complete |
+| HEAD-04 | Phase 14 | Complete |
 | SPLS-01 | Phase 15 | Pending |
 | SPLS-02 | Phase 15 | Pending |
 | SPLS-03 | Phase 15 | Pending |
