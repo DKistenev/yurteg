@@ -52,7 +52,7 @@ def test_status_css_slate():
     assert "text-yellow-700" in css, "status-expiring text-yellow-700 must not be removed"
     assert "bg-red-50" in css, "status-expired bg-red-50 must not be removed"
     assert "text-red-700" in css, "status-expired text-red-700 must not be removed"
-    assert "bg-blue-50" in css, "status-extended bg-blue-50 must not be removed"
+    assert "bg-indigo-50" in css, "status-extended bg-indigo-50 (was blue, colorized to indigo)"
     assert "bg-purple-50" in css, "status-negotiation bg-purple-50 must not be removed"
     assert "bg-orange-50" in css, "status-suspended bg-orange-50 must not be removed"
 

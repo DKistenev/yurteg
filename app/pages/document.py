@@ -199,7 +199,7 @@ async def build(doc_id: str = "") -> None:
                 change_btn = ui.button(
                     "Изменить",
                     on_click=lambda: status_row_el.set_visibility(True)
-                ).props("flat dense no-caps").classes("text-blue-600 text-xs")
+                ).props("flat dense no-caps").classes("text-indigo-600 text-xs")
 
                 async def _clear_status() -> None:
                     try:
@@ -250,7 +250,7 @@ async def build(doc_id: str = "") -> None:
                 apply_btn = ui.button(
                     "Применить",
                     on_click=_apply_status
-                ).props("dense no-caps").classes("bg-blue-600 text-white text-xs")
+                ).props("dense no-caps").classes("bg-indigo-600 text-white text-xs")
 
                 ui.button(
                     "Отмена",
@@ -289,7 +289,7 @@ async def build(doc_id: str = "") -> None:
                 try:
                     review_container.clear()
                     with review_container:
-                        ui.spinner('dots').classes('text-blue-500')
+                        ui.spinner('dots').classes('text-indigo-500')
 
                     _db = _client_manager.get_db(state.current_client)
                     # Per D-11: автоподбор шаблона по типу и тексту
@@ -312,7 +312,7 @@ async def build(doc_id: str = "") -> None:
                             with review_container:
                                 with ui.row().classes('items-center gap-2 text-slate-500 text-sm'):
                                     ui.label('Нет шаблонов.')
-                                    ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-blue-600 underline')
+                                    ui.link('Добавьте в разделе Шаблоны', '/templates').classes('text-indigo-600 underline')
                             return
                         # Dropdown для ручного выбора (per D-11 fallback)
                         review_container.clear()
@@ -331,7 +331,7 @@ async def build(doc_id: str = "") -> None:
                                 if sel_tmpl:
                                     await _do_review(sel_tmpl.content_text)
 
-                            ui.button('Проверить', on_click=_review_with_selected).props('flat no-caps').classes('text-blue-600')
+                            ui.button('Проверить', on_click=_review_with_selected).props('flat no-caps').classes('text-indigo-600')
                         return
 
                     # Шаблон найден — запускаем ревью
@@ -342,7 +342,7 @@ async def build(doc_id: str = "") -> None:
             async def _do_review(template_text: str) -> None:
                 review_container.clear()
                 with review_container:
-                    ui.spinner('dots').classes('text-blue-500')
+                    ui.spinner('dots').classes('text-indigo-500')
                 # Per D-12: async через run.io_bound — не блокирует UI
                 try:
                     deviations = await run.io_bound(
@@ -355,7 +355,7 @@ async def build(doc_id: str = "") -> None:
                     return
                 _render_deviations(review_container, deviations)
 
-            review_btn = ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-blue-600')
+            review_btn = ui.button('Проверить по шаблону', on_click=_run_review).props('flat no-caps').classes('text-indigo-600')
 
         # ── Version History section (per D-15 through D-18) ───────────────────
         with ui.expansion('Версии', icon='history', value=False).classes('w-full border rounded-lg'):
@@ -396,10 +396,10 @@ async def build(doc_id: str = "") -> None:
                                             return
                                         _render_diff_table(versions_container, diffs)
 
-                                    ui.button('Сравнить', on_click=_show_diff).props('flat dense no-caps').classes('text-xs text-blue-600')
+                                    ui.button('Сравнить', on_click=_show_diff).props('flat dense no-caps').classes('text-xs text-indigo-600')
 
                                     # Per D-18: Скачать redline через FastAPI route
                                     ui.link(
                                         'Скачать redline',
                                         f'/download/redline/{doc_id}/{v.contract_id}'
-                                    ).classes('text-xs text-blue-600 underline')
+                                    ).classes('text-xs text-indigo-600 underline')

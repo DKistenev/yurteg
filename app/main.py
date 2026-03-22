@@ -197,7 +197,7 @@ _STATUS_CSS = """
     .status-expired     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700; }
     .status-unknown     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
     .status-terminated  { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
-    .status-extended    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700; }
+    .status-extended    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700; }
     .status-negotiation { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700; }
     .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-700; }
   }
