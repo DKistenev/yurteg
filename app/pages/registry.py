@@ -1,6 +1,7 @@
 """Страница «Документы» — реестр договоров на AG Grid.
 
 Phase 08, Plans 02-03.
+Phase 12, Plan 02 — empty state + guided tour onboarding.
 Per D-03: сортировка по processed_at DESC (через COLUMN_DEFS hidden column).
 Per D-04: три сегмента — Все · Истекают ⚠ · Требуют внимания.
 Per D-07: текстовый поиск с debounce 300ms через rapidfuzz.
@@ -10,6 +11,8 @@ Per D-14: быстрая смена статуса из MANUAL_STATUSES.
 Per D-15, D-16, D-17: версии документов с expand/collapse ▶/▼.
 Per D-18: клик по строке → navigate to /document/{doc_id}.
 Per D-19: клики actions не триггерят навигацию.
+Per D-12 (onboarding): empty state при пустой БД без активных фильтров.
+Per D-14 (onboarding): guided tour после первой обработки, один раз.
 """
 from pathlib import Path
 
@@ -25,11 +28,59 @@ from app.components.registry_table import (
     _collapse_version_children,
 )
 from app.state import get_state
+from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
 
 # Segment styling — literal classes per D-24
 _SEG_ACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md bg-gray-900 text-white"
 _SEG_INACTIVE = "px-4 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-100"
+
+
+def _render_empty_state(container, state) -> None:
+    """Рендерит empty state при пустой БД без активных фильтров.
+
+    Per UI-SPEC Component 3 — точный layout, CSS и копия.
+    Отображается когда load_table_data вернул 0 строк И нет активных фильтров.
+    """
+    async def _on_pick_folder():
+        from app.components.process import pick_folder
+        source_dir = await pick_folder()
+        if source_dir and hasattr(state, "_on_upload") and state._on_upload:
+            await state._on_upload(source_dir)
+
+    with container:
+        with ui.column().classes("py-16 flex flex-col items-center gap-4"):
+            # Folder SVG icon — outline, stroke gray-300
+            ui.html(
+                '<svg width="48" height="48" viewBox="0 0 24 24" fill="none"'
+                ' stroke="#d1d5db" stroke-width="1.5">'
+                '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
+                "</svg>"
+            )
+            # Heading
+            ui.label("Загрузите первые документы").classes(
+                "text-xl font-semibold text-gray-900"
+            )
+            # Body description
+            ui.label(
+                "Выберите папку с PDF или DOCX — мы извлечём метаданные"
+                " и разложим файлы автоматически."
+            ).classes("text-sm text-gray-500 font-normal text-center max-w-xs")
+            # CTA button
+            ui.button("Выбрать папку", on_click=_on_pick_folder).props(
+                "no-caps"
+            ).classes("px-6 py-2 bg-gray-900 text-white font-semibold rounded-lg text-sm")
+            # Hint bullets
+            with ui.column().classes("mt-2 gap-1"):
+                ui.label("· Извлечёт метаданные").classes(
+                    "text-sm text-gray-400 font-normal"
+                )
+                ui.label("· Разложит по папкам").classes(
+                    "text-sm text-gray-400 font-normal"
+                )
+                ui.label("· Проверит сроки").classes(
+                    "text-sm text-gray-400 font-normal"
+                )
 
 
 def build() -> None:
@@ -41,8 +92,8 @@ def build() -> None:
     _timer: list = [None]
 
     with ui.column().classes("w-full"):
-        # Search + Segments row
-        with ui.row().classes("w-full px-6 pt-4 pb-2 items-center gap-4"):
+        # Search + Segments row — search-row class for guided tour targeting (D-14 onboarding)
+        with ui.row().classes("w-full px-6 pt-4 pb-2 items-center gap-4 search-row"):
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")
@@ -238,5 +289,27 @@ def build() -> None:
             grid_ref["grid"] = grid
             grid.on("cellClicked", _on_cell_clicked)
             await load_table_data(grid, state, "all")
+            rows = grid.options.get("rowData", [])
+            # Empty state: only when 0 rows AND no active filters (per D-12, Pitfall 4)
+            if (
+                not rows
+                and not state.filter_search
+                and active_segment["value"] == "all"
+            ):
+                grid.set_visibility(False)
+                _render_empty_state(grid_container, state)
+            elif rows:
+                # Tour: show after first processing, one time only (per D-14, D-18)
+                settings = load_settings()
+                if not settings.get("tour_completed"):
+                    upload_btn = _header_refs.get("upload_btn")
+                    if upload_btn:
+                        upload_btn.props("id=upload-btn")
+                    from app.components.onboarding.tour import render_tour
+
+                    async def _on_tour_complete():
+                        save_setting("tour_completed", True)
+
+                    ui.timer(0.5, lambda: render_tour(_on_tour_complete), once=True)
 
     ui.timer(0, _init, once=True)
