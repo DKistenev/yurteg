@@ -70,3 +70,23 @@ TEMPLATE_CARD = "bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
 
 # Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
 BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"
+
+# Document card — Phase 16 (CARD-01, CARD-02, CARD-03)
+BREADCRUMB_LINK = "text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
+BREADCRUMB_SEP  = "text-sm text-slate-400 mx-1"
+BREADCRUMB_CURRENT = "text-sm text-slate-900 font-semibold"
+
+# Section divider header (text-xs uppercase + 1px border-bottom)
+SECTION_DIVIDER_HEADER = "text-xs font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-200 w-full mb-4"
+
+# AI review block — amber/orange left border accent (CARD-03)
+AI_REVIEW_BLOCK = "w-full pl-4 py-1"
+AI_REVIEW_BORDER_STYLE = "border-left: 4px solid #f59e0b; background: #fffbeb;"
+
+# Metadata row — compact key-value (CARD-03: no card wrapper)
+META_KEY = "text-xs text-slate-400 font-medium uppercase tracking-wide"
+META_VAL = "text-sm text-slate-900"
+
+# Version timeline dot
+VERSION_DOT = "w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0 mt-1"
+VERSION_LINE = "w-0.5 bg-slate-200 flex-1 min-h-[20px] mx-auto"
