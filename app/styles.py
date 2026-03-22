@@ -94,3 +94,25 @@ META_VAL = "text-sm text-slate-900"
 # Version timeline dot
 VERSION_DOT = "w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0 mt-1"
 VERSION_LINE = "w-0.5 bg-slate-200 flex-1 min-h-[20px] mx-auto"
+
+# ── Template type color palette (Phase 17, TMPL-01, TMPL-02) ─────────────────
+# 4px left border color + badge bg/text per document type
+# Keys are Russian strings from Config().document_types_hints
+TMPL_TYPE_COLORS: dict[str, dict[str, str]] = {
+    "Договор поставки":        {"border": "#4f46e5", "badge_bg": "#eef2ff", "badge_text": "#4338ca", "icon": "📦"},
+    "Договор аренды":          {"border": "#059669", "badge_bg": "#d1fae5", "badge_text": "#065f46", "icon": "🏠"},
+    "Трудовой договор":        {"border": "#0284c7", "badge_bg": "#e0f2fe", "badge_text": "#0369a1", "icon": "👤"},
+    "Договор подряда":         {"border": "#d97706", "badge_bg": "#fef3c7", "badge_text": "#92400e", "icon": "🔧"},
+    "Договор оказания услуг":  {"border": "#7c3aed", "badge_bg": "#ede9fe", "badge_text": "#5b21b6", "icon": "✨"},
+    "Лицензионное соглашение": {"border": "#db2777", "badge_bg": "#fce7f3", "badge_text": "#9d174d", "icon": "📄"},
+    "Договор займа":           {"border": "#dc2626", "badge_bg": "#fee2e2", "badge_text": "#991b1b", "icon": "💰"},
+    "Прочее":                  {"border": "#94a3b8", "badge_bg": "#f1f5f9", "badge_text": "#475569", "icon": "📋"},
+}
+
+# Fallback for unknown document types
+TMPL_TYPE_DEFAULT = TMPL_TYPE_COLORS["Прочее"]
+
+# Template empty state style constants (TMPL-03)
+TMPL_EMPTY_ICON = "description"  # Material icon name for ui.icon()
+TMPL_EMPTY_TITLE = "text-xl font-semibold text-slate-700 mt-4"
+TMPL_EMPTY_BODY = "text-sm text-slate-400 text-center max-w-xs mt-2"
