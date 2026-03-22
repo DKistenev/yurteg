@@ -235,13 +235,15 @@ def root() -> None:
 
     # Splash gate: при первом запуске показываем onboarding, header не рендерится
     from config import load_settings
-    settings = load_settings()
-    if not settings.get("first_run_completed"):
+    app_settings = load_settings()
+    if not app_settings.get("first_run_completed"):
         from app.components.onboarding.splash import render_splash
         render_splash()
         return  # early return — no header, no sub_pages
 
     state = get_state()
+    # Bridge persisted warning_days → AppState (BUG-02 fix)
+    state.warning_days_threshold = app_settings.get("warning_days", 30)
 
     async def _handle_upload(path):
         """Delegate upload to registry page's on_upload callback (stored on state)."""
