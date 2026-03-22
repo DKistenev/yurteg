@@ -39,7 +39,7 @@ Bugfix/polish milestone — починить все проблемы из ауд
 
 ### Robustness
 
-- [ ] **RBST-01**: webview.OPEN_DIALOG fallback для web mode — file upload вместо native picker
+- [x] **RBST-01**: webview.OPEN_DIALOG fallback для web mode — file upload вместо native picker
 - [x] **RBST-02**: ARIA labels на stats bar, template cards, empty state CTA
 - [x] **RBST-03**: AG Grid console warnings — suppress или fix deprecated API usage
 
@@ -73,7 +73,7 @@ Bugfix/polish milestone — починить все проблемы из ауд
 | PLSH-03 | Phase 18 | Complete |
 | PLSH-04 | Phase 18 | Complete |
 | PLSH-05 | Phase 19 | Pending |
-| RBST-01 | Phase 19 | Pending |
+| RBST-01 | Phase 19 | Complete |
 | RBST-02 | Phase 18 | Complete |
 | RBST-03 | Phase 18 | Complete |
 

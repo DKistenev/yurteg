@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.7.1
 milestone_name: UI Polish & Fixes
-status: Ready to plan
-stopped_at: Completed 18-layout-fixes/18-02-PLAN.md
-last_updated: "2026-03-22T20:49:21.630Z"
+status: Ready to execute
+stopped_at: Completed 19-onboarding-demo/19-03-PLAN.md
+last_updated: "2026-03-22T20:57:28.014Z"
 last_activity: 2026-03-22
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-22)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 18 — Layout + Visual Fixes
+**Current focus:** Phase 19 — Onboarding + Demo Data
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
+Phase: 19 (Onboarding + Demo Data) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: Not started
 | Phase 18-layout-fixes P01 | 5 | 2 tasks | 2 files |
 | Phase 18 P03 | 5 | 2 tasks | 4 files |
 | Phase 18-layout-fixes P02 | 5 | 2 tasks | 3 files |
+| Phase 19-onboarding-demo P03 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -108,6 +109,7 @@ Recent decisions affecting current work:
 - [Phase 18-layout-fixes]: Logo: width:32px height:28px rect to fit «Юр» without clipping
 - [Phase 18-layout-fixes]: Dialog: card p-0 + overflow-hidden + ui.element div for indigo header band
 - [Phase 18-layout-fixes]: Settings height: flex-1 on row + self-stretch on sidebar (not min-h-screen)
+- [Phase 19-03]: Local import guard for webview inside try/except (ImportError, AttributeError) — allows module import in web environments without pywebview
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-22
-Stopped at: Completed 18-layout-fixes/18-02-PLAN.md
+Stopped at: Completed 19-onboarding-demo/19-03-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 14

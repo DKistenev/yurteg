@@ -79,7 +79,7 @@ Plans:
 Plans:
 - [ ] 19-01-PLAN.md — Tour 5 шагов + кнопка «? Гид» в header
 - [ ] 19-02-PLAN.md — Demo data (app/demo_data.py) + demo карточка в templates
-- [ ] 19-03-PLAN.md — Web mode fallback для pick_folder и _pick_file
+- [x] 19-03-PLAN.md — Web mode fallback для pick_folder и _pick_file
 **UI hint**: yes
 
 ## Progress
@@ -87,4 +87,4 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 18. Layout + Visual Fixes | v0.7.1 | 3/3 | Complete    | 2026-03-22 |
-| 19. Onboarding + Demo Data | v0.7.1 | 0/3 | Not started | - |
+| 19. Onboarding + Demo Data | v0.7.1 | 1/3 | In Progress|  |
