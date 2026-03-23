@@ -152,18 +152,18 @@ def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
     """Диалог добавления нового клиента."""
     menu.close()
 
-    with ui.dialog() as dlg, ui.card().classes("p-0 min-w-[420px] max-w-[520px] overflow-hidden shadow-xl"):
-        # Заголовок с indigo-полосой
-        with ui.element("div").style(
-            "background:#4f46e5;padding:20px 24px 16px;"
-        ):
+    with ui.dialog().props("no-backdrop-dismiss") as dlg, ui.card().classes(
+        "min-w-[420px] max-w-[520px] p-0 overflow-hidden rounded-xl shadow-xl"
+    ).style("max-height:90vh;"):
+        # Indigo header band
+        with ui.element("div").classes("bg-indigo-600 px-6 py-4"):
             with ui.element("p").style("color:white;font-size:1rem;font-weight:600;margin:0;"):
                 ui.html("Новое рабочее пространство")
             with ui.element("p").style("color:#c7d2fe;font-size:0.8rem;margin:4px 0 0;"):
                 ui.html("Создайте отдельный реестр для клиента или проекта")
 
-        # Тело диалога
-        with ui.column().classes("p-6 gap-4"):
+        # Content area
+        with ui.column().classes("px-6 py-5 gap-4"):
             name_input = ui.input(
                 placeholder="Например: ООО Ромашка"
             ).props('outlined dense label="Название пространства" aria-label="Название рабочего пространства"').classes("w-full").style("font-size:0.875rem;")
