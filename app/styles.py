@@ -71,8 +71,8 @@ TEMPLATE_CARD = "bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
 # Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
 BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"
 
-# Stats bar item (Phase 16, REGI-01)
-STATS_BAR = "flex items-center gap-6 px-6 py-3 bg-white border-b border-slate-200"
+# Stats bar item (Phase 16, REGI-01) — card with shadow for visual weight
+STATS_BAR = "flex items-center gap-6 px-6 py-4 bg-white rounded-lg shadow-sm border border-slate-100"
 STATS_ITEM = "flex flex-col items-center gap-0"
 
 # Document card — Phase 16 (CARD-01, CARD-02, CARD-03)
@@ -116,3 +116,9 @@ TMPL_TYPE_DEFAULT = TMPL_TYPE_COLORS["Прочее"]
 TMPL_EMPTY_ICON = "description"  # Material icon name for ui.icon()
 TMPL_EMPTY_TITLE = "text-xl font-semibold text-slate-700 mt-4"
 TMPL_EMPTY_BODY = "text-sm text-slate-400 text-center max-w-xs mt-2"
+
+# ── Apple-like card styles (Phase 18) ────────────────────────────────────────
+APPLE_CARD = "bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+APPLE_CARD_ICON = "w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+APPLE_CARD_COMPACT = "bg-white border border-slate-200 rounded-xl shadow-sm"
+APPLE_CARD_COMPACT_ICON = "w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"

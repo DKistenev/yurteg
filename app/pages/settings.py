@@ -8,7 +8,10 @@ from pathlib import Path
 
 from nicegui import run, ui
 
-from app.styles import TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY, SECTION_DIVIDER_HEADER
+from app.styles import (
+    TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY, SECTION_DIVIDER_HEADER,
+    APPLE_CARD_COMPACT, APPLE_CARD_COMPACT_ICON,
+)
 from config import Config, load_settings, save_setting
 from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
@@ -40,12 +43,81 @@ def _settings_row(label: str, description: str = "", *, control_fn=None) -> None
             control_fn()
 
 
+def _render_summary_cards(settings: dict, switch_fn) -> None:
+    """Рендерит компактные summary-карточки над sidebar layout."""
+    # --- AI summary ---
+    cfg = Config()
+    model_path = Path.home() / ".yurteg" / cfg.llama_model_filename
+    model_exists = model_path.exists()
+    model_size = f"{model_path.stat().st_size / 1024 / 1024:.0f}MB" if model_exists else ""
+    model_status = "Готова" if model_exists else "Не скачана"
+    provider = _PROVIDERS.get(settings.get("active_provider", "ollama"), "Локальный")
+    provider_short = provider.split("(")[0].strip().split(" ")[0]
+    ai_detail = f"{provider_short} \u00b7 {model_status}" + (f" \u00b7 {model_size}" if model_size else "")
+    ai_detail_color = "text-slate-500" if model_exists else "text-amber-600"
+
+    # --- Processing summary ---
+    anon_on = settings.get("anonymize_for_cloud", True)
+    anon_text = "Анонимизация: вкл" if anon_on else "Анонимизация: выкл"
+    proc_detail_color = "text-slate-500"
+
+    # --- Notifications summary ---
+    chat_id = settings.get("telegram_chat_id", 0)
+    tg_bound = bool(chat_id)
+    tg_text = "Telegram: привязан" if tg_bound else "Telegram: не привязан"
+    tg_detail_color = "text-slate-500" if tg_bound else "text-amber-600"
+
+    cards_data = [
+        {
+            "icon": "\U0001f916", "icon_bg": "#eef2ff", "title": "ИИ-помощник",
+            "detail": ai_detail, "detail_color": ai_detail_color, "section": "ИИ",
+        },
+        {
+            "icon": "\u2699\ufe0f", "icon_bg": "#f1f5f9", "title": "Обработка",
+            "detail": anon_text, "detail_color": proc_detail_color, "section": "Обработка",
+        },
+        {
+            "icon": "\U0001f514", "icon_bg": "#fef3c7", "title": "Уведомления",
+            "detail": tg_text, "detail_color": tg_detail_color, "section": "Уведомления",
+        },
+    ]
+
+    with ui.row().classes("gap-3 px-6 py-4 w-full"):
+        for card in cards_data:
+            with ui.card().classes(
+                APPLE_CARD_COMPACT + " flex-1 cursor-pointer"
+            ).style("padding:14px").on(
+                "click", lambda s=card["section"]: switch_fn(s)
+            ):
+                with ui.row().classes("items-center gap-3"):
+                    # Icon in colored rounded square
+                    ui.html(
+                        f'<div style="width:28px;height:28px;border-radius:8px;'
+                        f'background:{card["icon_bg"]};display:flex;'
+                        f'align-items:center;justify-content:center;'
+                        f'font-size:0.875rem;flex-shrink:0">{card["icon"]}</div>'
+                    )
+                    with ui.column().classes("gap-0"):
+                        ui.label(card["title"]).classes(
+                            "font-semibold text-slate-900"
+                        ).style("font-size:13px")
+                        ui.label(card["detail"]).classes(
+                            card["detail_color"]
+                        ).style("font-size:11px")
+
+
 def build() -> None:
     """Рендерит страницу настроек с левой навигацией и правой панелью."""
 
     settings = load_settings()
     active_section: list[str] = ["ИИ"]  # mutable container для захвата в closures
     nav_buttons: dict[str, ui.button] = {}
+
+    # Placeholder for switch_fn — will be set after definition
+    switch_ref: list = []
+
+    # Summary cards at top (rendered after switch_fn is defined)
+    summary_container = ui.column().classes("w-full")
 
     with ui.row().classes("w-full flex-1 gap-0"):
         # --- Левая навигация ---
@@ -271,6 +343,10 @@ def build() -> None:
                 "За сколько дней до истечения предупреждать",
                 control_fn=_threshold_control,
             )
+
+    # Рендерим summary cards (теперь _switch определён)
+    with summary_container:
+        _render_summary_cards(settings, _switch)
 
     # Инициализация — открываем ИИ секцию (после определения всех render-функций)
     _switch("ИИ")

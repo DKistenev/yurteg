@@ -25,6 +25,8 @@ from app.styles import (
     TMPL_EMPTY_ICON,
     TMPL_EMPTY_TITLE,
     TMPL_EMPTY_BODY,
+    APPLE_CARD,
+    APPLE_CARD_ICON,
 )
 from config import Config, load_settings, save_setting
 from modules.models import FileInfo
@@ -77,17 +79,17 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                     ).classes(BTN_ACCENT_FILLED).props('no-caps aria-label="Добавить первый шаблон договора"')
 
             # ── Demo карточка — показывает как выглядит шаблон (PLSH-05) ─────
-            with ui.column().classes("w-full mt-6 gap-2 items-center"):
-                ui.label("Так выглядит шаблон:").classes(
+            with ui.column().classes("w-full mt-8 gap-3 items-center"):
+                ui.label("Так будет выглядеть шаблон").classes(
                     "text-xs font-semibold text-slate-400 uppercase tracking-wide text-center"
                 )
                 colors = TMPL_TYPE_COLORS.get("Договор аренды", TMPL_TYPE_DEFAULT)
-                # Greyed-out версия карточки — opacity + pointer-events-none
+                # Prominent demo card — large, slightly faded
                 with ui.element("div").style(
-                    "opacity:0.45;pointer-events:none;max-width:420px;width:100%"
+                    "opacity:0.55;pointer-events:none;max-width:540px;width:100%"
                 ):
                     with ui.card().classes(
-                        "overflow-hidden border border-slate-200 shadow-none rounded-xl w-full"
+                        "overflow-hidden border border-slate-200 rounded-xl w-full shadow-sm"
                     ).style("padding:0"):
                         with ui.row().classes("w-full gap-0"):
                             # 4px color bar
@@ -96,27 +98,30 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                                 f"border-radius:12px 0 0 12px;flex-shrink:0"
                             ):
                                 pass
-                            with ui.column().classes("p-5 gap-1 flex-1"):
-                                with ui.row().classes("items-center gap-2 mb-1"):
-                                    ui.html(f'<span style="font-size:1.1rem">{colors["icon"]}</span>')
-                                    ui.label("Договор аренды офиса").classes(
-                                        "font-semibold text-slate-900 text-sm"
+                            with ui.column().classes("p-6 gap-1.5 flex-1"):
+                                with ui.row().classes("items-center gap-3 mb-1"):
+                                    # Icon in colored rounded square
+                                    ui.html(
+                                        f'<div style="width:32px;height:32px;border-radius:8px;'
+                                        f'background:{colors["badge_bg"]};display:flex;'
+                                        f'align-items:center;justify-content:center;'
+                                        f'font-size:1rem;flex-shrink:0">{colors["icon"]}</div>'
                                     )
-                                badge_html = (
-                                    f'<span style="display:inline-flex;align-items:center;'
-                                    f'padding:2px 8px;border-radius:9999px;font-size:0.7rem;'
-                                    f'font-weight:600;background:{colors["badge_bg"]};'
-                                    f'color:{colors["badge_text"]}">'
-                                    f'{colors["icon"]} Договор аренды</span>'
-                                )
-                                ui.html(badge_html)
+                                    with ui.column().classes("gap-0"):
+                                        ui.label("Договор аренды офиса").classes(
+                                            "font-semibold text-slate-900"
+                                        ).style("font-size:13px")
+                                        ui.label("Договор аренды \u00b7 использован 3 раза").classes(
+                                            "text-slate-500"
+                                        ).style("font-size:11px")
                                 ui.label(
                                     "Настоящий договор аренды нежилого помещения заключён между "
-                                    "арендодателем и арендатором на условиях, изложенных ниже..."
-                                ).classes("text-xs text-slate-400 mt-2 line-clamp-2")
-                                ui.label("12 января 2025").classes("text-xs text-slate-300 mt-1")
-                ui.label("Пример — после добавления шаблона карточка будет настоящей").classes(
-                    "text-xs text-slate-400 text-center"
+                                    "арендодателем и арендатором на условиях, изложенных ниже. "
+                                    "Стороны пришли к соглашению о нижеследующем..."
+                                ).classes("text-slate-400 mt-2 line-clamp-2").style("font-size:11px")
+                                ui.label("12 января 2025").classes("text-slate-300 mt-1").style("font-size:11px")
+                ui.label("После добавления шаблона карточка станет интерактивной").classes(
+                    "text-xs text-slate-400 text-center mt-1"
                 )
             return
 
@@ -128,19 +133,13 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
 
 
 def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
-    """Рендерит одну карточку шаблона с color-coded левой полосой и type badge."""
+    """Рендерит одну карточку шаблона в Apple-like стиле."""
     colors = TMPL_TYPE_COLORS.get(tmpl.contract_type, TMPL_TYPE_DEFAULT)
-    preview = (tmpl.content_text or "")[:200]
-
-    badge_html = (
-        f'<span style="display:inline-flex;align-items:center;padding:2px 8px;'
-        f'border-radius:9999px;font-size:0.7rem;font-weight:600;'
-        f'background:{colors["badge_bg"]};color:{colors["badge_text"]}">'
-        f'{colors["icon"]} {tmpl.contract_type}</span>'
-    )
+    preview = (tmpl.content_text or "")[:100]
+    usage_count = getattr(tmpl, "usage_count", 0) or 0
 
     with ui.card().classes(
-        "overflow-hidden cursor-default border border-slate-200 shadow-none rounded-xl"
+        APPLE_CARD + " overflow-hidden cursor-default"
     ).style("padding:0").props(f'role="article" aria-label="Шаблон: {tmpl.name}"'):
         with ui.row().classes("w-full gap-0").style("min-height:100%"):
             # 4px color-coded left bar
@@ -149,21 +148,34 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
             ):
                 pass
             # Card content
-            with ui.column().classes("p-5 gap-1 flex-1"):
-                # Header row: icon + name
-                with ui.row().classes("items-center gap-2 mb-1"):
-                    ui.html(f'<span style="font-size:1.1rem">{colors["icon"]}</span>')
-                    ui.label(tmpl.name).classes("font-semibold text-slate-900 text-sm")
-                # Type badge
-                ui.html(badge_html)
-                # Preview
-                ui.label(preview).classes(
-                    "text-xs text-slate-400 mt-2 line-clamp-3 overflow-hidden"
-                )
+            with ui.column().classes("p-5 gap-1.5 flex-1"):
+                # Header row: icon square + title/subtitle
+                with ui.row().classes("items-center gap-3 mb-1"):
+                    # Icon in colored rounded square
+                    ui.html(
+                        f'<div style="width:32px;height:32px;border-radius:8px;'
+                        f'background:{colors["badge_bg"]};display:flex;'
+                        f'align-items:center;justify-content:center;'
+                        f'font-size:1rem;flex-shrink:0">{colors["icon"]}</div>'
+                    )
+                    with ui.column().classes("gap-0 min-w-0"):
+                        ui.label(tmpl.name).classes(
+                            "font-semibold text-slate-900 truncate"
+                        ).style("font-size:13px")
+                        usage_text = f"{tmpl.contract_type} \u00b7 {usage_count} использ." if usage_count else tmpl.contract_type
+                        ui.label(usage_text).classes(
+                            "text-slate-500"
+                        ).style("font-size:11px")
+                # Preview text (2 lines max)
+                if preview:
+                    ui.label(preview).classes(
+                        "text-slate-400 line-clamp-2 overflow-hidden"
+                    ).style("font-size:11px")
                 # Date
-                ui.label(tmpl.created_at or "").classes("text-xs text-slate-300 mt-1")
+                if tmpl.created_at:
+                    ui.label(tmpl.created_at).classes("text-slate-300 mt-0.5").style("font-size:11px")
                 # Action buttons
-                with ui.row().classes("mt-3 gap-1"):
+                with ui.row().classes("mt-2 gap-1"):
                     ui.button(
                         "Изменить",
                         on_click=lambda t=tmpl: _open_edit_dialog(t, cards_container, on_add=on_add),
