@@ -134,6 +134,7 @@ COLUMN_DEFS = [
         "resizable": False,
     },
     # Скрытые колонки (D-02)
+    {"field": "date_start", "hide": True},
     {"field": "date_end", "hide": True},
     {"field": "validation_score", "hide": True},
     {"field": "filename", "hide": True},
@@ -363,7 +364,7 @@ def _fetch_rows(
     db = _client_manager.get_db(client_name)
     sql = f"""
         SELECT id, contract_type, counterparty, amount, filename, subject,
-               date_end, validation_score, validation_warnings, processed_at,
+               date_start, date_end, validation_score, validation_warnings, processed_at,
                manual_status, confidence,
                {get_computed_status_sql(warning_days)} AS computed_status
         FROM contracts

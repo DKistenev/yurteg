@@ -212,6 +212,256 @@ def _pluralize_docs(n: int) -> str:
     return "документов"
 
 
+def _inject_hover_preview(grid) -> None:
+    """Inject Apple-style hover preview card for AG Grid rows.
+
+    Shows a floating card with full document info after 500ms hover.
+    Uses AG Grid API events wired via JavaScript.
+    """
+    grid_id = grid.id
+
+    # The preview card container + styles + JS logic
+    ui.add_body_html(f"""
+    <div id="hover-preview-{grid_id}" style="
+        position: fixed;
+        display: none;
+        opacity: 0;
+        z-index: 100;
+        max-width: 360px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        padding: 16px;
+        pointer-events: auto;
+        transform: translateY(0px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    "></div>
+    <script>
+    (function() {{
+        var hoverTimer = null;
+        var isOverCard = false;
+        var isOverRow = false;
+        var currentRowId = null;
+        var preview = document.getElementById('hover-preview-{grid_id}');
+        if (!preview) return;
+
+        var STATUS_MAP = {{
+            'active':      ['\\u2714', 'Действует',       '#dcfce7', '#166534'],
+            'expiring':    ['\\u26a0', 'Скоро истекает',   '#fef9c3', '#854d0e'],
+            'expired':     ['\\u2718', 'Истёк',            '#fee2e2', '#991b1b'],
+            'unknown':     ['',  'Нет даты',         '#f1f5f9', '#475569'],
+            'terminated':  ['',  'Расторгнут',       '#f1f5f9', '#475569'],
+            'extended':    ['\\u21bb', 'Продлён',          '#dbeafe', '#1e40af'],
+            'negotiation': ['',  'На согласовании',  '#faf5ff', '#6b21a8'],
+            'suspended':   ['\\u23f8', 'Приостановлен',    '#f1f5f9', '#475569']
+        }};
+
+        function formatDate(d) {{
+            if (!d) return '\\u2014';
+            var parts = d.split('-');
+            if (parts.length === 3) return parts[2] + '.' + parts[1] + '.' + parts[0];
+            return d;
+        }}
+
+        function escapeHtml(s) {{
+            if (!s) return '';
+            var div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }}
+
+        function buildCard(data) {{
+            var status = data.computed_status || 'unknown';
+            var sm = STATUS_MAP[status] || STATUS_MAP['unknown'];
+            var icon = sm[0], label = sm[1], bg = sm[2], color = sm[3];
+
+            var counterparty = escapeHtml(data.counterparty || '\\u2014');
+            var amount = escapeHtml(data.amount || '\\u2014');
+            var dateStart = formatDate(data.date_start);
+            var dateEnd = formatDate(data.date_end);
+            var confidence = data.confidence
+                ? Math.round(data.confidence * 100) + '%'
+                : '\\u2014';
+            var subject = escapeHtml(data.subject || '');
+            var contractType = escapeHtml(data.contract_type || 'Документ');
+
+            var html = ''
+                + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+                + '  <div style="width:36px;height:36px;background:#eef2ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">\\ud83d\\udcc4</div>'
+                + '  <div style="flex:1;min-width:0">'
+                + '    <div style="font-size:15px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + contractType + '</div>'
+                + '  </div>'
+                + '  <span style="display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:500;background:' + bg + ';color:' + color + ';white-space:nowrap;flex-shrink:0">'
+                + (icon ? '<span>' + icon + '</span>' : '') + label
+                + '  </span>'
+                + '</div>'
+                + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;font-size:12px;color:#64748b">'
+                + '  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + counterparty + '</span>'
+                + '  <span style="color:#cbd5e1">\\u00b7</span>'
+                + '  <span style="white-space:nowrap;font-variant-numeric:tabular-nums">' + amount + '</span>'
+                + '</div>'
+                + '<div style="height:1px;background:#e2e8f0;margin-bottom:12px"></div>'
+                + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">'
+                + '  <div>'
+                + '    <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Начало</div>'
+                + '    <div style="font-size:12px;color:#334155;font-weight:500">' + dateStart + '</div>'
+                + '  </div>'
+                + '  <div>'
+                + '    <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Окончание</div>'
+                + '    <div style="font-size:12px;color:#334155;font-weight:500">' + dateEnd + '</div>'
+                + '  </div>'
+                + '  <div>'
+                + '    <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">Уверенность</div>'
+                + '    <div style="font-size:12px;color:#334155;font-weight:500">' + confidence + '</div>'
+                + '  </div>'
+                + '</div>';
+
+            if (subject) {{
+                html += '<div style="margin-top:10px;font-size:11px;color:#94a3b8;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'
+                    + subject + '</div>';
+            }}
+
+            return html;
+        }}
+
+        function showPreview(data, rowEl) {{
+            preview.innerHTML = buildCard(data);
+            var rect = rowEl.getBoundingClientRect();
+            var cardW = 360;
+            var cardH = preview.offsetHeight || 200;
+            var left = rect.right + 12;
+            var top = rect.top + window.scrollY;
+
+            // If card would overflow right edge, position to the left of the row
+            if (left + cardW > window.innerWidth - 16) {{
+                left = rect.left - cardW - 12;
+                if (left < 16) left = 16;
+            }}
+            // If card would overflow bottom, shift up
+            var viewTop = rect.top;
+            if (viewTop + cardH > window.innerHeight - 16) {{
+                top = rect.bottom + window.scrollY - cardH;
+            }}
+
+            preview.style.left = left + 'px';
+            preview.style.top = top + 'px';
+            preview.style.display = 'block';
+
+            // Force reflow for transition
+            preview.offsetHeight;
+            preview.style.opacity = '1';
+            preview.style.transform = 'translateY(-4px)';
+        }}
+
+        function hidePreview() {{
+            preview.style.opacity = '0';
+            preview.style.transform = 'translateY(0px)';
+            setTimeout(function() {{
+                if (preview.style.opacity === '0') {{
+                    preview.style.display = 'none';
+                }}
+            }}, 200);
+        }}
+
+        function scheduleHide() {{
+            setTimeout(function() {{
+                if (!isOverCard && !isOverRow) {{
+                    hidePreview();
+                    currentRowId = null;
+                }}
+            }}, 100);
+        }}
+
+        preview.addEventListener('mouseenter', function() {{
+            isOverCard = true;
+        }});
+        preview.addEventListener('mouseleave', function() {{
+            isOverCard = false;
+            scheduleHide();
+        }});
+
+        // Wire AG Grid row hover via DOM event delegation on the grid element
+        var gridEl = document.querySelector('[id="{grid_id}"] .ag-body-viewport')
+                  || document.getElementById('c' + '{grid_id}')
+                  || null;
+
+        // Fallback: find the grid wrapper by NiceGUI component id pattern
+        if (!gridEl) {{
+            // NiceGUI renders ag-grid inside a div with id="cXXX" where XXX is grid.id
+            var wrapper = document.querySelector('[id^="c"][id$="{grid_id}"]');
+            if (wrapper) gridEl = wrapper.querySelector('.ag-body-viewport') || wrapper;
+        }}
+        // Another fallback — just find the ag-body-viewport in the page
+        if (!gridEl) {{
+            gridEl = document.querySelector('.ag-body-viewport');
+        }}
+        if (!gridEl) return;
+
+        gridEl.addEventListener('mouseover', function(e) {{
+            var rowEl = e.target.closest('.ag-row');
+            if (!rowEl) return;
+            var rowId = rowEl.getAttribute('row-id');
+            if (!rowId || rowId === currentRowId) {{
+                isOverRow = true;
+                return;
+            }}
+            isOverRow = true;
+            if (hoverTimer) clearTimeout(hoverTimer);
+
+            hoverTimer = setTimeout(function() {{
+                // Get row data from AG Grid API
+                try {{
+                    var gridApi = getElement({grid_id}).gridOptions.api
+                               || getElement({grid_id}).gridOptions;
+                    var rowNode = null;
+                    if (gridApi && gridApi.getRowNode) {{
+                        rowNode = gridApi.getRowNode(rowId);
+                    }}
+                    if (!rowNode && gridApi && gridApi.forEachNode) {{
+                        gridApi.forEachNode(function(node) {{
+                            if (String(node.id) === String(rowId)) rowNode = node;
+                        }});
+                    }}
+                    if (rowNode && rowNode.data) {{
+                        // Skip child rows (version sub-rows)
+                        if (rowNode.data.is_child) return;
+                        currentRowId = rowId;
+                        showPreview(rowNode.data, rowEl);
+                    }}
+                }} catch(err) {{
+                    // Silently fail — preview is non-critical
+                }}
+            }}, 500);
+        }});
+
+        gridEl.addEventListener('mouseout', function(e) {{
+            var rowEl = e.target.closest('.ag-row');
+            var relTarget = e.relatedTarget;
+            // Check if we moved to another element inside the same row
+            if (rowEl && relTarget && rowEl.contains(relTarget)) return;
+            isOverRow = false;
+            if (hoverTimer) {{
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+            }}
+            scheduleHide();
+        }});
+
+        // Hide on scroll inside grid
+        gridEl.addEventListener('scroll', function() {{
+            if (hoverTimer) {{ clearTimeout(hoverTimer); hoverTimer = null; }}
+            isOverRow = false;
+            isOverCard = false;
+            hidePreview();
+            currentRowId = null;
+        }});
+    }})();
+    </script>
+    """)
+
+
 def build() -> None:
     """Рендерит страницу реестра документов с поиском, сегментами и навигацией."""
     state = get_state()
@@ -609,6 +859,7 @@ def build() -> None:
             grid = await render_registry_table(state)
             grid_ref["grid"] = grid
             grid.on("cellClicked", _on_cell_clicked)
+            _inject_hover_preview(grid)
             await load_table_data(grid, state, "all")
             rows = grid.options.get("rowData", [])
             # Empty state: only when 0 rows AND no active filters (per D-12, Pitfall 4)
