@@ -54,21 +54,76 @@ def render_splash() -> None:
             with ui.element('p').classes('hero-enter ' + TEXT_HERO_SUB).style('margin: 0'):
                 ui.html('Загрузите папку → готовый реестр за 20 минут')
 
-            # Bullets block — hero-enter 4
-            with ui.element('div').classes('hero-enter flex flex-col gap-3'):
-                _bullets = [
-                    'Автоматически извлекаем даты, стороны и тип документа',
-                    'Раскладываем файлы по папкам по типу',
-                    'Напоминаем об истекающих договорах',
-                ]
-                for text in _bullets:
-                    with ui.row().classes('gap-3 items-start'):
-                        with ui.element('span').classes(
-                            'text-indigo-400 text-sm shrink-0 mt-0.5'
-                        ):
-                            ui.html('✓')
-                        with ui.element('span').classes('text-slate-300 text-sm font-normal'):
-                            ui.html(text)
+            # Feature carousel — hero-enter 4 (auto-advances every 5s)
+            _slides = [
+                {
+                    'icon': '\U0001F4C1',
+                    'title': 'Загрузите папку — получите реестр',
+                    'desc': 'Выберите папку с PDF и DOCX — через 20 минут '
+                            'у вас готовый реестр с метаданными',
+                },
+                {
+                    'icon': '\u2728',
+                    'title': 'AI извлекает метаданные автоматически',
+                    'desc': 'Тип договора, контрагент, даты, суммы — без ручного ввода',
+                },
+                {
+                    'icon': '\u23F0',
+                    'title': 'Следите за сроками договоров',
+                    'desc': 'Уведомления об истекающих договорах — '
+                            'никаких пропущенных дедлайнов',
+                },
+                {
+                    'icon': '\u2713',
+                    'title': 'Проверяйте договоры по шаблону',
+                    'desc': 'Загрузите эталон — система покажет все отступления',
+                },
+                {
+                    'icon': '\U0001F4AC',
+                    'title': 'Telegram напомнит о дедлайнах',
+                    'desc': 'Бот @YurTagBot присылает ежедневную сводку '
+                            'прямо в мессенджер',
+                },
+            ]
+            _carousel_idx = {'current': 0}
+
+            carousel_container = ui.column().classes(
+                'hero-enter w-full items-center gap-3'
+            ).style('min-height: 120px; transition: opacity 0.3s')
+
+            def _render_slide(idx: int) -> None:
+                """Render a single carousel slide inside the container."""
+                slide = _slides[idx]
+                carousel_container.clear()
+                with carousel_container:
+                    ui.label(slide['icon']).classes('text-4xl').style(
+                        'line-height: 1; user-select: none'
+                    )
+                    ui.label(slide['title']).classes(
+                        'text-lg font-semibold text-white text-center'
+                    )
+                    ui.label(slide['desc']).classes(
+                        'text-sm text-slate-300 text-center'
+                    ).style('max-width: 360px')
+                    # Dot indicators
+                    with ui.row().classes('gap-2 justify-center'):
+                        for i in range(len(_slides)):
+                            dot_color = 'bg-indigo-400' if i == idx else 'bg-slate-600'
+                            ui.element('span').classes(
+                                f'inline-block w-2 h-2 rounded-full {dot_color}'
+                            )
+
+            def _next_slide() -> None:
+                """Advance carousel to the next slide."""
+                _carousel_idx['current'] = (
+                    (_carousel_idx['current'] + 1) % len(_slides)
+                )
+                _render_slide(_carousel_idx['current'])
+
+            # Initial slide
+            _render_slide(0)
+            # Auto-advance every 5 seconds
+            ui.timer(5.0, _next_slide)
 
             # Progress section — hero-enter 5
             with ui.column().classes('gap-2 w-full hero-enter'):
