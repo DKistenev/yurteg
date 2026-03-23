@@ -89,6 +89,28 @@ async def start_pipeline(
 
     # Debounce: не обновлять UI чаще 500ms (Claude's Discretion, CONTEXT.md)
     last_update: list[float] = [0.0]
+    # Текущая стадия pipeline — отображается в file_label
+    current_stage: list[str] = [""]
+
+    # Маппинг подстрок из controller.py → человекочитаемые стадии
+    _STAGE_MARKERS = [
+        ("Сканирование", "Читаем документы..."),
+        ("Найдено", "Читаем документы..."),
+        ("Пропущено", "Читаем документы..."),
+        ("Режим переобработки", "Читаем документы..."),
+        ("AI-анализ", "Извлекаем метаданные..."),
+        ("Обработка:", "Извлекаем метаданные..."),
+        ("Перекрёстная валидация", "Раскладываем по папкам..."),
+        ("Генерация Excel", "Раскладываем по папкам..."),
+        ("Готово!", "Готово!"),
+    ]
+
+    def _resolve_stage(msg: str) -> str:
+        """Определяет стадию pipeline по тексту сообщения из controller."""
+        for marker, stage in _STAGE_MARKERS:
+            if marker in msg:
+                return stage
+        return current_stage[0]  # сохраняем предыдущую стадию
 
     def on_progress(current: int, total: int, message: str) -> None:
         """Callback из thread pool — обновляет прогресс-бар через call_soon_threadsafe.
@@ -97,6 +119,11 @@ async def start_pipeline(
         нельзя трогать UI-объекты напрямую.
         """
         now = time.monotonic()
+        # Всегда обновляем стадию, даже если debounce ещё не прошёл
+        stage = _resolve_stage(message)
+        if stage:
+            current_stage[0] = stage
+
         if now - last_update[0] < 0.5:
             return
         last_update[0] = now
@@ -106,7 +133,21 @@ async def start_pipeline(
         loop.call_soon_threadsafe(
             ui_refs['count'].set_text, f"{current}/{total} файлов"
         )
-        loop.call_soon_threadsafe(ui_refs['file_label'].set_text, message)
+
+        # Формируем label: "Стадия... — filename" или просто "Стадия..."
+        # Извлекаем имя файла из сообщений вида "Обработка: filename.pdf"
+        filename = ""
+        if "Обработка:" in message:
+            filename = message.split("Обработка:", 1)[1].strip()
+
+        if current_stage[0] and filename:
+            display = f"{current_stage[0]} \u2014 {filename}"
+        elif current_stage[0]:
+            display = current_stage[0]
+        else:
+            display = message
+
+        loop.call_soon_threadsafe(ui_refs['file_label'].set_text, display)
 
     def on_file_done(result) -> None:
         """Callback после обработки каждого файла — собирает ошибки.
