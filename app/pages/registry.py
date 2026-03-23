@@ -77,18 +77,10 @@ def _render_empty_state(container, state) -> None:
 
             # ── Hero-текст ────────────────────────────────────────────────────
             with ui.column().classes("items-center gap-3 text-center max-w-lg"):
-                # Иконка-якорь
-                ui.html(
-                    '<div style="width:64px;height:64px;background:#eef2ff;border-radius:16px;'
-                    'display:flex;align-items:center;justify-content:center;margin:0 auto 8px;">'
-                    '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5">'
-                    '<path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>'
-                    '</svg></div>'
-                )
                 with ui.element("h2").style("font-size:1.5rem;font-weight:700;color:#0f172a;margin:0"):
                     ui.html("Загрузите первые документы")
                 with ui.element("p").style("font-size:0.9rem;color:#64748b;margin:0;line-height:1.6"):
-                    ui.html("Выберите папку с PDF или DOCX — ЮрТэг обработает архив за несколько минут")
+                    ui.html("Выберите папку с PDF или DOCX — мы извлечём метаданные и разложим файлы автоматически")
 
             # ── CTA кнопка (filled, per BTN_ACCENT_FILLED) ───────────────────
             ui.button(
@@ -136,21 +128,21 @@ def build() -> None:
     seg_buttons: dict = {}
     _timer: list = [None]
 
-    with ui.column().classes("w-full max-w-6xl mx-auto"):
+    with ui.column().classes("w-full"):
         # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
         # CRITICAL: all labels created INSIDE with-block so NiceGUI places them in DOM
         # inside the flex container, not outside it (NiceGUI DOM creation order bug)
-        with ui.row().classes(STATS_BAR.replace("bg-white", "bg-transparent")) as stats_row:
+        with ui.row().classes(STATS_BAR) as stats_row:
             stats_row.props('role="region" aria-label="Статистика реестра"')
             with ui.column().classes(STATS_ITEM):
                 total_num = ui.label("—").classes(STAT_NUMBER + " text-slate-900").props('aria-label="Всего документов"')
                 ui.label("документов").classes(STAT_LABEL + " text-slate-500")
-            ui.label("·").classes("text-slate-300 text-xl font-light self-center")
-            with ui.column().classes(STATS_ITEM):
+            ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
+            with ui.column().classes(STATS_ITEM + " cursor-pointer").on("click", lambda: _switch_segment("expiring")):
                 expiring_num = ui.label("—").classes(STAT_NUMBER + " text-amber-600").props('aria-label="Документов истекает"')
                 ui.label("истекают").classes(STAT_LABEL + " text-slate-500")
-            ui.label("·").classes("text-slate-300 text-xl font-light self-center")
-            with ui.column().classes(STATS_ITEM):
+            ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
+            with ui.column().classes(STATS_ITEM + " cursor-pointer").on("click", lambda: _switch_segment("attention")):
                 attention_num = ui.label("—").classes(STAT_NUMBER + " text-red-600").props('aria-label="Требуют внимания"')
                 ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
 
@@ -449,12 +441,12 @@ def build() -> None:
         col_id = e.args.get("colId", "")
         data = e.args.get("data", {})
 
-        if col_id == "actions":
+        if col_id == "actions_html":
             # D-19: action clicks don't navigate
             await _show_action_menu(data)
             return
 
-        if col_id == "has_children" and data.get("has_children"):
+        if col_id == "expand_html" and data.get("has_children"):
             # D-16: expand/collapse version children
             await _toggle_expand(data["id"], data)
             return

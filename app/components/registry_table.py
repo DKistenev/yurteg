@@ -29,53 +29,55 @@ _client_manager = ClientManager()
 _SEARCH_FIELDS = ("contract_type", "counterparty", "subject", "filename", "amount")
 _THRESHOLD = 80
 
-# ── Status cell renderer (JS) ──────────────────────────────────────────────────
+# ── Status HTML rendering (data transform, not cellRenderer) ─────────────────
 
-STATUS_CELL_RENDERER = """(params) => {
-    const labels = {
-        active:      ['\u2714', '\u0414\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442', 'status-active'],
-        expiring:    ['\u26a0', '\u0421\u043a\u043e\u0440\u043e \u0438\u0441\u0442\u0435\u043a\u0430\u0435\u0442', 'status-expiring'],
-        expired:     ['\u2717', '\u0418\u0441\u0442\u0451\u043a', 'status-expired'],
-        unknown:     ['', '\u041d\u0435\u0442 \u0434\u0430\u0442\u044b', 'status-unknown'],
-        terminated:  ['', '\u0420\u0430\u0441\u0442\u043e\u0440\u0433\u043d\u0443\u0442', 'status-terminated'],
-        extended:    ['\u21bb', '\u041f\u0440\u043e\u0434\u043b\u0451\u043d', 'status-extended'],
-        negotiation: ['', '\u041d\u0430 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0438', 'status-negotiation'],
-        suspended:   ['\u23f8', '\u041f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d', 'status-suspended'],
-    };
-    const [icon, label, cls] = labels[params.value] || ['', params.value, 'status-unknown'];
-    const iconHtml = icon ? `<span>${icon}</span>` : '';
-    return `<span class="${cls}">${iconHtml}${label}</span>`;
-}"""
+_STATUS_MAP = {
+    "active":      ("✔", "Действует", "status-active"),
+    "expiring":    ("⚠", "Скоро истекает", "status-expiring"),
+    "expired":     ("✗", "Истёк", "status-expired"),
+    "unknown":     ("", "Нет даты", "status-unknown"),
+    "terminated":  ("", "Расторгнут", "status-terminated"),
+    "extended":    ("↻", "Продлён", "status-extended"),
+    "negotiation": ("", "На согласовании", "status-negotiation"),
+    "suspended":   ("⏸", "Приостановлен", "status-suspended"),
+}
+
+
+def _status_html(status: str) -> str:
+    """Возвращает HTML badge для статуса — рендерится через html_columns."""
+    icon, label, cls = _STATUS_MAP.get(status, ("", status, "status-unknown"))
+    icon_part = f"<span>{icon}</span>" if icon else ""
+    return f'<span class="{cls}">{icon_part}{label}</span>'
+
+
+def _expand_html(has_children: bool, is_expanded: bool = False) -> str:
+    """HTML для колонки expand/collapse."""
+    if not has_children:
+        return ""
+    arrow = "▼" if is_expanded else "▶"
+    return f'<span class="expand-icon" style="cursor:pointer">{arrow}</span>'
+
+
+def _actions_html(is_child: bool = False) -> str:
+    """HTML для колонки действий."""
+    if is_child:
+        return ""
+    return '<div class="actions-cell"><span class="action-icon" title="Действия">⋯</span></div>'
 
 # ── Column definitions ─────────────────────────────────────────────────────────
-
-# Expand/collapse toggle (first column) — per D-15, D-16
-_EXPAND_CELL_RENDERER = """(params) => {
-    if (!params.value) return '';
-    const expanded = params.data && params.data.is_expanded;
-    return `<span class="expand-icon" aria-label="\u0420\u0430\u0437\u0432\u0435\u0440\u043d\u0443\u0442\u044c" style="cursor:pointer">${expanded ? '\u25bc' : '\u25b6'}</span>`;
-}"""
-
-# Actions cell renderer (last column) — per D-12, D-13
-_ACTIONS_CELL_RENDERER = """(params) => {
-    if (params.data && params.data.is_child) return '';
-    const div = document.createElement('div');
-    div.className = 'actions-cell';
-    div.innerHTML = '<span class="action-icon" title="\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f" aria-label="\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f">\u22ef</span>';
-    return div;
-}"""
+# HTML rendering via html_columns=[0, 4, 6] — NO cellRenderer JS functions.
+# NiceGUI aggrid html_columns renders HTML from rowData values directly.
 
 COLUMN_DEFS = [
-    # Expand toggle (D-15, D-16)
+    # Expand toggle (D-15, D-16) — HTML via _expand_html()
     {
         "headerName": "",
-        "field": "has_children",
+        "field": "expand_html",
         "maxWidth": 40,
         "width": 40,
         "sortable": False,
         "filter": False,
         "resizable": False,
-        "cellRenderer": _EXPAND_CELL_RENDERER,
         "suppressSizeToFit": True,
     },
     {
@@ -93,12 +95,20 @@ COLUMN_DEFS = [
         "sortable": True,
     },
     {
+        "headerName": "Предмет",
+        "field": "subject",
+        "minWidth": 200,
+        "filter": "agTextColumnFilter",
+        "sortable": True,
+        "cellStyle": {"textOverflow": "ellipsis", "whiteSpace": "nowrap", "overflow": "hidden"},
+    },
+    # Status (D-05) — HTML via _status_html()
+    {
         "headerName": "Статус",
-        "field": "computed_status",
+        "field": "status_html",
         "minWidth": 180,
         "sortable": True,
         "filter": "agTextColumnFilter",
-        "cellRenderer": STATUS_CELL_RENDERER,
     },
     {
         "headerName": "Сумма",
@@ -108,15 +118,14 @@ COLUMN_DEFS = [
         "filter": "agTextColumnFilter",
         "cellStyle": {"fontVariantNumeric": "tabular-nums"},
     },
-    # Actions column (D-12) — last
+    # Actions column (D-12) — HTML via _actions_html()
     {
         "headerName": "",
-        "field": "actions",
+        "field": "actions_html",
         "width": 80,
         "sortable": False,
         "filter": False,
         "resizable": False,
-        "cellRenderer": _ACTIONS_CELL_RENDERER,
     },
     # Скрытые колонки (D-02)
     {"field": "date_end", "hide": True},
@@ -126,7 +135,9 @@ COLUMN_DEFS = [
     {"field": "id", "hide": True},
     {"field": "is_child", "hide": True},
     {"field": "is_expanded", "hide": True},
+    {"field": "has_children", "hide": True},
     {"field": "indent", "hide": True},
+    {"field": "computed_status", "hide": True},
 ]
 
 # ── Data layer ─────────────────────────────────────────────────────────────────
@@ -225,10 +236,15 @@ def build_version_rows(base_rows: list[dict], db) -> list[dict]:
 
     result = []
     for row in base_rows:
-        row["has_children"] = row["id"] in version_counts and version_counts[row["id"]] > 1
+        has_ch = row["id"] in version_counts and version_counts[row["id"]] > 1
+        row["has_children"] = has_ch
         row["is_child"] = False
         row["is_expanded"] = False
         row["indent"] = 0
+        # HTML columns — rendered via html_columns=[0, 3, 5]
+        row["expand_html"] = _expand_html(has_ch)
+        row["status_html"] = _status_html(row.get("computed_status", "unknown"))
+        row["actions_html"] = _actions_html()
         result.append(row)
     return result
 
@@ -278,6 +294,9 @@ async def load_version_children(grid, db, parent_id: int) -> None:
             "is_child": True,
             "is_expanded": False,
             "indent": 1,
+            "expand_html": "",
+            "status_html": _status_html(r[4] or "unknown"),
+            "actions_html": _actions_html(is_child=True),
         }
         for r in rows_raw
     ]
@@ -290,6 +309,7 @@ async def load_version_children(grid, db, parent_id: int) -> None:
     if parent_idx is not None:
         # Пометить родителя как раскрытого
         row_data[parent_idx]["is_expanded"] = True
+        row_data[parent_idx]["expand_html"] = _expand_html(True, is_expanded=True)
         # Удалить старые дочерние строки этого родителя если были
         while parent_idx + 1 < len(row_data) and row_data[parent_idx + 1].get("is_child"):
             row_data.pop(parent_idx + 1)
@@ -309,6 +329,7 @@ def _collapse_version_children(grid, parent_id: int) -> None:
     )
     if parent_idx is not None:
         row_data[parent_idx]["is_expanded"] = False
+        row_data[parent_idx]["expand_html"] = _expand_html(True, is_expanded=False)
         # Удалить дочерние строки
         while parent_idx + 1 < len(row_data) and row_data[parent_idx + 1].get("is_child"):
             row_data.pop(parent_idx + 1)
@@ -383,9 +404,13 @@ async def render_registry_table(state: "AppState"):
             "pagination": True,
             "paginationPageSize": 20,
         },
-        html_columns=[3],  # Status column (index 3) renders HTML from cellRenderer
+        html_columns=[0, 4, 6],  # expand, status, actions — render HTML from rowData
         theme="quartz",
+        auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
     ).classes("w-full").style("height: 520px;")
+
+    # Fit columns to container width after grid renders (replaces auto_size_columns)
+    ui.timer(0.3, lambda: grid.run_grid_method("sizeColumnsToFit"), once=True)
 
     return grid
 
@@ -415,4 +440,6 @@ async def load_table_data(grid, state: "AppState", segment: str = "all") -> None
 
     grid.options["rowData"] = rows
     grid.update()
+    # Re-fit columns after data load (grid may have resized)
+    grid.run_grid_method("sizeColumnsToFit")
     logger.debug("Загружено %d строк реестра (сегмент=%s)", len(rows), segment)
