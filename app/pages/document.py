@@ -341,6 +341,29 @@ async def build(doc_id: str = "") -> None:
 
                 # Amber/orange accent wrapper — визуально отличает AI-контент от фактических данных
                 with ui.element("div").classes(AI_REVIEW_BLOCK).style(AI_REVIEW_BORDER_STYLE):
+
+                    # ── Индикатор уверенности AI ──────────────────────────────────
+                    _confidence = contract.get("confidence")
+                    if _confidence is not None:
+                        _pct = round(_confidence * 100)
+                        if _confidence >= 0.8:
+                            _conf_color = "text-green-600"
+                            _dot_color = "#16a34a"
+                        elif _confidence >= 0.5:
+                            _conf_color = "text-amber-600"
+                            _dot_color = "#d97706"
+                        else:
+                            _conf_color = "text-red-600"
+                            _dot_color = "#dc2626"
+                        with ui.row().classes("items-center gap-1.5 mb-1"):
+                            ui.html(
+                                f'<span style="display:inline-block;width:8px;height:8px;'
+                                f'border-radius:50%;background:{_dot_color}"></span>'
+                            )
+                            ui.label(f"\u0423\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI: {_pct}%").classes(
+                                f"text-xs font-medium {_conf_color}"
+                            )
+
                     review_container = ui.column().classes("w-full gap-2 py-2")
 
                     async def _run_review() -> None:
