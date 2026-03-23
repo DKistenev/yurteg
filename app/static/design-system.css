@@ -204,14 +204,30 @@ p, li, label { line-height: 1.5; }
 /* ВАЖНО: имена классов status-* — API contract, НЕ переименовывать (Per Phase 16 decision) */
 /* Pitfall 7 guard: animation-fill-mode: backwards предотвращает replay при фильтрации */
 
-.status-active      { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#dcfce7; color:#15803d; }
-.status-expiring    { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#fef9c3; color:#a16207; }
-.status-expired     { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#fee2e2; color:#b91c1c; }
-.status-unknown     { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#f1f5f9; color:#64748b; }
-.status-terminated  { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#f1f5f9; color:#475569; }
-.status-extended    { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#dbeafe; color:#1d4ed8; }
-.status-negotiation { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#ede9fe; color:#6d28d9; }
-.status-suspended   { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:9999px; font-size:0.75rem; font-weight:600; background:#f3f4f6; color:#4b5563; }
+.status-active,
+.status-expiring,
+.status-expired,
+.status-unknown,
+.status-terminated,
+.status-extended,
+.status-negotiation,
+.status-suspended {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.status-active      { background:#dcfce7; color:#15803d; }
+.status-expiring    { background:#fef9c3; color:#a16207; }
+.status-expired     { background:#fee2e2; color:#b91c1c; }
+.status-unknown     { background:#f1f5f9; color:#64748b; }
+.status-terminated  { background:#f1f5f9; color:#475569; }
+.status-extended    { background:#dbeafe; color:#1d4ed8; }
+.status-negotiation { background:#ede9fe; color:#6d28d9; }
+.status-suspended   { background:#f3f4f6; color:#4b5563; }
 
 /* ── Skeleton loader (ANIM-04) ─────────────────────────────────────────────── */
 /* GitHub-style: серые блоки с pulse. Без backdrop-filter (CPU spikes macOS pywebview) */

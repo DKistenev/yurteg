@@ -73,6 +73,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         # «? Гид» — subtle restart button (ONBR-02)
         def _restart_tour() -> None:
             save_setting("tour_completed", False)
+            save_setting("trust_prompt_dismissed", True)  # skip trust prompt, go directly to tour
             ui.navigate.to("/")  # перезагружает реестр, _init() проверит флаг и запустит тур
 
         ui.button(
