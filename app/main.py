@@ -110,21 +110,8 @@ ui.add_head_html(f"""
 <script>{(_STATIC / "calendar.js").read_text()}</script>
 """, shared=True)
 
-# Status badge CSS (Tailwind @layer — literal classes for AG Grid JS cellRenderer)
-ui.add_head_html("""
-<style type="text/tailwindcss">
-  @layer components {
-    .status-active      { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-50 text-green-700; }
-    .status-expiring    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-yellow-50 text-yellow-700; }
-    .status-expired     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-700; }
-    .status-unknown     { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
-    .status-terminated  { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 text-slate-500; }
-    .status-extended    { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-indigo-50 text-indigo-700; }
-    .status-negotiation { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700; }
-    .status-suspended   { @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-orange-50 text-orange-700; }
-  }
-</style>
-""", shared=True)
+# Status badge CSS — defined in design-system.css (pill style, semantic colors)
+# No duplicate here — single source of truth in design-system.css
 
 # Content area background — не белый (DSGN-05)
 # min-h-screen + flex col on nicegui-content pushes footer to bottom
@@ -136,6 +123,15 @@ ui.add_head_html("""
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    align-items: stretch;  /* CRITICAL: без этого дети сжимаются к flex-start */
+  }
+  .nicegui-sub-pages {
+    width: 100%;  /* sub_pages контейнер ДОЛЖЕН растягиваться */
+    max-width: none;
+  }
+  .q-page {
+    max-width: none;
+    width: 100%;
   }
 </style>
 """, shared=True)

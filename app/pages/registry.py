@@ -105,6 +105,24 @@ def _render_empty_state(container, state) -> None:
                 "text-sm text-slate-500 hover:text-indigo-600 transition-colors duration-150"
             )
 
+            async def _on_clear_demo():
+                db = _client_manager.get_db(state.current_client)
+                await run.io_bound(lambda: db.conn.execute("DELETE FROM contracts"))
+                await run.io_bound(lambda: db.conn.commit())
+                save_setting("first_run_completed", False)
+                save_setting("tour_completed", False)
+                save_setting("first_processing_done", False)
+                save_setting("trust_prompt_dismissed", False)
+                ui.notify("Данные очищены", type="info")
+                ui.navigate.to("/")
+
+            ui.button(
+                "Очистить тестовые данные",
+                on_click=_on_clear_demo,
+            ).props('flat no-caps aria-label="Очистить все данные и сбросить онбординг"').classes(
+                "text-xs text-slate-400 hover:text-red-500 transition-colors duration-150"
+            )
+
             # ── Три карточки возможностей ─────────────────────────────────────
             with ui.row().classes("gap-4 w-full max-w-2xl justify-center flex-wrap"):
                 for cap in CAPABILITIES:
@@ -202,7 +220,7 @@ def build() -> None:
     seg_buttons: dict = {}
     _timer: list = [None]
 
-    with ui.column().classes("w-full"):
+    with ui.column().classes("w-full max-w-none"):
         # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
         # CRITICAL: all labels created INSIDE with-block so NiceGUI places them in DOM
         # inside the flex container, not outside it (NiceGUI DOM creation order bug)
@@ -275,7 +293,7 @@ def build() -> None:
             for _ in range(5):
                 ui.element('div').classes("skeleton-row")
 
-        grid_container = ui.column().classes("w-full px-6")
+        grid_container = ui.column().classes("w-full max-w-none px-6")
         grid_container.set_visibility(False)
 
         # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
@@ -441,7 +459,18 @@ def build() -> None:
 
     search_input.on("update:model-value", _on_search)
 
-    # ── Action menu ─────────────────────────────────────────────────────────────
+    # ── Action menu (persistent, repositioned on each click) ────────────────────
+
+    # Anchor element for menu positioning — moved via JS to the clicked cell
+    menu_anchor = ui.element("div").style(
+        "position:fixed;width:1px;height:1px;pointer-events:none;z-index:-1;"
+    )
+    menu_anchor.props(f'id="action-menu-anchor-{id(menu_anchor)}"')
+    _anchor_id = f"action-menu-anchor-{id(menu_anchor)}"
+
+    with menu_anchor:
+        action_menu = ui.menu().props("auto-close")
+    menu_container = {"ref": action_menu}
 
     async def _show_action_menu(data: dict) -> None:
         """Показывает контекстное меню с действиями для строки (D-13, D-14)."""
@@ -449,7 +478,28 @@ def build() -> None:
         if not contract_id:
             return
 
-        with ui.menu() as menu:
+        # Position the anchor at the actions cell of the clicked row via JS
+        await ui.run_javascript(f"""
+            (function() {{
+                var anchor = document.getElementById('{_anchor_id}');
+                var focused = document.querySelector('.ag-row[row-id="' + {contract_id} + '"] .actions-cell');
+                if (!focused) {{
+                    // Fallback: find any visible actions-cell that was recently hovered
+                    var cells = document.querySelectorAll('.ag-row:hover .actions-cell');
+                    focused = cells.length ? cells[0] : null;
+                }}
+                if (focused && anchor) {{
+                    var rect = focused.getBoundingClientRect();
+                    anchor.style.left = rect.right + 'px';
+                    anchor.style.top = (rect.top + rect.height / 2) + 'px';
+                }}
+            }})();
+        """)
+
+        # Rebuild menu content
+        menu = menu_container["ref"]
+        menu.clear()
+        with menu:
             # Открыть (D-13)
             ui.menu_item("Открыть", on_click=lambda: ui.navigate.to(f"/document/{contract_id}"))
             ui.separator()

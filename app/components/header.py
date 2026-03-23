@@ -36,7 +36,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
     ).style("background: #0f172a; border-bottom: 1px solid #334155; box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);"):
 
         # Left: logo mark — indigo rect «Юр» + wordmark «Тэг»
-        with ui.row().classes("items-center gap-2 shrink-0"):
+        with ui.row().classes("items-center gap-2 shrink-0 cursor-pointer").on("click", lambda: ui.navigate.to("/")):
             ui.html(
                 '<div style="display:flex;align-items:center;justify-content:center;'
                 'width:32px;height:28px;background:#4f46e5;border-radius:8px;'

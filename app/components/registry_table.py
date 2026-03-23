@@ -65,7 +65,7 @@ def _actions_html(is_child: bool = False) -> str:
     return '<div class="actions-cell"><span class="action-icon" title="Действия">⋯</span></div>'
 
 # ── Column definitions ─────────────────────────────────────────────────────────
-# HTML rendering via html_columns=[0, 4, 6] — NO cellRenderer JS functions.
+# HTML rendering via html_columns=[0, 4, 7] — NO cellRenderer JS functions.
 # NiceGUI aggrid html_columns renders HTML from rowData values directly.
 
 COLUMN_DEFS = [
@@ -109,6 +109,12 @@ COLUMN_DEFS = [
         "minWidth": 180,
         "sortable": True,
         "filter": "agTextColumnFilter",
+    },
+    {
+        "headerName": "Уверенность",
+        "field": "confidence_display",
+        "minWidth": 120,
+        "sortable": True,
     },
     {
         "headerName": "Сумма",
@@ -241,9 +247,10 @@ def build_version_rows(base_rows: list[dict], db) -> list[dict]:
         row["is_child"] = False
         row["is_expanded"] = False
         row["indent"] = 0
-        # HTML columns — rendered via html_columns=[0, 3, 5]
+        # HTML columns — rendered via html_columns=[0, 4, 7]
         row["expand_html"] = _expand_html(has_ch)
         row["status_html"] = _status_html(row.get("computed_status", "unknown"))
+        row["confidence_display"] = f"{int(row.get('confidence', 0) * 100)}%" if row.get('confidence') else "\u2014"
         row["actions_html"] = _actions_html()
         result.append(row)
     return result
@@ -357,7 +364,7 @@ def _fetch_rows(
     sql = f"""
         SELECT id, contract_type, counterparty, amount, filename, subject,
                date_end, validation_score, validation_warnings, processed_at,
-               manual_status,
+               manual_status, confidence,
                {get_computed_status_sql(warning_days)} AS computed_status
         FROM contracts
         WHERE status = 'done'
@@ -402,12 +409,33 @@ async def render_registry_table(state: "AppState"):
             },
             "rowSelection": "single",
             "pagination": True,
-            "paginationPageSize": 20,
+            "paginationPageSize": 50,
+            "paginationAutoPageSize": False,
+            "localeText": {
+                "filterOoo": "Фильтр...",
+                "equals": "Равно",
+                "notEqual": "Не равно",
+                "contains": "Содержит",
+                "notContains": "Не содержит",
+                "startsWith": "Начинается с",
+                "endsWith": "Заканчивается на",
+                "blank": "Пусто",
+                "notBlank": "Не пусто",
+                "noRowsToShow": "Нет данных",
+                "page": "Стр.",
+                "of": "из",
+                "to": "до",
+                "next": "Далее",
+                "last": "Последняя",
+                "first": "Первая",
+                "previous": "Назад",
+                "pageSize": "Размер",
+            },
         },
-        html_columns=[0, 4, 6],  # expand, status, actions — render HTML from rowData
+        html_columns=[0, 4, 7],  # expand, status, actions — render HTML from rowData
         theme="quartz",
         auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
-    ).classes("w-full").style("height: 520px;")
+    ).classes("w-full max-w-none").style("height: 520px;")
 
     # Fit columns to container width after grid renders (replaces auto_size_columns)
     ui.timer(0.3, lambda: grid.run_grid_method("sizeColumnsToFit"), once=True)
