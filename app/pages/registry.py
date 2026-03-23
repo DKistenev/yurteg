@@ -120,6 +120,80 @@ def _render_empty_state(container, state) -> None:
                                 ui.html(cap["body"])
 
 
+def _render_trust_banner(
+    container,
+    doc_count: int,
+    first_doc_id: int | None,
+) -> None:
+    """Trust-building banner shown after first processing (Phase 16).
+
+    Prompts user to verify AI results before launching the guided tour.
+    Dismissing or clicking navigates away; tour triggers on next page load.
+    """
+
+    def _dismiss():
+        save_setting("trust_prompt_dismissed", True)
+        container.set_visibility(False)
+
+    def _open_first():
+        save_setting("trust_prompt_dismissed", True)
+        if first_doc_id:
+            ui.navigate.to(f"/document/{first_doc_id}")
+        else:
+            container.set_visibility(False)
+
+    container.set_visibility(True)
+    with container:
+        with ui.row().classes(
+            "w-full px-6 pt-3 pb-0"
+        ):
+            with ui.row().classes(
+                "w-full bg-indigo-50 border border-indigo-200 rounded-lg p-4"
+                " items-center gap-3"
+            ):
+                # Check icon
+                ui.html(
+                    '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"'
+                    ' xmlns="http://www.w3.org/2000/svg">'
+                    '<path d="M10 18a8 8 0 100-16 8 8 0 000 16z" fill="#4f46e5" opacity="0.15"/>'
+                    '<path d="M7 10l2 2 4-4" stroke="#4f46e5" stroke-width="1.5"'
+                    ' stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                )
+                # Message
+                ui.label(
+                    f"Обработано {doc_count} "
+                    + _pluralize_docs(doc_count)
+                    + ". Откройте один и проверьте — всё ли верно?"
+                ).classes("text-sm text-indigo-700 flex-1")
+                # CTA button
+                ui.button(
+                    "Открыть первый документ \u2192",
+                    on_click=_open_first,
+                ).props("flat no-caps").classes(
+                    "text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                    " transition-colors duration-150 px-3 py-1"
+                )
+                # Dismiss X
+                ui.button(
+                    icon="close",
+                    on_click=_dismiss,
+                ).props("flat round dense").classes(
+                    "text-indigo-400 hover:text-indigo-600"
+                )
+
+
+def _pluralize_docs(n: int) -> str:
+    """Russian pluralization for 'документ'."""
+    if 11 <= n % 100 <= 19:
+        return "документов"
+    mod10 = n % 10
+    if mod10 == 1:
+        return "документ"
+    if 2 <= mod10 <= 4:
+        return "документа"
+    return "документов"
+
+
 def build() -> None:
     """Рендерит страницу реестра документов с поиском, сегментами и навигацией."""
     state = get_state()
@@ -145,6 +219,10 @@ def build() -> None:
             with ui.column().classes(STATS_ITEM + " cursor-pointer").on("click", lambda: _switch_segment("attention")):
                 attention_num = ui.label("—").classes(STAT_NUMBER + " text-red-600").props('aria-label="Требуют внимания"')
                 ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
+
+        # ── Trust-building banner placeholder (Phase 16) ──────────────────────────
+        trust_banner_container = ui.column().classes("w-full")
+        trust_banner_container.set_visibility(False)
 
         # ── Page heading + controls row ──────────────────────────────────────────
         with ui.row().classes("w-full px-6 pt-5 pb-2 items-center gap-4"):
@@ -461,9 +539,14 @@ def build() -> None:
         # Re-grab upload_btn ref (may not be set at module init time)
         ui_refs["upload_btn"] = _header_refs.get("upload_btn")
         stats = await start_pipeline(source_dir, state, ui_refs)
+        # Mark first processing done for trust-building prompt (Phase 16)
+        settings = load_settings()
+        if not settings.get("first_processing_done"):
+            save_setting("first_processing_done", True)
         # After pipeline: refresh table (D-11)
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
+        await _refresh_stats()
 
     # Store callback on state so main.py can delegate to it
     state._on_upload = _on_upload  # type: ignore[attr-defined]
@@ -507,17 +590,29 @@ def build() -> None:
                             "flat no-caps"
                         ).classes("text-xs text-indigo-600")
             elif rows:
-                # Tour: show after first processing, one time only (per D-14, D-18)
+                # Trust-building prompt + guided tour (Phase 16, D-14, D-18)
                 settings = load_settings()
                 if not settings.get("tour_completed"):
-                    upload_btn = _header_refs.get("upload_btn")
-                    if upload_btn:
-                        upload_btn.props("id=upload-btn")
-                    from app.components.onboarding.tour import render_tour
+                    first_done = settings.get("first_processing_done", False)
+                    trust_dismissed = settings.get("trust_prompt_dismissed", False)
 
-                    async def _on_tour_complete():
-                        save_setting("tour_completed", True)
+                    if first_done and not trust_dismissed:
+                        # Show trust-building banner before tour
+                        doc_count = len(rows)
+                        first_doc_id = rows[0].get("id") if rows else None
+                        _render_trust_banner(
+                            trust_banner_container, doc_count, first_doc_id,
+                        )
+                    elif first_done and trust_dismissed:
+                        # Trust prompt already seen — now show the guided tour
+                        upload_btn = _header_refs.get("upload_btn")
+                        if upload_btn:
+                            upload_btn.props("id=upload-btn")
+                        from app.components.onboarding.tour import render_tour
 
-                    ui.timer(0.5, lambda: render_tour(_on_tour_complete), once=True)
+                        async def _on_tour_complete():
+                            save_setting("tour_completed", True)
+
+                        ui.timer(0.5, lambda: render_tour(_on_tour_complete), once=True)
 
     ui.timer(0, _init, once=True)
