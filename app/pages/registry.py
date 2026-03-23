@@ -152,14 +152,14 @@ def build() -> None:
             ui.label("Реестр").classes("text-2xl font-semibold text-slate-900 mr-auto")
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
-            with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg").props("id=calendar-toggle"):
+            with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg").props("id=calendar-toggle data-tour=calendar"):
                 list_btn = ui.button("≡ Список").props("flat no-caps").classes(TOGGLE_ACTIVE + " text-xs px-3 py-1")
                 list_btn.props('aria-label="Вид списком"')
                 cal_btn = ui.button("⊞ Календарь").props("flat no-caps").classes(TOGGLE_INACTIVE + " text-xs px-3 py-1")
                 cal_btn.props('aria-label="Вид календарём"')
 
         # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
-        with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row") as search_row:
+        with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row").props("data-tour=filters") as search_row:
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
                 .props("outlined dense")

@@ -46,10 +46,10 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             ui.label("Тэг").classes("text-base font-semibold text-white tracking-tight")
 
         # Center: text-link nav tabs with active indicator
-        with ui.row().classes("gap-6 flex-1 justify-center"):
+        with ui.row().classes("gap-6 flex-1 justify-center").props("data-tour=nav"):
             _nav_link("Реестр", "/")
             _nav_link("Шаблоны", "/templates")
-            _nav_link("⚙", "/settings", aria_label="Настройки")
+            _nav_link("Настройки", "/settings")
 
         # Upload CTA — filled indigo (NOT flat, NOT Quasar color prop — avoids !important)
         async def _on_upload_click() -> None:
@@ -65,7 +65,7 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
         ).classes(
             "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
             " hover:bg-indigo-700 transition-colors duration-150 shrink-0"
-        ).props("no-caps")
+        ).props("no-caps").props("data-tour=upload")
 
         # Сохраняем ссылку на кнопку для start_pipeline (ui_refs['upload_btn'])
         _header_refs["upload_btn"] = upload_btn
@@ -76,16 +76,16 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             ui.navigate.to("/")  # перезагружает реестр, _init() проверит флаг и запустит тур
 
         ui.button(
-            "? Гид",
+            icon="help_outline",
             on_click=_restart_tour,
-        ).props('flat no-caps id=tour-guide-btn aria-label="Запустить тур по приложению"').classes(
-            "text-xs text-slate-400 hover:text-slate-200 transition-colors duration-150 px-2"
+        ).props('flat round dense id=tour-guide-btn aria-label="Запустить тур по приложению"').classes(
+            "text-slate-400 hover:text-slate-200 transition-colors duration-150"
         )
 
         # Right: client dropdown (D-20)
-        with ui.row().classes("shrink-0 items-center gap-1"):
+        with ui.row().classes("shrink-0 items-center gap-1").props("data-tour=workspace"):
             profile_btn = ui.button(
-                f"📁 {state.current_client}",
+                f"{state.current_client}",
                 on_click=lambda: client_menu.open(),
             ).props('flat no-caps aria-label="Рабочее пространство"').classes(
                 "text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"

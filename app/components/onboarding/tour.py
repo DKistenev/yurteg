@@ -17,31 +17,31 @@ from app.styles import HEX
 
 TOUR_STEPS = [
     {
-        "target": "#upload-btn",
+        "target": "[data-tour='upload']",
         "title": "Загрузка документов",
         "body": "Нажмите, чтобы выбрать папку с новыми документами. ЮрТэг обработает их автоматически.",
         "position": "below-right",
     },
     {
-        "target": ".q-header",
+        "target": "[data-tour='nav']",
         "title": "Навигация",
         "body": "Реестр, Шаблоны и Настройки — три раздела приложения. Реестр — главное рабочее пространство.",
         "position": "center-top",
     },
     {
-        "target": ".search-row",
+        "target": "[data-tour='filters']",
         "title": "Фильтры и поиск",
         "body": "Переключайте вкладки, чтобы видеть только истекающие или требующие внимания договоры. Поиск ищет по всем полям.",
         "position": "below-left",
     },
     {
-        "target": "#calendar-toggle",
+        "target": "[data-tour='calendar']",
         "title": "Вид календаря",
         "body": "Переключите на вид календаря для просмотра дат платежей и окончания договоров.",
         "position": "below-right",
     },
     {
-        "target": ".q-header .shrink-0:last-child",
+        "target": "[data-tour='workspace']",
         "title": "Рабочие пространства",
         "body": "Создавайте отдельные пространства для разных клиентов — каждое со своим реестром и настройками.",
         "position": "below-right",
