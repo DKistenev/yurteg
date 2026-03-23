@@ -26,7 +26,7 @@ from app.styles import (
     TMPL_EMPTY_TITLE,
     TMPL_EMPTY_BODY,
 )
-from config import Config
+from config import Config, load_settings, save_setting
 from modules.models import FileInfo
 from services.client_manager import ClientManager
 
@@ -67,10 +67,9 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
         if not templates:
             # Rich empty state (TMPL-03)
             with ui.column().classes("w-full items-center justify-center py-10"):
-                ui.icon(TMPL_EMPTY_ICON).props("size=64px").classes("text-slate-300")
                 ui.label("Шаблоны не добавлены").classes(TMPL_EMPTY_TITLE)
                 ui.label(
-                    "Добавьте образец договора — система будет использовать его как эталон при проверке новых документов"
+                    "Загрузите образец договора — система сравнит новые документы с эталоном и покажет отклонения"
                 ).classes(TMPL_EMPTY_BODY + " mb-6")
                 if on_add:
                     ui.button(
@@ -332,6 +331,26 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
 def build() -> None:
     """Страница «Шаблоны» — управление шаблонами-эталонами."""
     with ui.column().classes("w-full max-w-5xl mx-auto p-8"):
+
+        # ── First-use tooltip ──────────────────────────────────────────────
+        settings = load_settings()
+        if not settings.get("tip_templates_seen"):
+            tip_container = ui.row().classes(
+                "w-full bg-slate-50 border border-slate-200 rounded-lg p-3 items-center gap-3 mb-4"
+            )
+            with tip_container:
+                ui.label(
+                    "💡 Загрузите образец договора — система будет сравнивать новые документы с эталоном"
+                ).classes("text-sm text-slate-600 flex-1")
+
+                def _dismiss_templates_tip():
+                    save_setting("tip_templates_seen", True)
+                    tip_container.set_visibility(False)
+
+                ui.button(icon="close", on_click=_dismiss_templates_tip).props(
+                    "flat round dense size=sm"
+                ).classes("text-slate-400")
+
         # cards_ref используется через closure — заполняется после создания заголовка
         cards_ref: list[ui.column] = []
 

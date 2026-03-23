@@ -9,6 +9,7 @@ import logging
 from nicegui import run, ui
 
 from app.state import get_state
+from config import load_settings, save_setting
 from app.styles import (
     CARD_SECTION, TEXT_SUBHEAD, TEXT_LABEL_UPPER, HEX,
     BREADCRUMB_LINK, BREADCRUMB_SEP, BREADCRUMB_CURRENT,
@@ -32,7 +33,16 @@ _client_manager = ClientManager()
 
 
 def _render_metadata(contract: dict) -> None:
-    """Отображает метаданные контракта в 3-column grid (per D-04, D-05)."""
+    """Отображает метаданные контракта в 3-column grid (per D-04, D-05).
+
+    При низкой уверенности AI (confidence < threshold) оборачивает грид
+    в amber-подсветку и показывает предупреждение.
+    """
+    settings = load_settings()
+    confidence_threshold = settings.get("confidence_low", 0.5)
+    confidence = contract.get("confidence", 1.0)
+    low_confidence = confidence < confidence_threshold
+
     fields = [
         ("Тип документа", contract.get("contract_type") or "—"),
         ("Контрагент", contract.get("counterparty") or "—"),
@@ -43,11 +53,22 @@ def _render_metadata(contract: dict) -> None:
         ("Дата подписания", contract.get("date_signed") or "—"),
     ]
 
-    with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
-        for label, value in fields:
-            with ui.column().classes("gap-0.5"):
-                ui.label(label).classes(TEXT_LABEL_UPPER)
-                ui.label(value).classes("text-sm text-slate-900")
+    if low_confidence:
+        with ui.element("div").classes("bg-amber-50 border border-amber-200 rounded-lg p-3"):
+            ui.label(
+                "\u26a0 \u041d\u0438\u0437\u043a\u0430\u044f \u0443\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI \u2014 \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435"
+            ).classes("text-xs text-amber-600 font-medium mb-2")
+            with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
+                for label, value in fields:
+                    with ui.column().classes("gap-0.5"):
+                        ui.label(label).classes(TEXT_LABEL_UPPER)
+                        ui.label(value).classes("text-sm text-slate-900")
+    else:
+        with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
+            for label, value in fields:
+                with ui.column().classes("gap-0.5"):
+                    ui.label(label).classes(TEXT_LABEL_UPPER)
+                    ui.label(value).classes("text-sm text-slate-900")
 
 
 def _render_special_conditions(contract: dict) -> None:
@@ -273,6 +294,25 @@ async def build(doc_id: str = "") -> None:
 
             # RIGHT COLUMN: notes + AI review + versions
             with ui.column().classes("w-80 shrink-0 gap-4"):
+
+                # ── First-use tooltip ──────────────────────────────────────────
+                settings = load_settings()
+                if not settings.get("tip_document_seen"):
+                    tip_container = ui.row().classes(
+                        "w-full bg-slate-50 border border-slate-200 rounded-lg p-3 items-center gap-3"
+                    )
+                    with tip_container:
+                        ui.label("💡 Добавьте пометку или проверьте договор по шаблону").classes(
+                            "text-sm text-slate-600 flex-1"
+                        )
+
+                        def _dismiss_document_tip():
+                            save_setting("tip_document_seen", True)
+                            tip_container.set_visibility(False)
+
+                        ui.button(icon="close", on_click=_dismiss_document_tip).props(
+                            "flat round dense size=sm"
+                        ).classes("text-slate-400")
 
                 # ── Пометки юриста (CARD-02: section divider) ────────────────────────
                 ui.label("Пометки юриста").classes(SECTION_DIVIDER_HEADER)
