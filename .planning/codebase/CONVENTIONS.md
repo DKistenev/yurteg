@@ -1,233 +1,256 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-19
+**Analysis Date:** 2026-03-25
 
 ## Naming Patterns
 
 **Files:**
-- Module files: `snake_case.py` — `extractor.py`, `ai_extractor.py`, `anonymizer.py`
-- Main application: `main.py` (Streamlit entry point)
-- Configuration: `config.py`
-- Controller: `controller.py`
+- snake_case for all Python files: `ai_extractor.py`, `client_manager.py`, `registry_service.py`
+- Component files in `app/components/` follow pattern: `{feature}.py` (e.g., `split_panel.py`, `bulk_actions.py`)
+- Page files in `app/pages/` named by page: `registry.py`, `document.py`, `templates.py`, `settings.py`
+- Test files: `test_{feature}.py` (e.g., `test_lifecycle.py`, `test_registry_view.py`)
 
 **Functions:**
-- Regular functions: `snake_case` — `extract_text()`, `anonymize()`, `validate_metadata()`
-- Private functions: leading underscore + snake_case — `_validate_l1()`, `_extract_from_pdf()`, `_sanitize_name()`
-- Callback functions: `on_progress()`, `on_file_done()` (passed as parameters)
+- snake_case for all functions: `compute_file_hash()`, `save_payments()`, `get_state()`
+- Private functions with leading underscore: `_notify()`, `_on_upload_click()`, `_start_llama()`
+- Async functions are async def with same naming: `async def _on_upload_click()`
+- Callback helpers with `_on_` prefix for UI event handlers: `_on_pick_folder()`, `_on_upload_click()`
 
 **Variables:**
-- Local/instance variables: `snake_case` — `file_info`, `metadata`, `output_dir`
-- Constants: `SCREAMING_SNAKE_CASE` — `SYSTEM_PROMPT`, `ENTITY_TYPES`, `PATTERNS`
-- Private module variables: leading underscore + snake_case — `_segmenter`, `_morph_vocab`, `_emb`
+- snake_case for all variables: `source_dir`, `file_hash`, `temp_db`, `validation_warnings`
+- Constants in UPPER_SNAKE_CASE: `MAX_FILE_SIZE_MB`, `MANUAL_STATUSES`, `STATUS_LABELS`
+- Type hints always present on function parameters and returns
+- Module-level singletons prefixed with underscore: `_llama_manager`, `_cm` (ClientManager), `_header_refs`
 
-**Classes & Types:**
-- Dataclasses: `PascalCase` — `FileInfo`, `ExtractedText`, `ContractMetadata`, `ValidationResult`
-- Type hints: always present — `def extract_text(file_info: FileInfo) -> ExtractedText`
+**Types and Classes:**
+- PascalCase for all classes: `FileInfo`, `ExtractedText`, `ContractMetadata`, `ProcessingResult`, `AppState`, `Controller`, `Database`
+- Dataclasses use `@dataclass` decorator from `dataclasses` module
+- Type hints on all fields: `path: Path`, `text: str`, `confidence: float = 0.0`
 
 ## Code Style
 
 **Formatting:**
-- Line length: no explicit limit enforced (observed up to 100+ characters)
-- String quotes: double quotes (`"text"`) preferred throughout
-- Indentation: 4 spaces
-- Trailing whitespace: avoided
-- Blank lines: 2 between module-level functions/classes, 1 within class definitions
+- No explicit formatter configured (black/prettier not in requirements.txt)
+- Consistent use of double quotes for strings (not enforced, but used)
+- Docstrings: triple double-quotes with doctest/NumPy style (see examples below)
+- Line breaks after imports section (blank line between stdlib/third-party/local)
+- Indentation: 4 spaces (Python standard)
 
 **Linting:**
-- No `.eslintrc` or `.prettierrc` file present
-- No automated formatting tool enforced
-- Conventions followed through consistent patterns rather than tooling
+- pytest configured in `pytest.ini` with markers for slow tests
+- No flake8, mypy, or ruff config detected
+- Test markers: `@pytest.mark.slow` for tests >5 sec, `@pytest.mark.xfail` for tests not yet implemented
 
-**Docstrings:**
-- Google/NumPy-style docstrings with triple quotes
-- First line is summary sentence ending with period
-- Followed by blank line, then multi-line sections like `Args:`, `Returns:`, `Raises:`
-- Example: `modules/extractor.py` line 13-25
+**Docstring Pattern:**
+
+```python
+def scan_directory(directory: Path, config: Config) -> list[FileInfo]:
+    """
+    Рекурсивно сканирует директорию.
+
+    Аргументы:
+        directory: путь к папке с договорами
+        config: конфигурация (расширения, макс. размер)
+
+    Возвращает:
+        Список FileInfo для всех найденных файлов поддерживаемых форматов.
+        Файлы, превышающие max_file_size_mb, пропускаются (логируются как WARNING).
+
+    Raises:
+        FileNotFoundError: если directory не существует или не является директорией
+    """
+```
+
+Docstrings always in Russian. Include Args, Returns, Raises sections. Describe constraints and behavior.
 
 ## Import Organization
 
-**Order (observed pattern):**
-1. Standard library imports (logging, re, json, pathlib, etc.)
-2. Third-party imports (pdfplumber, python-docx, natasha, pandas, streamlit, etc.)
-3. Blank line separator
-4. Local imports from `config`, `modules.*`
+**Order:**
+1. Standard library imports: `import logging`, `from dataclasses import dataclass`, `from pathlib import Path`
+2. Third-party imports: `from nicegui import app, ui`, `from openai import OpenAI`, `import pytest`
+3. Local imports: `from config import Config`, `from modules.models import FileInfo`, `from app.state import AppState`
 
 **Path Aliases:**
-- Absolute imports only — no relative imports (`from modules.models import...` not `from .models import...`)
-- Project root added to sys.path via `conftest.py` for tests
+- No path aliases configured (`src/` mapping, etc.)
+- Relative imports not used — all imports from package root
+- Example: `from modules.ai_extractor import extract_metadata` (not relative from siblings)
 
-**Examples:**
+**Pattern - Standard Module Structure:**
+
 ```python
-# modules/ai_extractor.py
-import json
+"""Module docstring — brief description in Russian."""
 import logging
-import os
-import re
-import time
+from pathlib import Path
 from typing import Optional
 
-from openai import OpenAI, APIError, APITimeoutError, RateLimitError
+from nicegui import ui  # third-party
+from config import Config  # local
 
-from config import Config
-from modules.models import ContractMetadata
-```
-
-## Error Handling
-
-**Pattern: Silent Failure with Logging**
-- Modules never raise exceptions to caller
-- All exceptions caught with `except Exception as e:`
-- Logged at appropriate level: ERROR, WARNING, or INFO
-- Function returns sensible default (empty result, None, or "failed" status)
-- Caller checks result status field to determine success
-
-**Examples:**
-- `modules/extractor.py` lines 25-37: If text extraction fails, returns `ExtractedText` with `extraction_method="failed"` rather than raising
-- `modules/anonymizer.py`: If anonymization processing fails, returns original text unchanged
-- `modules/ai_extractor.py`: API errors caught, fallback model attempted, partial metadata returned if needed
-
-**Status Fields:**
-- `ProcessingResult.status`: "pending" | "processing" | "done" | "error"
-- `ExtractedText.extraction_method`: "pdfplumber" | "python-docx" | "ocr" | "failed"
-- `ValidationResult.status`: "ok" | "warning" | "unreliable" | "error"
-
-**Validation Levels:**
-- L1: Structural — required fields, format validation
-- L2: Logical — date ranges, anomaly detection
-- L3: AI confidence — threshold checks
-- L4: Batch — cross-file analysis, duplicate detection
-
-## Logging
-
-**Framework:** Python standard `logging` module
-
-**Initialization Pattern:**
-```python
-import logging
 logger = logging.getLogger(__name__)
 ```
 
-**Log Levels Used:**
-- `logger.debug()`: Low-level details (file hashes computed, etc.)
-- `logger.info()`: Progress and success messages (file found, validation passed, etc.)
-- `logger.warning()`: Skipped files, anomalies detected, fallback used
-- `logger.error()`: Exceptions caught, extraction/API failures
+All modules initialize `logger = logging.getLogger(__name__)` for logging.
 
-**Common Patterns:**
+## Error Handling
+
+**Patterns:**
+
+1. **Exceptions propagate by default** — catch only when you need to handle or log:
+   ```python
+   try:
+       text = extract_text(file_info)
+   except Exception as e:
+       logger.error("Ошибка при извлечении текста: %s", e)
+       result.error_message = "Не удалось извлечь текст"
+       result.status = "error"
+   ```
+
+2. **Custom status codes** instead of exceptions:
+   ```python
+   result = ProcessingResult(file_info=file_info, status="processing")
+   # ...
+   if extraction_failed:
+       result.status = "error"
+       result.error_message = "..."
+       db.save_result(result)
+   ```
+
+3. **Log levels:**
+   - `logger.info()` — normal operations, progress, counts (e.g., "Найдено 42 файлов (5 PDF, 37 DOCX)")
+   - `logger.warning()` — recoverable issues (e.g., file too large, missing field)
+   - `logger.error()` — recoverable errors during processing (e.g., extraction failed, API timeout)
+   - `logger.exception()` — use in except blocks to include traceback
+
+4. **No try/finally for cleanup** — use context managers:
+   ```python
+   with Database(db_path) as db:
+       # db auto-closes
+   ```
+
+5. **Function failures return status, not exceptions:**
+   - See `ProcessingResult` — stores `status` ("done"/"error") and `error_message`
+   - Errors don't break the pipeline — logged and continued
+
+## Logging
+
+**Framework:** Standard Python `logging` module
+
+**Initialization:** Every module starts with:
 ```python
-logger.info("Найдено %d файлов (%s)", len(files), ", ".join(parts))
-logger.warning("Файл пропущен (размер %d МБ > %d МБ): %s", size_mb, max_mb, path.name)
-logger.error("Ошибка извлечения текста из %s: %s", filename, e)
-logger.debug("Сохранён: %s (статус=%s)", filename, status)
+logger = logging.getLogger(__name__)
 ```
 
-**Conventions:**
-- Use `%s`, `%d`, `%f` format strings (not f-strings in logging calls)
-- Include context (filename, size, count) in all log messages
-- Russian language for all messages (logger output intended for Russian-speaking users)
+**Patterns:**
+- Progress updates use `logger.info()` with context
+- File operations log counts: `logger.info("Найдено %d файлов (%s)", len(files), parts)`
+- Skipped files log as warnings: `logger.warning("Файл пропущен (размер %d МБ): %s", size_mb, path.name)`
+- API failures log as error/warning depending on retry strategy
+- No log-in-debug; focus on meaningful info/warning/error levels
+
+**Examples:**
+```python
+logger.info("Найдено %d файлов (5 PDF, 37 DOCX)", 42)
+logger.warning("Файл пропущен (размер 100 МБ > 50 МБ): contract.pdf")
+logger.error("Ошибка при сохранении результата: %s", str(e))
+logger.info("llama-server запущен")
+logger.info("llama-server остановлен")
+```
 
 ## Comments
 
 **When to Comment:**
-- Algorithm explanations (why, not what) — see `modules/validator.py` for validation logic
-- Non-obvious regex patterns — see `modules/anonymizer.py` patterns dictionary
-- Complex prompts for AI — see `modules/ai_extractor.py` SYSTEM_PROMPT and USER_PROMPT_TEMPLATE
-- Section separators for logical grouping (dashed lines like `# ── Extraction ───────────`)
+- Explain WHY, not WHAT — code is self-documenting
+- Complex algorithms (e.g., SQL CASE expression for status computation)
+- Workarounds for bugs or platform quirks (e.g., "NiceGUI bug #2107 — on_shutdown unreliable in native=True on macOS")
+- Non-obvious architectural decisions
 
-**JSDoc/TSDoc:**
-- Not used (Python project, not TypeScript/JavaScript)
-- Docstrings follow Google style for modules, classes, and functions
+**Pattern:**
+```python
+# Тройная защита shutdown (D-10, FUND-04):
+# on_shutdown ненадёжен в native=True на macOS (NiceGUI bug #2107)
+app.on_startup(_start_llama)
+app.on_shutdown(_stop_llama)
+app.on_disconnect(_stop_llama)
+atexit.register(_stop_llama)
+```
 
-**Module Docstrings:**
-- Every module has docstring explaining purpose
-- Example: `modules/validator.py` describes 4 levels of validation
-- Example: `modules/organizer.py` explains 3 grouping modes
+Per-file docstrings referencing design phases (e.g., `Per D-12: ...`) are common.
 
 ## Function Design
 
 **Size:**
-- Most functions 20-50 lines
-- Longer functions (100+ lines) broken into internal helper functions with `_` prefix
-- Example: `modules/ai_extractor.py` main `extract_metadata()` calls internal `_merge_system_into_user()`, `_prepare_fallback_request()`
+- Small and focused — typically 5-30 lines
+- Long functions (>50 lines) indicate need to extract helpers
+- Examples: `_notify()` is 3 lines, `_run_pipeline()` is ~150 lines but clearly sectioned with comments
 
 **Parameters:**
-- Type hints required for all parameters
-- Dataclass objects preferred over multiple scalar parameters
-- Example: `extract_text(file_info: FileInfo) -> ExtractedText` instead of separate filename/extension/size params
-- Config passed as dependency when needed: `validate_metadata(metadata: ContractMetadata, config: Config)`
+- Type-hinted always: `def compute_file_hash(file_path: Path) -> str:`
+- Optional parameters with defaults: `on_progress: Optional[Callable[[int, int, str], None]] = None`
+- Dataclass instances preferred over many individual params: `ProcessingResult` instead of 10 booleans/strings
+- Callback functions as parameters: `on_progress(current, total, message)` pattern
 
 **Return Values:**
-- Always use dataclass return types when multiple values needed
-- Single responsibility: don't return success bool + multiple optional fields
-- Example: return `ValidationResult` (single object with status, warnings, score) not tuple
+- Explicit types: `-> list[FileInfo]`, `-> dict`, `-> Optional[Path]`
+- Dataclass instances for complex returns: `ProcessingResult`, `ContractMetadata`
+- None for side-effect-only functions (e.g., `_notify()`)
+- Tuple unpacking discouraged; use dataclasses instead
 
-**Callbacks:**
-- Optional callbacks for UI progress: `on_progress(current: int, total: int, message: str)`
-- Optional callbacks for file completion: `on_file_done(result: ProcessingResult)`
-- Callbacks invoked via helper: `_notify(on_progress, 0, 0, "message")`
+**Idempotency:**
+- Functions safe to call multiple times: `manager.stop()` is idempotent, `atexit.register()` called 3 times is safe
+- SQL migrations idempotent (checked with version)
+- File operations create directories with `mkdir(parents=True, exist_ok=True)`
 
 ## Module Design
 
-**Exports (Public Interface):**
-- Main function(s) at module top (after docstring + imports)
-- Helper functions prefixed with `_` for privacy
-- All public functions typed with full type hints
-- Example `modules/scanner.py`: exports `compute_file_hash()` and `scan_directory()`
+**Exports:**
+- No `__all__` defined — import what you need
+- Public functions/classes have no leading underscore
+- Internal helpers have `_prefix`
 
 **Barrel Files:**
-- No barrel/index files used
-- Each module imported directly: `from modules.scanner import scan_directory`
-- `modules/__init__.py` exists but empty
+- `app/components/__init__.py` and `app/pages/__init__.py` mostly empty
+- Import directly from modules: `from app.components.header import render_header`
+- No re-exports
 
-**Data Flow via Dataclasses:**
-- All inter-module communication through dataclass objects
-- No loose dictionaries or tuples passed between modules
-- Dataclasses defined in `modules/models.py` for shared use
-- Each dataclass represents a clear domain concept: FileInfo, ExtractedText, ContractMetadata, etc.
+**Organization:**
+- Each module has one main responsibility: `scanner.py` = find files, `anonymizer.py` = mask PII
+- Services layer (`services/*.py`) isolates business logic from Streamlit/NiceGUI
+- UI components in `app/components/` or `app/pages/`
+- Data layer (`modules/database.py`, models in `modules/models.py`)
 
-**Layered Architecture:**
-- Modules operate independently (no circular imports)
-- `controller.py` orchestrates sequential module calls
-- Each module can be tested in isolation
-- Dependencies injected as parameters (Config, callbacks)
+## Type Hints
 
-## Configuration
+**Always required:**
+- Function parameters: `def process(name: str, count: int) -> bool:`
+- Variable declarations when not obvious: `files: list[FileInfo] = []`
+- Dataclass fields: `name: str`, `items: list[str] = field(default_factory=list)`
 
-**Pattern: Single Centralized Config**
-- All settings in `config.py` as fields in `Config` dataclass
-- No scattered magic numbers or hardcoded values
-- Config passed to functions that need it
-- Example: `max_file_size_mb`, `ai_temperature`, `confidence_high` all in Config
+**Patterns:**
+- Use `Path` from pathlib, not str for file paths
+- Use `Optional[T]` instead of `T | None` (Python 3.9 compatibility)
+- `dict[str, str]` not `Dict[str, str]` (Python 3.9+)
+- `list[FileInfo]` not `List[FileInfo]`
 
-**Environment Variables:**
-- Loaded via `python-dotenv` (`.env` file)
-- API keys: `ZHIPU_API_KEY`, `OPENROUTER_API_KEY`, `ZAI_API_KEY`
-- Feature flags: `YURTEG_DESKTOP`, `YURTEG_CLOUD`
-- Never hardcoded; always `os.environ.get("KEY")`
+## Async/Await
 
-## Threading & Concurrency
+**Pattern for blocking operations in UI:**
+```python
+async def _on_upload_click() -> None:
+    if state.processing:
+        return
+    source_dir = await pick_folder()
+    if source_dir and on_upload:
+        await on_upload(source_dir)
+```
 
-**Pattern: ThreadPoolExecutor for AI Calls**
-- Only AI extraction parallelized (bottleneck ~4 sec/file)
-- Text extraction + anonymization sequential (fast, <0.1 sec combined)
-- Database access protected with `threading.Lock`
-- Example: `modules/database.py` uses `self._lock` for CRUD operations
-- Example: `controller.py` uses `concurrent.futures.as_completed()` to track AI requests
+**Pattern for running sync code from async context:**
+```python
+await run.io_bound(manager.ensure_model)
+await run.io_bound(manager.start, get_grammar_path())
+```
 
-## Unicode & Internationalization
-
-**Encoding:**
-- UTF-8 everywhere (specified in docstrings)
-- Russian language in UI, logs, comments
-- Cyrillic text in config (document type hints, field names)
-- No ASCII-only assumptions
-
-**File Paths:**
-- Always use `pathlib.Path` (never `os.path`)
-- `Path.rglob()` for recursive directory traversal
-- `Path.suffix` for file extensions
-- Handles Unicode filenames correctly on all platforms
+Use `run.io_bound()` for ALL blocking calls from NiceGUI event loop — never block directly.
 
 ---
 
-*Convention analysis: 2026-03-19*
+*Convention analysis: 2026-03-25*

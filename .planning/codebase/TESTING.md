@@ -1,336 +1,350 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-19
+**Analysis Date:** 2026-03-25
 
 ## Test Framework
 
 **Runner:**
-- pytest (version not pinned in requirements.txt, but `>=3.5` assumed based on usage)
-- Config: `pytest.ini` at project root
+- pytest (implicit from `pytest.ini` and test file imports)
+- Config: `pytest.ini`
+- Markers: `@pytest.mark.slow` for tests >5 sec, `@pytest.mark.xfail` for TDD RED phase tests
 
-**pytest.ini Configuration:**
-```ini
-[pytest]
-markers =
-    slow: медленные тесты (>5 сек) — пропустить через: -m "not slow"
-```
+**Assertion Library:**
+- Standard `assert` statements (no external library)
+- `pytest.raises()` for exception testing (implicit in pytest)
+- `unittest.mock.patch`, `MagicMock` for mocking
 
 **Run Commands:**
 ```bash
-pytest tests/stress_test.py -v -s              # Run with output
-pytest tests/stress_test.py -v -k "Anonymizer" # Run specific test class/function
-pytest tests/stress_test.py -v -m "not slow"   # Skip slow tests
+pytest                              # Run all tests
+pytest -m "not slow"                # Skip slow tests (>5 sec)
+pytest tests/test_lifecycle.py      # Run specific test file
+pytest tests/test_lifecycle.py::test_auto_status_computation  # Run specific test
 ```
-
-**Assertion Library:**
-- pytest's built-in assert statements (no pytest-assert plugin needed)
 
 ## Test File Organization
 
 **Location:**
-- `tests/` directory at project root
-- Test files: `tests/stress_test.py`, `tests/generate_test_docs.py`
-- Test data: `tests/test_data/` (generated test documents)
-- Configuration: `tests/conftest.py` (pytest setup)
+- Co-located with source code: `tests/` directory at project root
+- Structure mirrors source: `tests/test_{module_name}.py` for `modules/{module_name}.py`
+- Examples: `tests/test_lifecycle.py` (Phase 2), `tests/test_registry_view.py` (Phase 8), `tests/test_app_scaffold.py` (Phase 7)
 
 **Naming:**
-- Test files: `test_*.py` or `*_test.py` — `stress_test.py` follows second pattern
-- Test functions: `test_*` — not used; test classes used instead
-- Test classes: `class Test*` — `class TestAnonymizer`, `class TestValidator`
-- Fixtures: named descriptively — `config`, `tmp_db`, `make_metadata`
+- File: `test_{feature}.py`
+- Function: `def test_{specific_scenario}():` (snake_case)
+- Class: `class Test{Feature}:` (PascalCase)
 
 **Structure:**
 ```
 tests/
-├── conftest.py                  # sys.path setup, shared fixtures
-├── stress_test.py               # ~2500 lines covering all modules
-├── generate_test_docs.py        # ~500 lines creating test documents
-└── test_data/
-    ├── акт_выполненных_работ.docx
-    ├── счёт_на_оплату.docx
-    └── ... (other test documents)
+├── test_service_layer.py           # FUND-02: Services isolate from Streamlit
+├── test_lifecycle.py                # LIFE-01 through LIFE-06 (Phase 2)
+├── test_registry_view.py            # Data layer, fuzzy filter, sorting
+├── test_app_scaffold.py             # AppState dataclass, page modules
+├── test_payments.py                 # Payment unroll, save/load
+├── test_migrations.py               # Database schema migrations
+├── test_versioning.py               # Document version linking
+├── test_client_manager.py           # Multi-client isolation (Phase 3)
+└── test_providers.py                # AI provider factory patterns
 ```
 
 ## Test Structure
 
-**Suite Organization:**
+**Test File Header Pattern:**
 ```python
-# From tests/stress_test.py
+"""Тесты {feature} — {brief description}.
+
+{Phase info}: {requirement codes}
+Example: Wave 0: тест-скелеты созданы до реализации (RED стадия).
+"""
 import pytest
-from unittest.mock import patch, MagicMock
+import inspect
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+```
 
+**Docstring references phases and requirement IDs:**
+- Example: `LIFE-01: SQL CASE возвращает expired/expiring/active/unknown по date_end`
+- Example: `FUND-02: services.pipeline_service не импортирует streamlit`
+- Used to track which features tests validate
+
+**Fixture Pattern:**
+```python
 @pytest.fixture
-def config():
-    """Fixture: returns Config() instance."""
-    return Config()
-
-@pytest.fixture
-def tmp_db(tmp_path):
-    """Fixture: creates temporary database."""
-    db = Database(tmp_path / "test.db")
-    yield db
-    db.close()
-
-class TestAnonymizer:
-    """Test suite for anonymization module."""
-
-    def test_name_extraction(self):
-        """Test case: verify NER extracts Russian names."""
-        result = anonymize("Иванов Иван Иванович")
-        assert "[ФИО_1]" in result.text
+def temp_db(tmp_path):
+    """Создаёт временную БД с миграциями для тестов."""
+    try:
+        from modules.database import Database
+        db = Database(tmp_path / "test.db", tmp_path)
+        yield db
+        db.close()
+    except ImportError:
+        pytest.skip("modules.database недоступен — запустите после 02-01")
 ```
 
-**Patterns Observed:**
+Fixtures use:
+- `@pytest.fixture` decorator
+- Docstring in Russian describing setup
+- `yield` for cleanup (teardown)
+- `pytest.skip()` to skip if dependency unavailable
+- Return or yield test object (not print)
 
-1. **Fixtures: Factory Pattern**
+**Test Class Structure:**
 ```python
-def make_metadata(**overrides) -> ContractMetadata:
-    """Create test metadata with sensible defaults."""
-    defaults = dict(
-        contract_type="Договор поставки",
-        counterparty="ООО ТехноСтрой",
-        confidence=0.85,
-    )
-    defaults.update(overrides)
-    return ContractMetadata(**defaults)
+class TestAppStateFields:
+    """Verify AppState dataclass structure and defaults."""
+
+    def test_appstate_has_all_fields(self):
+        """AppState must have exactly 19 fields..."""
+        from app.state import AppState
+        fields = AppState.__dataclass_fields__
+        assert len(fields) == 19, f"Expected 19 fields, got {len(fields)}: ..."
+
+    def test_appstate_defaults(self):
+        """Verify default values match spec."""
+        from app.state import AppState
+        s = AppState()
+        assert s.source_dir == ""
+        assert s.processing is False
 ```
 
-2. **Parametrized Tests**
-```python
-@pytest.mark.parametrize("text,expected", [
-    ("Иванов Иван Иванович", "[ФИО_1]"),
-    ("+7 (495) 123-45-67", "[ТЕЛЕФОН_1]"),
-])
-def test_anonymization_patterns(text, expected):
-    result = anonymize(text)
-    assert expected in result.text
-```
-
-3. **Assertions on Dataclass Fields**
-```python
-def test_validation_result():
-    result = validate_metadata(metadata, config)
-    assert result.status == "ok"
-    assert result.score >= 0.8
-    assert len(result.warnings) == 0
-```
+Tests use:
+- Class grouping by feature/component
+- Imports inside test function (not top-level) — allows skipping if module unavailable
+- Descriptive assertion messages with actual/expected
+- One assertion per test (or closely related group)
 
 ## Mocking
 
-**Framework:** `unittest.mock` (standard library)
+**Framework:** `unittest.mock` from Python stdlib
 
 **Patterns:**
 
-1. **Mocking API Calls**
 ```python
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-def test_ai_extraction_with_mock():
-    """Mock OpenAI API to avoid real requests."""
-    with patch("openai.OpenAI") as mock_client:
-        mock_client.return_value.chat.completions.create.return_value = MagicMock(
-            choices=[MagicMock(message=MagicMock(content='{"contract_type": "..."}'))]
-        )
-        result = extract_metadata(anonymized_text, config)
-        assert result.contract_type is not None
+# Simple mock
+mock_db = MagicMock()
+mock_db.get_all_results.return_value = [{"id": 1, "filename": "test.pdf"}]
+
+# Mock in test
+def test_registry_get_contracts():
+    from services import registry_service
+    mock_db = MagicMock()
+    mock_db.get_all_results.return_value = [{"id": 1}]
+
+    result = registry_service.get_all_contracts(mock_db)
+
+    mock_db.get_all_results.assert_called_once()
+    assert result == [{"id": 1}]
+
+# Patching
+@patch("services.pipeline_service.extract_text")
+def test_pipeline(mock_extract):
+    mock_extract.return_value = ExtractedText(text="...", page_count=1, ...)
+    # Test code uses mock
 ```
 
-2. **Mocking File Operations**
+**What to Mock:**
+- External services (APIs, databases) — use MagicMock
+- File system — use `tmp_path` fixture, don't mock os.path
+- Imports only when necessary to isolate (e.g., `@patch("module.func")`)
+
+**What NOT to Mock:**
+- Pure functions — test directly with real inputs
+- Dataclasses — instantiate real, not mock
+- Fixtures (temp_db, tmp_path) — use real, not mocks
+
+**Monkeypatch Pattern:**
 ```python
-def test_file_scanning(tmp_path):
-    """Create temporary files instead of mocking."""
-    pdf_file = tmp_path / "contract.pdf"
-    pdf_file.write_bytes(b"%PDF-1.4 ...fake content...")
-    files = scan_directory(tmp_path, config)
-    assert len(files) == 1
+def test_with_monkeypatch(monkeypatch):
+    """Use pytest's monkeypatch for temporary replacements."""
+    from services import lifecycle_service
+    monkeypatch.setattr(lifecycle_service, "WARNING_DAYS", 60)
+    # Test uses modified value
+    assert lifecycle_service.WARNING_DAYS == 60
 ```
-
-3. **What to Mock:**
-- External API calls (OpenAI, OpenRouter) — avoid real requests
-- Network operations — unreliable in test environments
-- System time — for testing expiration/retry logic
-
-4. **What NOT to Mock:**
-- File I/O (use `tmp_path` fixture instead)
-- Text extraction (test with real PDF/DOCX)
-- Database operations (use temporary SQLite)
-- Regex patterns (test actual matching)
-- Dataclass creation (test real object construction)
 
 ## Fixtures and Factories
 
-**Test Data Factories:**
-```python
-def make_metadata(**overrides) -> ContractMetadata:
-    """Factory: create test metadata."""
-    ...
+**Test Data:**
 
-def make_file_info(filename: str, size: int = 1000) -> FileInfo:
-    """Factory: create test file info."""
-    ...
+```python
+@pytest.fixture
+def tmp_db(tmp_path):
+    """Создаёт временную SQLite БД с тестовыми договорами."""
+    db_path = tmp_path / "test.db"
+    db = Database(db_path)
+
+    # Вставляем тестовые договоры
+    rows = [
+        {
+            "filename": "active1.pdf",
+            "file_hash": "hash_active1",
+            "status": "done",
+            "contract_type": "Договор аренды",
+            "counterparty": "ООО Ромашка",
+            "date_end": "2030-12-31",
+            "validation_score": 0.9,
+        },
+        # ... more rows
+    ]
+    for row in rows:
+        db._conn.execute(
+            "INSERT INTO contracts (filename, file_hash, status, ...) "
+            "VALUES (:filename, :file_hash, :status, ...)",
+            row
+        )
+    db._conn.commit()
+
+    yield db
+    db.close()
 ```
 
 **Location:**
-- Fixture functions in `tests/conftest.py` (shared across test files)
-- Factories in `tests/stress_test.py` (used by multiple test classes)
-
-**Test Data Files:**
-- Generated by `tests/generate_test_docs.py`
-- Stored in `tests/test_data/` directory
-- Cover different document types and edge cases
-- Example: `акт_выполненных_работ.docx` (reference document, no anomalies)
-- Example: `счёт_на_оплату.docx` (intentional anomaly: missing amount)
-
-**Running Test Data Generator:**
-```bash
-python tests/generate_test_docs.py  # Creates test documents in tests/test_data/
-```
+- Fixtures in same file as tests (`tests/test_*.py`)
+- Shared fixtures could live in `conftest.py` (not present yet)
+- No factory pattern; dataclasses instantiated directly in tests
 
 ## Coverage
 
-**Requirements:**
-- No explicit minimum coverage enforced
-- No coverage.py config file
-- Stress test focuses on critical paths: anonymization, validation, database
+**Requirements:** No explicit coverage requirement enforced
 
-**View Coverage:**
-```bash
-pytest tests/stress_test.py --cov=modules --cov-report=html
-# (Requires: pip install pytest-cov)
+**Approach:**
+- TDD (RED → GREEN → REFACTOR) — tests written before code
+- Phases completed with `Wave 0: тест-скелеты созданы до реализации` (RED) before implementation
+- `@pytest.mark.xfail` for RED phase tests (not yet implemented)
+
+**Example - TDD RED Phase:**
+```python
+@pytest.mark.xfail(reason="lifecycle_service создаётся в 02-01", strict=False)
+def test_auto_status_computation(temp_db):
+    """LIFE-01: SQL CASE корректно вычисляет статус по date_end."""
+    from services.lifecycle_service import get_computed_status_sql
+    # Test written before service exists
+    # Marked xfail until 02-01 completes
 ```
-
-**Covered Areas:**
-- `modules/anonymizer.py` — comprehensive (NER entities, regex patterns, overlap removal)
-- `modules/validator.py` — comprehensive (L1-L4 validation levels, scoring)
-- `modules/organizer.py` — comprehensive (filename sanitization, conflict resolution, grouping modes)
-- `modules/database.py` — moderate (CRUD operations, migrations)
-- `modules/ai_extractor.py` — light (mocked due to API dependency)
-
-**Gaps:**
-- No tests for `modules/reporter.py` (Excel generation)
-- No tests for `modules/extractor.py` (PDF/DOCX parsing)
-- No E2E tests for full controller pipeline
-- No tests for `main.py` (Streamlit UI)
 
 ## Test Types
 
 **Unit Tests:**
-- Scope: Individual functions and dataclass behaviors
-- Approach: Input to function call to assert output
-- Examples: `TestAnonymizer.test_name_extraction()`, `TestValidator.test_validate_l1()`
-- Isolation: Fixtures provide dependencies; mocking used for external services
+- Scope: Single function/method in isolation
+- Approach: Direct function call with known inputs, assert outputs
+- Examples: `test_compute_file_hash()` (scanner), `test_fuzzy_filter_single_word()` (registry)
+- Location: `tests/test_{module}.py`
 
 **Integration Tests:**
 - Scope: Multiple modules working together
-- Approach: Set up data, run through several modules, check final state
-- Examples: Extract text → anonymize → validate metadata
-- No actual I/O mocks (real files, real database)
+- Approach: Use real database fixtures (`tmp_db`), test end-to-end flows
+- Examples: `test_payment_save_and_load()` (payment service + database), `test_build_version_rows()` (database + version service)
+- Location: Same `tests/test_*.py` files
 
 **E2E Tests:**
-- Status: Not present in current codebase
-- Recommendation: Should test full pipeline (scan → extract → AI → validate → organize → report)
-- Framework: Would use pytest with temporary directories and mocked AI
+- Framework: Not used (NiceGUI integration testing not automated)
+- Manual testing documented in phase plans instead
 
-**Stress/Load Tests:**
-- `tests/stress_test.py` includes performance tests marked `@pytest.mark.slow`
-- Tests with 100+ documents, concurrent database access
-- Validates behavior under load (no memory leaks, no race conditions)
+**Service Layer Tests:**
+- Focus: Verify services don't import Streamlit, have correct signatures
+- Pattern: Import inspection, mock verification
+- Example: `test_no_streamlit_import()` — verifies `services/pipeline_service.py` source doesn't import streamlit
+- Location: `tests/test_service_layer.py`
 
-## Async Testing
+## Common Patterns
 
-**Current Status:** Not async (no asyncio usage in codebase)
+**Async Testing:**
+No async tests found — NiceGUI UI tests are skipped (require running app).
 
-**Concurrency Pattern:** ThreadPoolExecutor for AI requests
-
-**Testing Concurrency:**
+**Error Testing:**
 ```python
-def test_concurrent_database_access(tmp_db):
-    """Verify thread-safe database writes."""
-    from concurrent.futures import ThreadPoolExecutor
-
-    def write_result(i):
-        result = ProcessingResult(
-            file_info=make_file_info(f"file_{i}.pdf"),
-            status="done"
-        )
-        tmp_db.save_result(result)
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [executor.submit(write_result, i) for i in range(100)]
-        for f in futures:
-            f.result()  # Wait for all to complete
-
-    all_results = tmp_db.get_all_results()
-    assert len(all_results) == 100
+def test_missing_file():
+    """Test error handling for missing input."""
+    from modules.scanner import scan_directory
+    with pytest.raises(FileNotFoundError, match="Директория не найдена"):
+        scan_directory(Path("/nonexistent"), config)
 ```
 
-## Error Testing
-
-**Pattern: Assert Expected Exceptions**
-
-1. **Invalid Input Handling**
+**Parametrized Tests:**
+Not used yet in codebase. Could be added with:
 ```python
-def test_validation_missing_required_field():
-    """Validate that missing counterparty sets error status."""
-    metadata = make_metadata(counterparty=None)
-    result = validate_metadata(metadata, config)
-    assert result.status == "error"
-    assert any("counterparty" in w for w in result.warnings)
+@pytest.mark.parametrize("input,expected", [
+    ("test.pdf", "pdf"),
+    ("test.docx", "docx"),
+])
+def test_extension(filename, expected):
+    assert get_extension(filename) == expected
 ```
 
-2. **File Not Found**
+**Database Tests:**
 ```python
-def test_scan_nonexistent_directory():
-    """Verify FileNotFoundError raised for missing directory."""
-    with pytest.raises(FileNotFoundError):
-        scan_directory(Path("/nonexistent/path"), config)
+@pytest.fixture
+def tmp_db(tmp_path):
+    db = Database(tmp_path / "test.db")
+    yield db
+    db.close()  # Cleanup
+
+def test_fetch_rows(tmp_db):
+    """Test data retrieval from database."""
+    rows = tmp_db.get_all_results()
+    assert len(rows) > 0
+    assert "filename" in rows[0]
 ```
 
-3. **Graceful Degradation**
-```python
-def test_extraction_failure_returns_failed_status():
-    """Verify extract_text returns 'failed' method, not exception."""
-    bad_file = FileInfo(
-        path=Path("/fake.pdf"),
-        filename="fake.pdf",
-        extension=".pdf",
-        size_bytes=100,
-        file_hash="abc123"
-    )
-    result = extract_text(bad_file)
-    assert result.extraction_method == "failed"
-    assert result.text == ""
-    # No exception raised to caller
-```
+## Test Execution
 
-## Test Markers
+**Command Examples:**
+```bash
+# All tests
+pytest
 
-**Markers Defined (pytest.ini):**
-```
-slow: медленные тесты (>5 сек) — пропустить через: -m "not slow"
-```
-
-**Usage:**
-```python
-@pytest.mark.slow
-def test_large_document_processing():
-    """Process 500 MB PDF file (takes 10 seconds)."""
-    ...
-
-# Run without slow tests
+# Skip slow tests (>5 sec)
 pytest -m "not slow"
+
+# Single file
+pytest tests/test_lifecycle.py
+
+# Single test
+pytest tests/test_lifecycle.py::test_auto_status_computation
+
+# Verbose output
+pytest -v
+
+# Show print statements
+pytest -s
+
+# Stop on first failure
+pytest -x
+
+# Exit with error if no tests run
+pytest --strict-markers
 ```
 
-## Continuous Integration
+**CI/CD:**
+Not configured (no github-ci, jenkins, etc. in repo)
 
-**Status:** No CI configuration (no `.github/workflows/`, no `.gitlab-ci.yml`)
+## Debugging Tests
 
-**Recommendation for Future:**
-- GitHub Actions workflow in `.github/workflows/test.yml`
-- Run pytest on Python 3.10+ on push/PR
-- Check coverage threshold (>70% for modules)
-- Lint with pylint/flake8 if added
+**Print in Tests:**
+```python
+def test_something():
+    result = function()
+    print(f"Result: {result}")  # visible with pytest -s
+    assert result == expected
+```
+
+**Inspect Test Data:**
+```python
+def test_data(tmp_db):
+    rows = tmp_db.get_all_results()
+    print(json.dumps(rows, indent=2))  # visible with pytest -s
+    assert len(rows) > 0
+```
+
+**Use pdb:**
+```python
+def test_with_debugger():
+    import pdb; pdb.set_trace()  # Breaks here when running pytest
+```
 
 ---
 
-*Testing analysis: 2026-03-19*
+*Testing analysis: 2026-03-25*

@@ -1,280 +1,235 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-19
+**Analysis Date:** 2026-03-25
 
 ## Tech Debt
 
-**Monolithic main.py:**
-- Issue: UI layer contains 1,402 lines with complex logic interleaved with Streamlit components. Contains filtering logic, dataframe manipulation, PDF operations, and subprocess calls mixed throughout.
-- Files: `main.py`
-- Impact: Difficult to test, modify, and maintain. High cognitive load. UI logic tightly coupled to presentation.
-- Fix approach: Extract UI event handlers and data processing into separate controller classes. Separate concerns: state management, data filtering, presentation. Consider breaking into multiple pages using Streamlit's multi-page app feature.
+**AG Grid column sizing:**
+- Issue: AG Grid columns require manual sizing configuration. Column widths not optimal for all data sizes.
+- Files: `app/components/registry_table.py`, `app/pages/registry.py`
+- Impact: Columns may be too narrow for long text, causing text truncation or wrapping issues. Requires timer-based `sizeColumnsToFit()` workaround.
+- Fix approach: Implement dynamic column sizing based on content width. Consider using `autoSizeColumns()` with proper min/max width constraints. Test with typical Russian legal document metadata.
 
-**Hardcoded prompts in code:**
-- Issue: SYSTEM_PROMPT and USER_PROMPT_TEMPLATE are defined inline in `modules/ai_extractor.py` (lines span entire file). Any prompt iteration requires code changes and testing.
-- Files: `modules/ai_extractor.py`
-- Impact: Prompt engineering workflow is coupled to code deployment. Changes to prompts require careful handling to avoid breaking existing parsing logic.
-- Fix approach: Move prompts to a separate YAML/JSON configuration file. Implement prompt versioning and A/B testing framework.
+**Confidence score handling:**
+- Issue: Model currently tries to output `confidence` field, but it's unreliable. Workaround: calculate from `logprobs` via llama-server instead.
+- Files: `modules/ai_extractor.py`, `services/llama_server.py`
+- Impact: Confidence scores may be inaccurate or missing. UI shows placeholder values.
+- Fix approach: Remove `confidence` from AI model output. Compute via logprobs post-processing in `modules/postprocessor.py`. Add field profile for confidence calculation.
 
-**SQL schema embedded in module:**
-- Issue: Database schema (_SCHEMA) is a raw SQL string in `modules/database.py`, migrations handled as ad-hoc try/except blocks.
-- Files: `modules/database.py` (line 17–44)
-- Impact: Schema changes are error-prone. No way to track migration history or rollback. Column migrations are silent (catch OperationalError).
-- Fix approach: Implement proper migration system (e.g., Alembic). Version schema changes explicitly. Log all migrations.
+**0.5B model reliability gap:**
+- Issue: Qwen 0.5B distilled model produces crashes on ~30% of documents (19/60 in benchmarks). Code-switching and JSON malformation issues persist despite SFT+GKD training.
+- Files: `services/llama_server.py`, `modules/ai_extractor.py`
+- Impact: Fallback to 0.5B model on production would drop quality from 97% to 68%. Not production-ready.
+- Fix approach: Keep 1.5B Q4_K_M as primary production model. 0.5B remains emergency fallback only. Further training would require larger dataset or different architecture.
 
-**Magic numbers throughout codebase:**
-- Issue: Confidence thresholds (0.8, 0.5), max file size (50 MB), max workers (5), token limits (2000) scattered across code.
-- Files: `config.py`, `controller.py`, `modules/ai_extractor.py`, `modules/validator.py`
-- Impact: Hard to tune system behavior. No single source of truth for tuning parameters.
-- Fix approach: Centralize in `config.py` or create separate `tuning.yaml`. Already partially done in config.py but some values still hardcoded in modules.
-
----
+**UI visual layer incomplete:**
+- Issue: UI evaluated at 2.5/5. Large empty white spaces, insufficient visual structure, minimal color usage, no visual hierarchy.
+- Files: `app/styles.py`, `app/pages/registry.py`, `app/pages/templates.py`, `app/components/header.py`
+- Impact: Users find interface confusing and uninviting. Empty registry shows no guidance. Stats bar and footer minimal.
+- Fix approach: Apply 12 point visual refresh plan: warm background (#faf8f5), visible card styling (shadow-sm, border, rounded corners), accent buttons, rich empty state with 3 capability cards, header polish, typographic scaling.
 
 ## Known Bugs
 
-**Scanned PDF detection unreliable:**
-- Symptoms: PDFs with low average character count per page (< 50 chars) are marked as scanned, but some legitimate documents with sparse formatting may be incorrectly flagged.
-- Files: `modules/extractor.py` (lines 46–55)
-- Trigger: Process a text-based PDF with lots of whitespace or tables
-- Workaround: Manually verify scanned PDFs. Consider visual inspection API.
+**Duplicate status CSS:**
+- Symptoms: Status badge styling duplicated in Tailwind @apply and in main.py CSS. Inconsistent rendering.
+- Files: `app/main.py` (CSS inline), `app/static/design-system.css`
+- Trigger: Browser dev tools show status styles loaded twice
+- Workaround: None currently. Delete Tailwind-based styles from main.py, consolidate in design-system.css (single source of truth).
 
-**AI response parsing fragile:**
-- Symptoms: If LLM returns malformed JSON with extra text, missing fields, or nested structures, parsing fails silently and falls back to error state. No structured error details on why parsing failed.
-- Files: `modules/ai_extractor.py` (lines 445–467)
-- Trigger: Model returns JSON with trailing text, comments, or extra whitespace
-- Workaround: Pre-process response with regex to extract JSON block. Add debug logging of raw response.
+**AG Grid null data rendering:**
+- Symptoms: When data contains null values in text fields, AG Grid renders "null" as string instead of empty cell.
+- Files: `app/components/registry_table.py` line ~130-160
+- Trigger: Contracts with missing counterparty, subject, or amount fields
+- Workaround: Post-process row data to replace null values with empty strings before grid render
 
-**Database upsert race condition:**
-- Symptoms: Threading.Lock in `Database` class protects save_result but `is_processed` check is not atomic. Two threads could both pass the check and both save same file.
-- Files: `modules/database.py` (lines 79–95)
-- Trigger: Process same source_dir with high max_workers and force_reprocess=False
-- Workaround: Use database-level locking (PRAGMA busy_timeout) or implement file-level locks.
+**Tour component crash on HTML toggle:**
+- Symptoms: Tour component crashes if HTML is loaded after JS event listeners attached.
+- Files: `app/components/onboarding/tour.py`
+- Trigger: First-time user viewing tour after HTML injection
+- Workaround: HTML and JS now separated in main.py (lines 91-96 vs 108-111). Prevents event listener race condition.
 
-**Missing validation_score handling:**
-- Symptoms: `validation_score` (ValidationResult.score) is calculated but never used for filtering/sorting in UI. Only validation_status is exposed.
-- Files: `modules/validator.py` (line 40–44 sets score), `main.py` (never referenced)
-- Trigger: User expects to filter by quality score, but only categorical status available
-- Workaround: Add score column to Excel report; add score-based filtering UI.
-
-**Anonymized text not stored, can't be recovered:**
-- Symptoms: Anonymized text is calculated during processing but not persisted to database. If a user needs to see the anonymized version later, it's lost.
-- Files: `controller.py` (line 128: result.anonymized set but never saved), `modules/database.py` (no anonymized_text column)
-- Impact: Reproducibility breaks if user wants to verify what was sent to AI. Audit trail incomplete.
-- Workaround: Store anonymized text hash or compressed text in database for audit purposes.
-
----
+**SPA calendar navigation returns 404:**
+- Symptoms: Calendar date picker uses URL navigation which breaks sub_pages routing.
+- Files: `app/components/registry_table.py`, `app/static/calendar.js`
+- Trigger: Clicking date on calendar redirects to /calendar instead of staying on /
+- Workaround: FullCalendar CDN lazy-loaded on demand (not eager). Calendar.js uses manual tooltip instead of full calendar library. See registry.py calendar implementation.
 
 ## Security Considerations
 
-**Environment variable handling:**
-- Risk: API keys (ZHIPU_API_KEY, OPENROUTER_API_KEY) loaded from .env file (not committed). If .env is leaked, all keys compromised. No key rotation mechanism.
-- Files: `main.py` (lines 28–30), `config.py`
-- Current mitigation: .env in .gitignore. Secrets loaded from st.secrets in cloud mode.
-- Recommendations: (1) Implement key rotation API. (2) Use short-lived tokens. (3) Add audit logging of API key access. (4) Vault integration for production.
+**API key exposure:**
+- Risk: AI provider API keys (ZAI, OpenRouter) stored in config or environment. Could be leaked if app crashes or logs unfiltered.
+- Files: `config.py`, `modules/ai_extractor.py`
+- Current mitigation: Keys sourced from environment variables only. No hardcoded defaults. Llama-server (local model) used by default to avoid API exposure.
+- Recommendations: Add request/response sanitization in ai_extractor.py to remove keys from error logs. Implement secret masking in logging.
 
-**SQL injection via user input:**
-- Risk: Database queries use parameterized queries (good), but user-provided directory names and contract types are used in filesystem operations without validation.
-- Files: `modules/organizer.py` (line 26: _sanitize_name is basic), `controller.py`
-- Current mitigation: _sanitize_name removes dangerous characters, but max_length truncation could hide issues.
-- Recommendations: (1) Validate all filesystem paths are within output_dir. (2) Use Path.resolve() to prevent path traversal. (3) Whitelist allowed characters in names.
+**Local file path exposure:**
+- Risk: File paths from users' local systems appear in logs and database records. Could leak user's directory structure.
+- Files: `modules/scanner.py`, `modules/database.py`, `controller.py`
+- Current mitigation: Paths stored as relative after initial scan. Anonymized text never persisted to disk.
+- Recommendations: Sanitize file paths in user-facing error messages. Remove user's home directory from logs.
 
-**No input validation on file uploads:**
-- Risk: Accepts any file with .pdf/.docx extension. No magic number checking. Could process malicious files.
-- Files: `modules/scanner.py` (line 14–20 checks extension only), `modules/extractor.py`
-- Current mitigation: Extension check. File size limit (50 MB).
-- Recommendations: (1) Validate file magic numbers (PDF header, DOCX zip structure). (2) Use file type detection library (python-magic). (3) Implement sandboxing for untrusted PDFs.
-
-**Anonymized data leakage risk:**
-- Risk: Anonymized text sent to third-party LLMs (ZAI, OpenRouter). Even with masking, document structure and metadata may reveal PII.
-- Files: `modules/ai_extractor.py` (sends text to external API)
-- Current mitigation: Natasha NER + regex masking of direct PII. No PII in metadata prompts.
-- Recommendations: (1) Add option to process locally (no external API). (2) Hash sensitive fields before sending. (3) Implement differential privacy. (4) Add legal banner about third-party processing.
-
-**No authentication/authorization:**
-- Risk: Desktop app and Streamlit Cloud app have no user authentication. Anyone with access can process all documents.
-- Files: `main.py`, `desktop_app.py`
-- Current mitigation: None.
-- Recommendations: (1) Add user login for Streamlit Cloud. (2) Implement role-based access (viewer, processor, approver). (3) Audit log all operations.
-
----
+**Database access control:**
+- Risk: SQLite database on user's machine is unencrypted. No authentication for local connections.
+- Files: `modules/database.py`
+- Current mitigation: App is desktop-only (native=True). Database only accessible from local process.
+- Recommendations: Sufficient for MVP. Add encryption if cloud sync is implemented later.
 
 ## Performance Bottlenecks
 
-**AI API call is serialized bottleneck (~4 sec/file):**
-- Problem: ThreadPoolExecutor in `controller.py` parallelizes AI calls, but batch_size=1 and max_workers=5 limits throughput. Each file waits for full LLM round-trip.
-- Files: `controller.py` (lines 176–187), `config.py` (line 28: max_workers=5)
-- Cause: No request batching. No caching of similar documents. LLM latency dominates total time.
-- Improvement path: (1) Implement batch API calls if provider supports. (2) Cache responses for identical inputs. (3) Use faster model for preprocessing (Haiku instead of GLM-4.7).
+**AI extraction latency:**
+- Problem: Each document takes ~4 seconds for metadata extraction (via ollama or API). 500 documents = ~33 minutes.
+- Files: `modules/ai_extractor.py`, `services/llama_server.py`
+- Cause: Single-threaded sequential AI requests. ThreadPoolExecutor with max_workers=5 only parallelizes, doesn't optimize per-request latency.
+- Improvement path: (1) Batch API requests (if provider supports). (2) Speculative decoding (tested but no gain). (3) Quantization (already at Q4_K_M optimal). (4) Accept 18-20s/doc as baseline for 1.5B model.
 
-**Full-text extraction for large PDFs:**
-- Problem: pdfplumber extracts ALL pages every time, even if document is short. No early stopping.
-- Files: `modules/extractor.py` (lines 42–54)
-- Cause: No page limit. No content-based early stopping.
-- Improvement path: (1) Extract first N pages only for initial analysis. (2) Add progressive extraction callback. (3) Use streaming API if available.
+**Text extraction from scanned PDFs:**
+- Problem: OCR-extracted documents use fallback extraction method (~0.5s per page, slow for 100+ page contracts).
+- Files: `modules/extractor.py`
+- Cause: pdfplumber cannot extract from image-only PDFs. Fallback uses placeholder extraction.
+- Improvement path: Integrate lightweight OCR (pytesseract or easyocr). Trade-off: +5-15s per scanned document but improves accuracy. Not yet implemented.
 
-**Natasha NER on full document text:**
-- Problem: NER processes entire document (potentially 10K+ tokens). Expensive operation called sequentially for each file.
-- Files: `modules/anonymizer.py` (lines 107–125)
-- Cause: No text truncation or chunking. No caching of NER models.
-- Improvement path: (1) Cache loaded models at module level (already done with _segmenter, _ner_tagger). (2) Process text in chunks. (3) Use lightweight NER for preprocessing.
+**AG Grid re-rendering on data update:**
+- Problem: Registry table flickers when filtering or sorting large datasets (500+ contracts).
+- Files: `app/pages/registry.py`
+- Cause: Full table redraw on state change instead of incremental updates.
+- Improvement path: Implement ag-grid-vue or React wrapper with proper state management. Current Nicegui+ag-grid integration lacks delta updates.
 
-**No query caching in database:**
-- Problem: `db.get_all_results()` called every time UI is refreshed, reading entire contracts table.
-- Files: `modules/database.py` (line 131–154)
-- Cause: No caching. Streamlit reruns entire session on every interaction.
-- Improvement path: Use Streamlit @st.cache_data on get_all_results. Invalidate cache only on save_result.
-
-**DataFrame filtering in memory:**
-- Problem: All filters applied to DataFrame in main.py (date range, amount, counterparty) after loading all records. No database-level filtering.
-- Files: `main.py` (lines ~1200–1300)
-- Cause: Data loaded then filtered in Python. No SQL WHERE clause.
-- Improvement path: (1) Push filters to database queries. (2) Add database indexes on counterparty, contract_type, date_signed. (3) Implement pagination.
-
----
+**Search query latency:**
+- Problem: Full-text search with rapidfuzz on 1000+ documents causes 200-300ms UI lag.
+- Files: `app/pages/registry.py` (search debounce at 300ms)
+- Cause: Fuzzy matching runs on main thread.
+- Improvement path: Implement background worker thread for search. Pre-compute searchable index on document load.
 
 ## Fragile Areas
 
-**Anonymizer NER entity detection:**
-- Files: `modules/anonymizer.py` (lines 100–175)
-- Why fragile: Three-pass NER strategy (original text, normalized, OCR spaced) is complex and overlapping. Order of passes matters. If Natasha models are updated, behavior may change. Regex patterns for phone/email are locale-specific (Russian).
-- Safe modification: (1) Add comprehensive tests for each entity type. (2) Document the three-pass strategy. (3) Consider alternative NER library. (4) Validate regex patterns against real documents.
-- Test coverage: regex patterns tested informally, NER passes untested.
+**LLM server lifecycle management:**
+- Files: `app/main.py` (lines 31-68), `services/llama_server.py`
+- Why fragile: Triple shutdown guard (on_shutdown, on_disconnect, atexit) required because NiceGUI on macOS native mode is unreliable. Server may hang or not stop cleanly.
+- Safe modification: (1) Test all shutdown paths individually. (2) Add timeout to server.stop() call. (3) Monitor for zombie llama-server processes. (4) Log all shutdown events for debugging.
+- Test coverage: Covered in test_lifecycle.py (151 lines). Gaps: macOS-specific crashes not fully reproduced.
 
-**Validator threshold logic:**
-- Files: `modules/validator.py` (lines 26–70)
-- Why fragile: Confidence thresholds hardcoded. Warnings accumulate in score calculation. Status depends on L1 > L2 > L3 order. If rules change, score calculation breaks. No way to disable specific rules.
-- Safe modification: (1) Make thresholds configurable per rule. (2) Separate warning accumulation from status determination. (3) Implement rule registry with enable/disable flags.
-- Test coverage: Some unit tests exist but threshold edge cases not fully covered.
+**AI metadata extraction error recovery:**
+- Files: `modules/ai_extractor.py` (lines 312-430), `controller.py` (lines 120-180)
+- Why fragile: Multiple fallback providers (ollama → ZAI → OpenRouter) with different error handling. Timeout, rate limit, and connection errors each handled differently. Chain can fail at any link.
+- Safe modification: (1) Test each provider independently. (2) Add circuit breaker pattern. (3) Log provider switch events. (4) Add user notification on provider downgrade.
+- Test coverage: test_providers.py (83 lines) covers provider selection. Gaps: fallback chain not fully tested.
 
-**AI model fallback logic:**
-- Files: `modules/ai_extractor.py` (lines 215–246)
-- Why fragile: Three-tiered fallback (main model → fallback prompt → fallback model) with retries. If one API is down, switches to another. Order and retry counts intertwined. Hard to reason about which model will be used.
-- Safe modification: (1) Add explicit model selection strategy (round-robin, least-recently-used). (2) Log which model was used. (3) Add metrics for fallback frequency. (4) Consider circuit breaker pattern.
-- Test coverage: Happy path tested, failure scenarios not fully covered.
+**Post-processing confidence and field validation:**
+- Files: `modules/postprocessor.py` (189 lines), `modules/validator.py` (402 lines)
+- Why fragile: Confidence calculation moved from AI model to logprobs post-processing. Field profiles for cyrillic_only, number, date handle type coercion. Bugs in post-processor can corrupt valid metadata.
+- Safe modification: (1) Add roundtrip tests: raw AI output → post-processor → validator → verified output. (2) Catch ValueError/TypeError in post-processor, log and skip field. (3) Test with 100+ real document samples before deployment.
+- Test coverage: test_postprocessing.py exists in dataset/, not in tests/. Gaps: No unit tests in main test suite for field profiles.
 
-**Database schema migrations:**
-- Files: `modules/database.py` (lines 65–73)
-- Why fragile: Column additions caught with try/except, silently skipped if column exists. No way to track which migrations ran. Adding new required columns could cause data inconsistency.
-- Safe modification: (1) Implement explicit migration tracking table. (2) Version schema. (3) Add migration validation (verify column exists and type is correct). (4) Log all migrations.
-- Test coverage: No migration tests.
-
----
+**Database schema consistency:**
+- Files: `modules/database.py` (425 lines)
+- Why fragile: Schema includes contract table with 30+ columns for dynamic metadata. No migrations framework. Manual schema updates risk data loss.
+- Safe modification: (1) Never ALTER TABLE on production database. (2) Add migration framework (alembic or SQLAlchemy Migrate). (3) Version schema. (4) Backup before schema changes.
+- Test coverage: test_migrations.py (103 lines) covers basic schema checks. Gaps: No rollback testing, no large dataset migration testing.
 
 ## Scaling Limits
 
-**Concurrent file processing:**
-- Current capacity: max_workers=5 threads. Total throughput ~1.25 files/sec (if 4 sec/file). For 1000 files, processing takes ~800 sec.
-- Limit: ThreadPoolExecutor limited to OS-level thread pool. GIL limits true parallelism. API rate limits (ZAI, OpenRouter) unknown.
-- Scaling path: (1) Switch to async/await with asyncio. (2) Use process pool for CPU-bound tasks (NER). (3) Implement queue-based architecture (Celery/RabbitMQ). (4) Add API request rate limiter.
+**Parallel AI request workers:**
+- Current capacity: max_workers=5 (config.py line 36). 500 documents = ~40 requests in flight at peak.
+- Limit: ThreadPoolExecutor with 5 threads may exhaust system resources or hit API rate limits.
+- Scaling path: (1) Profile CPU/memory with 10+ workers. (2) Implement adaptive worker scaling based on provider latency. (3) Add rate limiter per provider (ZAI: 100 req/s, OpenRouter: 50 req/s).
 
-**Database size:**
-- Current capacity: SQLite with single contracts table. No indices on queries except file_hash and status. Each row ~500 bytes + JSON fields.
-- Limit: SQLite degrades at ~100K records. Concurrent writes block. No replication.
-- Scaling path: (1) Migrate to PostgreSQL for concurrent access. (2) Add indices on frequently queried columns. (3) Implement partitioning by date. (4) Archive old records.
+**Local SQLite database:**
+- Current capacity: ~10,000 contracts before performance degrades (indexes on file_hash, status, contract_type).
+- Limit: SQLite single-writer limitation. Concurrent writes from multiple workers cause locking.
+- Scaling path: (1) For >10K documents, migrate to PostgreSQL. (2) Implement write batching in Database class. (3) Add database WAL mode for better concurrency.
 
-**File system organization:**
-- Current capacity: Nested directory structure (type/counterparty/file) can create deep paths that exceed OS limits.
-- Limit: Windows path length limit 260 characters. Deeply nested structures break.
-- Scaling path: (1) Cap directory depth or use hashing. (2) Use symbolic links for common paths. (3) Implement flat storage with metadata index.
+**LLM server memory:**
+- Current capacity: 1.5B model at Q4_K_M = ~1GB RAM. Single instance on typical laptop (8-16GB).
+- Limit: 3 concurrent llama-server instances would require 3GB RAM.
+- Scaling path: (1) Deploy to separate server if scaling beyond single machine. (2) Use model quantization (IQ3_M, IQ2_M) for lower-end hardware. (3) Batch requests to reduce server startup overhead.
 
-**Memory usage:**
-- Current capacity: Full anonymized text kept in memory for each file during processing. Large documents (100K characters) × 5 workers = 500K characters in RAM.
-- Limit: Streaming large archives (1000+ files) could exhaust memory.
-- Scaling path: (1) Stream text processing without keeping full content. (2) Implement memory-mapped file handling. (3) Process in batches with explicit cleanup.
-
----
+**UI state synchronization:**
+- Current capacity: AppState dataclass holds per-connection state. Works for single user.
+- Limit: No distributed state management. Cannot sync across multiple windows or devices.
+- Scaling path: Future consideration. MVP is single-user desktop app. If moving to web/multi-user, implement Redis cache or database-backed sessions.
 
 ## Dependencies at Risk
 
-**pdfplumber >= 0.10.0:**
-- Risk: Unmaintained or infrequent updates. Alternative: pypdf, pikepdf. pdfplumber relies on external pdfminer, version mismatches possible.
-- Impact: Security vulnerabilities in PDF parsing. Incompatibility with newer Python versions.
-- Migration plan: (1) Evaluate pymupdf (fitz) as faster alternative. (2) Implement plugin architecture to swap extractors. (3) Add tests for all major PDF formats.
+**Nicegui framework version pinning:**
+- Risk: Nicegui evolving rapidly. Current codebase uses native=True (native window) which has known macOS issues (#2107 — unreliable on_shutdown).
+- Impact: (1) Native window shutdown may hang. (2) Sub_pages SPA routing has quirks. (3) CSS custom property scoping incomplete.
+- Migration plan: (1) Monitor Nicegui releases for macOS native fixes. (2) If issues persist, consider PyQt6 + web UI as alternative. (3) Document all known workarounds (triple shutdown guard, CSS scoping issues).
 
-**natasha >= 1.6.0 (Russian NER):**
-- Risk: Natasha is heavily specialized for Russian. No active development in 2024. Models may drift from modern Russian text patterns.
-- Impact: NER accuracy degrades for modern slang, legal jargon, English names in Russian text.
-- Migration plan: (1) Consider RuBERT-based models. (2) Implement custom legal NER fine-tuned on contracts. (3) Add feedback loop to improve entity detection.
+**Qwen model dependency:**
+- Risk: 1.5B model from SuperPuperD/yurteg-1.5b-v3-gguf. If upstream repo deleted or weights change, cannot re-download.
+- Impact: Binary dependency on HuggingFace model weights. No versioning/pinning.
+- Migration plan: (1) Pin model hash in config. (2) Backup model to S3 or local mirror. (3) Consider training own model if upstream unreliable.
 
-**setuptools < 81:**
-- Risk: Pinned to specific version due to pymorphy2 dependency. Breaks compatibility with newer pip/setuptools. Security vulnerabilities in old setuptools unpatched.
-- Impact: Installation fails on modern Python environments. pip resolver becomes fragile.
-- Migration plan: (1) Upgrade pymorphy2 or replace with modern alternative. (2) Re-run dependency resolution. (3) Switch to modern package management (poetry, uv).
-
-**openai >= 1.30.0:**
-- Risk: OpenAI SDK breaking changes possible in major versions. Current code assumes specific API response structure.
-- Impact: Upgrade to v2.x could require code refactoring. Rate limit handling may change.
-- Migration plan: (1) Pin to major version (^1.30.0). (2) Implement version compatibility layer. (3) Add tests against multiple SDK versions.
-
-**streamlit >= 1.30.0:**
-- Risk: Streamlit evolves rapidly. Session state API changed multiple times. Cache decorators changed. CSS styling breaks with updates.
-- Impact: UI may break with Streamlit updates. Custom CSS selectors may fail.
-- Migration plan: (1) Use version pinning for stability. (2) Test against latest Streamlit on each update. (3) Consider migrating to Gradio or FastAPI for more stable API.
-
----
+**pdfplumber text extraction limitations:**
+- Risk: pdfplumber works for text PDFs but fails on image-only scanned PDFs. No built-in OCR.
+- Impact: 30-40% of legal documents are scanned; these fall back to placeholder extraction.
+- Migration plan: Add pytesseract (fast, lightweight) or easyocr (more accurate, slower) as optional fallback. Would add 5-15s per scanned page.
 
 ## Missing Critical Features
 
-**No OCR support:**
-- Problem: Scanned PDFs rejected entirely. ~5-10% of user documents likely require OCR.
-- Blocks: Can't process document archives with scanned contracts. Limits business use case.
-- Recommendations: (1) Integrate Tesseract OCR or cloud vision API. (2) Add async OCR queue. (3) Allow manual text input for unfathomable files.
+**OCR for scanned documents:**
+- Problem: Scanned PDFs (image-only) cannot be processed. Extraction falls back to dummy method. Users with scanned contracts get no metadata extraction.
+- Blocks: ~30-40% of legal documents are scans. Feature parity with non-scanned docs impossible without OCR.
+- Priority: Medium. Workaround: users can request non-scanned versions or use online OCR tools. True fix requires integrating tesseract or Azure/Google Vision API.
 
-**No document change tracking:**
-- Problem: If user edits a document in Excel and re-uploads, no way to detect changes. Processed flag prevents reprocessing.
-- Blocks: Workflow requires delete + reprocess, which is cumbersome.
-- Recommendations: (1) Implement versioning (track all versions of each file). (2) Add change detection (diff original vs. new metadata). (3) Allow selective reprocessing.
+**Document version comparison (redline):**
+- Problem: Endpoint `/download/redline/{contract_id}/{other_id}` exists in app/main.py but not fully integrated into UI. Users cannot easily compare two document versions.
+- Blocks: Contract version tracking implemented (versioning.py, version_service.py) but visual diff not shown.
+- Priority: Medium. Endpoint works; just need UI button + modal to show before/after redline.
 
-**No batch API integration:**
-- Problem: Processing sends one request per file. If AI provider has batch API (cheaper, slower), not utilized.
-- Blocks: Can't optimize for cost on large archives.
-- Recommendations: (1) Implement batch API client. (2) Add batch mode to config. (3) Queue batches for overnight processing.
+**Batch processing optimization:**
+- Problem: Each document processes sequentially through AI extraction. No batching or request grouping even if provider supports it.
+- Blocks: 500 documents still take 30+ minutes despite parallel threads.
+- Priority: Low for MVP. Could be future optimization (estimate +20% throughput).
 
-**No model fine-tuning support:**
-- Problem: Uses generic LLM prompts. Contract types and extraction logic not customized per customer.
-- Blocks: Can't improve accuracy for specific contract styles. Cross-industry accuracy low.
-- Recommendations: (1) Implement few-shot learning (examples in prompt). (2) Add fine-tuning pipeline for customer-specific models. (3) Create contract type-specific prompts.
+**Cloud sync / multi-device support:**
+- Problem: App is single-machine desktop. No way to sync contracts between machines or access from web.
+- Blocks: Enterprise customers want cloud backup and remote access.
+- Priority: Post-MVP. Architecture supports it (Database class is abstraction) but would need migration to PostgreSQL and web UI.
 
----
+**Telegram bot notifications:**
+- Problem: services/telegram_sync.py exists with bot implementation (128 lines) but not integrated into main pipeline.
+- Blocks: Users cannot receive contract deadline alerts on Telegram.
+- Priority: Low for MVP. Implementation exists, just needs config and testing. Would add `telegram_bot_token` to config.
 
 ## Test Coverage Gaps
 
-**No integration tests for full pipeline:**
-- What's not tested: End-to-end processing (file → extract → anonymize → AI → validate → organize → report). Only unit tests for individual modules.
-- Files: `tests/` directory exists but lacks full-pipeline tests
-- Risk: Breaking changes in module interfaces may not be caught. Interactions between modules untested.
-- Priority: High
+**E2E integration tests:**
+- What's not tested: Full end-to-end pipeline from file upload → AI extraction → database save → Excel export. Current tests mock AI responses.
+- Files: `tests/test_lifecycle.py` (151 lines), `tests/test_ai_extractor_wiring.py` (169 lines) cover parts but not full flow.
+- Risk: Pipeline changes (ai_extractor ↔ validator ↔ database) could break interdependencies without detection.
+- Priority: High. Add 50-100 line integration test with real llama-server or mocked but realistic responses.
 
-**Anonymizer regex patterns untested:**
-- What's not tested: Actual phone numbers, emails, IPs, bank accounts against real-world variations. Test data minimal.
-- Files: `modules/anonymizer.py` (PATTERNS dict, lines 42–71)
-- Risk: Legitimate data masked, PII leaked due to pattern mismatches.
-- Priority: High
+**UI component interaction tests:**
+- What's not tested: Registry table + split panel + bulk actions interactions. Current tests check rendering but not user workflows.
+- Files: `tests/test_registry_view.py` (332 lines) tests grid rendering. Gaps: no tests for expand/collapse, row selection, context menu.
+- Risk: UI refactors could break bulk operations or version expansion without notice.
+- Priority: Medium. Add 20-30 test cases for common UI flows.
 
-**AI prompt edge cases:**
-- What's not tested: Prompts tested with synthetic documents, not real legal contracts. Template detection, multilingual documents, corrupted text.
-- Files: `modules/ai_extractor.py` (SYSTEM_PROMPT, USER_PROMPT_TEMPLATE)
-- Risk: Prompt injection attacks, unexpected JSON formats, hallucinated data.
-- Priority: High
+**Provider fallback chain:**
+- What's not tested: Scenario where ollama unavailable → fallback to ZAI → fallback to OpenRouter. Each step's error handling.
+- Files: `tests/test_providers.py` (83 lines) covers provider selection. Gaps: no network failure simulation.
+- Risk: If primary provider breaks, fallback chain might fail silently or with confusing error.
+- Priority: Medium. Add mock network failures to test each fallback step.
 
-**Database migrations:**
-- What's not tested: Column additions, schema changes, data migration correctness. Only schema creation tested.
-- Files: `modules/database.py`
-- Risk: Schema mismatch after upgrade. Data loss.
-- Priority: Medium
+**Database schema migrations:**
+- What's not tested: Schema changes in production database with real data. Current tests use fresh in-memory SQLite.
+- Files: `tests/test_migrations.py` (103 lines) basic checks only. Gaps: no ALTER TABLE or data transformation tests.
+- Risk: Schema change on 10K row production database could lose data or corrupt indexes.
+- Priority: High for production. Add migration test with 1K+ row fixture database.
 
-**Performance regressions:**
-- What's not tested: Benchmark suite for processing time, memory usage. No baseline metrics.
-- Files: `controller.py`, `modules/extractor.py`, `modules/anonymizer.py`
-- Risk: Performance degradation undetected. User experience decays over time.
-- Priority: Medium
+**Validator L4 cross-document checks:**
+- What's not tested: Validator L4 detects duplicate contracts or version chains. Tests only cover L1-L3 (field-level).
+- Files: `modules/validator.py` (402 lines) has L4 logic but tests incomplete.
+- Risk: Duplicate contracts might be saved to database undetected.
+- Priority: Medium. Add 30 line test with synthetic duplicate documents.
 
-**Error recovery:**
-- What's not tested: Partial failure scenarios. API down mid-processing. Disk full. Permission denied. Recovery from interrupted runs.
-- Files: `controller.py`, `modules/database.py`
-- Risk: Processing state inconsistent after failures. Restart unclear.
-- Priority: Medium
+**Stress testing under load:**
+- What's not tested: 500+ document pipeline stress. Tests run on 10-50 doc samples.
+- Files: `tests/stress_test.py` (2345 lines\!) exists but appears to be synthetic. Real-world performance unknown.
+- Risk: Production performance unknown. 500 document batch might crash or timeout.
+- Priority: Low for MVP but high for production. Run on real dataset to baseline.
 
 ---
 
-*Concerns audit: 2026-03-19*
+*Concerns audit: 2026-03-25*

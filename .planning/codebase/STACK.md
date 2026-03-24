@@ -1,117 +1,112 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-19
+**Analysis Date:** 2026-03-25
 
 ## Languages
 
 **Primary:**
-- Python 3.10+ (3.12 recommended) - Main application language, all backend logic and CLI
-
-**Supporting:**
-- HTML/CSS/JavaScript - Streamlit auto-generates for UI styling
+- Python 3.10+ - Application core, AI extraction pipelines, desktop/web UI
 
 ## Runtime
 
 **Environment:**
-- CPython 3.10+, tested with 3.12.2
-- Conda-based deployment (see README.md: `conda create -n yurteg python=3.12`)
+- Python 3.10+ (via virtual environment)
 
 **Package Manager:**
-- pip (managed through conda environment)
-- Lockfile: not present (pinned minimum versions in `requirements.txt`)
+- pip
+- Lockfile: `requirements.txt`
 
 ## Frameworks
 
-**Core:**
-- Streamlit 1.30.0+ - Web UI framework for desktop/cloud deployment (`main.py`)
+**Core UI:**
+- Streamlit 1.x - Main web interface for document processing (`main.py`)
+- NiceGUI 3.9.0 - Alternative desktop/native UI framework (`desktop_app.py`)
+- CustomTkinter - Native desktop alternative with tkinter bindings
 
 **Data Processing:**
-- pandas 2.0.0+ - Tabular data handling, Excel generation (`modules/reporter.py`)
-- openpyxl 3.1.0+ - Excel workbook creation with charts and styling (`modules/reporter.py`)
+- pandas 2.0+ - Data manipulation and Excel report generation
+- pdfplumber 0.10+ - PDF text extraction (`modules/extractor.py`)
+- python-docx 1.1+ - DOCX text extraction (`modules/extractor.py`)
 
-**Document Processing:**
-- pdfplumber 0.10.0+ - PDF text extraction, page-by-page parsing (`modules/extractor.py`)
-- python-docx 1.1.0+ - DOCX document reading, paragraph/table extraction (`modules/extractor.py`)
+**NLP & Anonymization:**
+- natasha 1.6+ - Named entity recognition (Russian NER) (`modules/anonymizer.py`)
+- pymorphy2-dicts-ru - Russian morphological analysis dictionary
 
-**NLP & Named Entity Recognition:**
-- natasha 1.6.0 - Russian language NER for anonymization (`modules/anonymizer.py`)
-- pymorphy2-dicts-ru - Russian morphology dictionaries (required by natasha)
+**AI/LLM Framework:**
+- openai 1.30+ - OpenAI-compatible SDK for all LLM providers (ZAI, OpenRouter, Ollama) (`modules/ai_extractor.py`, `providers/`)
 
-**Testing:**
-- pytest (via conftest.py and test files in `tests/`)
+**LLM Execution:**
+- llama.cpp (b5606) - Local inference engine for GGUF models (`services/llama_server.py`)
 
-**Build/Dev:**
-- setuptools <81 - Package utilities, compatibility fix for Streamlit Cloud deployment
+**Async/Scheduling:**
+- APScheduler 3.10+ - Scheduled task execution for deadline digests (`bot_server/scheduler.py`)
+
+**Desktop/Web:**
+- Telegram (python-telegram-bot 22.7+) - Telegram bot integration (`bot_server/bot.py`, `bot_server/main.py`)
+- FastAPI 0.135+ - REST API server for bot backend (`bot_server/main.py`)
+- uvicorn 0.42+ - ASGI server for FastAPI
+
+**Utilities:**
+- python-dotenv 1.0+ - Environment variable management
+- python-dateutil 2.8+ - Date parsing and normalization
+- rapidfuzz 3.14+ - Fuzzy string matching
+- openpyxl 3.1+ - Excel file generation (paired with pandas)
+- huggingface_hub 0.23+ - Model downloading from Hugging Face (`services/llama_server.py`)
 
 ## Key Dependencies
 
-**Critical:**
-- openai 1.30.0+ - OpenAI SDK for LLM API calls, supports custom base_url for ZAI/OpenRouter (`modules/ai_extractor.py`)
-  - Used for both primary (ZAI/GLM-4.7) and fallback (OpenRouter) providers
-  - Instantiated via OpenAI(api_key=..., base_url=...)
-
-- pdfplumber 0.10.0+ - Stable PDF text extraction with high accuracy
-  - Critical for handling legal documents in PDF format
-  - Detects scanned PDFs (is_scanned flag based on text density)
+**Critical for Core Functionality:**
+- `openai` - Unified API client for ZAI (GLM-4.7), OpenRouter, and Ollama providers
+- `natasha` - Russian NLP for PII anonymization (`modules/anonymizer.py`)
+- `pdfplumber` + `python-docx` - Document text extraction, supports PDF and DOCX
 
 **Infrastructure:**
-- python-dotenv 1.0.0+ - Environment variable loading from `.env` files
-  - Loads API keys: ZHIPU_API_KEY, ZAI_API_KEY, OPENROUTER_API_KEY
-  - Fallback to Streamlit Secrets in cloud deployment
+- `pandas` + `openpyxl` - Excel report generation (`modules/reporter.py`)
+- `APScheduler` - Scheduled deadline alerts via Telegram
+- `huggingface_hub` - Model distribution and caching
+
+**Client/Server Communication:**
+- `httpx` - HTTP client for Telegram sync (`services/telegram_sync.py`)
+- `python-telegram-bot` - Telegram bot handlers (`bot_server/bot.py`)
+- `FastAPI` + `uvicorn` - Bot server API endpoints
 
 ## Configuration
 
 **Environment:**
-- `.env` file (local development) - NOT tracked in git
-  - Contains API keys: ZHIPU_API_KEY, ZAI_API_KEY, OPENROUTER_API_KEY
-  - See `.gitignore` - .env is excluded
+- Loaded from `.env` file via `python-dotenv` (development)
+- Streamlit Secrets integration for cloud deployments (via `st.secrets`)
+- Persisted settings in `~/.yurteg/settings.json` (user preferences, active provider)
+- Config class: `config.py` - Centralized configuration with sensible defaults
 
-- Streamlit Secrets (cloud deployment) - `.streamlit/secrets.toml`
-  - Bridged to `os.environ` in `main.py` lines ~30
-  - Same keys: ZHIPU_API_KEY, OPENROUTER_API_KEY, ZAI_API_KEY, YURTEG_CLOUD
+**Required Environment Variables:**
+- `ZAI_API_KEY` or `ZHIPU_API_KEY` - ZAI/GLM API key (main provider)
+- `OPENROUTER_API_KEY` - OpenRouter fallback provider
+- `TELEGRAM_BOT_TOKEN` - Telegram bot server token
+- `YURTEG_CLOUD` - Set to "1" for cloud deployments (triggers Streamlit Secrets)
 
-**Configuration Files:**
-- `config.py` - Dataclass-based centralized configuration
-  - `supported_extensions: tuple[str, ...]` - (".pdf", ".docx")
-  - `ai_base_url: str` - "https://api.z.ai/api/coding/paas/v4" (ZAI)
-  - `ai_fallback_base_url: str` - "https://openrouter.ai/api/v1"
-  - `model_dev: str` - "glm-4.7"
-  - `model_fallback: str` - "arcee-ai/trinity-large-preview:free"
-  - `validation_mode: str` - "off" | "selective" | "full"
-  - `max_workers: int` - 5 (parallel AI request threads)
-
-- `.streamlit/config.toml` - Streamlit theming
-  - Dark theme with cyan accent (#06B6D4)
-  - `headless = true` for cloud deployment
-  - Disables usage stats gathering
+**Build/Runtime:**
+- `.streamlit/config.toml` - Streamlit theme and server settings (headless mode, no stats)
+- `bot_server/requirements.txt` - Separate dependency list for bot server (smaller footprint)
 
 ## Platform Requirements
 
 **Development:**
-- macOS, Linux, or Windows with Python 3.10+
-- conda/pip for package installation
-- 50+ MB disk space (for dependencies and processed data)
-- pdfplumber requires: libpoppler (or pre-installed pdf parsing)
+- macOS, Linux, or Windows
+- Python 3.10+ with pip
+- 2GB+ RAM minimum (local LLM mode requires ~1.5GB)
+- Internet connection for cloud provider API calls
 
 **Production:**
-- Streamlit Community Cloud (primary target)
-- Fallback: Desktop via `streamlit run main.py`
-- Desktop app variant exists in `desktop_app.py` (legacy, uses tkinter)
+- Cloud deployment: Streamlit Cloud, Railway, Vercel, or similar
+- Bot server: Dedicated server/VPS for FastAPI (`bot_server/main.py`)
+- Database: SQLite (file-based, no external DB required)
+- Telegram webhook: Public URL for receiving bot updates
 
-## Deployment Modes
-
-**Cloud (Streamlit Community Cloud):**
-- Env var: `YURTEG_CLOUD=1`
-- Secrets loaded from `.streamlit/secrets.toml` → `os.environ`
-- No file dialogs (tkinter unavailable)
-- Demo mode or API key input required
-
-**Desktop:**
-- Env var: `YURTEG_CLOUD` not set or `YURTEG_DESKTOP=1`
-- File dialogs via tkinter.filedialog
-- Loads `.env` via python-dotenv
-- Full filesystem access for input/output folders
+**Local LLM Mode (Optional):**
+- ~1.5GB disk space for GGUF model (`~/.yurteg/yurteg-v3-Q4_K_M.gguf`)
+- ~1.5GB RAM during inference
+- CPU: x86_64 or ARM64 (Apple Silicon)
 
 ---
 
-*Stack analysis: 2026-03-19*
+*Stack analysis: 2026-03-25*

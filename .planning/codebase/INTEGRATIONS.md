@@ -1,195 +1,171 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-19
+**Analysis Date:** 2026-03-25
 
 ## APIs & External Services
 
-**LLM/AI Services:**
-- **ZAI (主要) / GLM-4.7**
-  - What it's used for: Primary AI model for extracting contract metadata (type, counterparty, amounts, dates, special conditions)
-  - SDK/Client: openai Python SDK (openai>=1.30.0)
+**LLM Providers (pluggable via provider pattern):**
+- **ZAI (GLM-4.7)** - Primary AI provider for document metadata extraction
+  - SDK/Client: `openai` 1.30+ (OpenAI-compatible)
+  - Implementation: `providers/zai.py`
   - Base URL: `https://api.z.ai/api/coding/paas/v4`
-  - Auth: Environment variable `ZHIPU_API_KEY` or `ZAI_API_KEY`
-  - Location: `modules/ai_extractor.py`, `_create_client()` function
-  - Request pattern: Standard OpenAI-compatible API via custom base_url
-  - Max tokens: 2000 (configured in `config.py`)
-  - Temperature: 0 (deterministic extraction)
-  - Retry logic: 2 retries on APIError/APITimeoutError/RateLimitError
+  - Auth: `ZAI_API_KEY` or `ZHIPU_API_KEY` env var
+  - Model: `glm-4.7`
+  - Use case: Fast, accurate metadata extraction from legal documents
 
-- **OpenRouter (Fallback)**
-  - What it's used for: Fallback LLM when ZAI fails or is overloaded
-  - SDK/Client: openai Python SDK
+- **OpenRouter** - Fallback LLM provider (bespoke models)
+  - SDK/Client: `openai` 1.30+ (OpenAI-compatible)
+  - Implementation: `providers/openrouter.py`
   - Base URL: `https://openrouter.ai/api/v1`
-  - Auth: Environment variable `OPENROUTER_API_KEY`
-  - Model: `arcee-ai/trinity-large-preview:free`
-  - Activation: Auto-fallback if ZAI fails; also on explicit enable
-  - Location: `modules/ai_extractor.py`, fallback logic in `extract_metadata()`
+  - Auth: `OPENROUTER_API_KEY` env var
+  - Model: `arcee-ai/trinity-large-preview:free` (configurable fallback)
+  - Use case: Free tier backup when ZAI unavailable
+  - Note: Merges system messages into user content (some models don't support role=system)
+
+- **Ollama (llama-server)** - Local inference engine for private processing
+  - SDK/Client: `openai` 1.30+ (OpenAI-compatible to llama-server endpoint)
+  - Implementation: `providers/ollama.py`
+  - Base URL: `http://localhost:8080/v1` (configurable port in `config.py`)
+  - Model: QWEN 1.5B v3 ORPO (`yurteg-v3-Q4_K_M.gguf`)
+  - Model source: Hugging Face `SuperPuperD/yurteg-1.5b-v3-gguf`
+  - Auth: None (local, API key not needed)
+  - Process: Managed by `LlamaServerManager` (`services/llama_server.py`)
+  - Use case: Private, offline document processing without external API calls
 
 ## Data Storage
 
 **Databases:**
-- **SQLite 3** (Local filesystem)
-  - Connection: `yurteg.db` file (auto-created in working directory)
-  - Client: sqlite3 (Python standard library)
-  - Schema: `modules/database.py` - _SCHEMA constant
-  - Tables:
-    - `contracts` - Main table storing metadata, validation results, processing status
-    - Indexes: `idx_file_hash`, `idx_status`, `idx_contract_type`
-  - Thread safety: `check_same_thread=False` to allow ThreadPoolExecutor access
-  - Resumability: File hash-based deduplication prevents re-processing same files
+- **SQLite** (file-based)
+  - Location: User-specified directory during setup (e.g., `~/.yurteg/contracts.db`)
+  - Schema: `modules/database.py` - Contracts table with metadata, validation status, organized path
+  - Client: Standard library `sqlite3`
+  - Schema: Includes columns for contract metadata (type, counterparty, subject, dates, amount, parties, confidence scores)
+  - Migrations: Applied via `_ensure_migrations_table()` and `_is_migration_applied()` pattern
+  - Indexes: On `file_hash`, `status`, `contract_type` for query performance
+
+**Model Storage:**
+- **Hugging Face Hub** - Model distribution
+  - Client: `huggingface_hub` 0.23+
+  - Repo: `SuperPuperD/yurteg-1.5b-v3-gguf`
+  - File: `yurteg-v3-Q4_K_M.gguf` (~940 MB)
+  - Download location: `~/.yurteg/yurteg-v3-Q4_K_M.gguf`
+  - Managed by: `LlamaServerManager.ensure_model()` (`services/llama_server.py`)
 
 **File Storage:**
-- **Local filesystem only**
-  - Input: User-selected directory (PDF/DOCX files)
-  - Output: Auto-created subdirectory structure via `modules/organizer.py`
-  - Organization modes:
-    - "type" - By document type (Договоры, Финансовые документы, etc.)
-    - "counterparty" - By counterparty name
-    - "both" - Combined hierarchy
-  - Output folder name: `ЮрТэг_Результат` (configurable in `config.py`)
+- **Local filesystem only** - No cloud storage integration
+  - Source files: Unchanged in original directory (copy-only, never delete)
+  - Organized output: User-defined output folder (default: `ЮрТэг_Результат`)
+  - Database: SQLite file in same location as output
 
-**Caching:**
-- None configured
-- Each file processed freshly unless already in database (by file hash)
+## Caching
+
+**None** - Direct API calls to providers on each request (stateless extraction)
+
+**Model Caching:**
+- Local GGUF model cached in `~/.yurteg/` after first download
+- llama-server instance cached as Streamlit resource (`@st.cache_resource`)
 
 ## Authentication & Identity
 
-**API Key Management:**
-- **Environment Variables** (Primary approach)
-  - `ZHIPU_API_KEY` - ZAI/GLM-4.7 access
-  - `ZAI_API_KEY` - Alternative ZAI key name
-  - `OPENROUTER_API_KEY` - OpenRouter fallback access
-  - `YURTEG_CLOUD` - Flag for cloud deployment mode
-  - `YURTEG_DESKTOP` - Flag for desktop mode (tkinter enabled)
-
-- **Streamlit Secrets Bridge** (Cloud deployment)
-  - Location: `.streamlit/secrets.toml`
-  - Bridge code: `main.py` lines ~25-30, copies secrets to os.environ
-  - No hardcoded keys anywhere in codebase
-
-- **Manual Input** (UI fallback, `main.py`)
-  - If env vars not found, user prompted via Streamlit sidebar to paste API keys
-  - Keys validated via `verify_api_key()` before processing
-
 **Auth Providers:**
-- None (no user authentication)
-- API key-based auth only
-- No OAuth or identity federation
+- **Custom** - Application-managed authentication
+  - No OAuth/OIDC integration
+  - Telegram binding via 6-digit code (`bot_server/bot.py`)
+  - Binding code generation: Secrets module (`secrets` library)
+  - Binding TTL: 30 minutes (configurable in `bot_server/config.py`)
+
+**API Key Management:**
+- Environment variables: `ZAI_API_KEY`, `OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN`
+- Fallback: `ZHIPU_API_KEY` as alternative for ZAI
+- Verification: Each provider implements `verify_key()` method (`providers/base.py`)
+- Cloud mode: Keys loaded from Streamlit Secrets (`st.secrets`) during app init (`main.py` lines 26-32)
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None integrated (Sentry, DataDog, etc. not used)
-- Errors logged to Python logger
+- None configured - errors logged to Python `logging` module
 
 **Logs:**
-- **Python logging module** (standard library)
-  - Level: INFO for progress, WARNING for issues, ERROR for failures
-  - Configuration: Via logging.basicConfig in controller
-  - Output: stderr and Streamlit UI progress messages
-  - Log format: [Module name] [Level] Message
-  - No file logging configured (console/UI only)
+- Standard Python `logging` (stdout/stderr)
+- Log levels: INFO (progress), WARNING (alerts), ERROR (failures)
+- No structured logging or external aggregation
 
-**Progress Tracking:**
-- Streamlit progress bar: `st.progress()` in `main.py`
-- Callback pattern: `on_progress(file_index, total, filename)` passed to controller
-- Real-time UI updates via Streamlit's reactive model
+**Health Checks:**
+- Bot server: `GET /api/health` endpoint (`bot_server/main.py`) - used for connection verification
+- Telegram sync: `TelegramSync.check_connection()` pings health endpoint with 5s timeout (`services/telegram_sync.py`)
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- **Streamlit Community Cloud** (primary target)
-  - Deployment command: `streamlit run main.py`
-  - Requirements file: `requirements.txt`
-  - Config: `.streamlit/config.toml`
-
-- **Desktop via Streamlit local server** (fallback)
-  - Command: `streamlit run main.py` locally
+- **Streamlit Cloud** - Recommended for web UI (official deployment target)
+- **Cloud Platforms** - Railway, Vercel, or similar for bot server
+- **Local Desktop** - NiceGUI app bundle (`.dmg` for macOS)
 
 **CI Pipeline:**
-- None detected
-- No GitHub Actions or other CI configured
-- Manual testing via pytest (test files exist but CI not automated)
+- None configured - Manual testing and deployment
+
+**Bot Server Deployment:**
+- FastAPI with uvicorn (`bot_server/main.py`)
+- Requires public URL for Telegram webhook registration
+- Lifespan management: FastAPI `@asynccontextmanager` for setup/shutdown
 
 ## Environment Configuration
 
-**Required Environment Variables:**
-- At least one of:
-  - `ZHIPU_API_KEY` or `ZAI_API_KEY` (for primary ZAI model)
-  - `OPENROUTER_API_KEY` (for fallback model)
-- Optional: `YURTEG_CLOUD=1` (enables cloud mode, disables file dialogs)
+**Required env vars:**
+- `ZAI_API_KEY` - GLM-4.7 API authentication
+- `TELEGRAM_BOT_TOKEN` - Telegram bot credentials (bot_server only)
 
-**Secrets Location:**
-- Development: `.env` file (git-ignored)
-- Cloud deployment: `.streamlit/secrets.toml` (managed via Streamlit UI)
-- Never hardcoded in source files
+**Optional env vars:**
+- `OPENROUTER_API_KEY` - OpenRouter fallback provider
+- `ZHIPU_API_KEY` - Alternative ZAI provider key
+- `YURTEG_CLOUD` - Set "1" for cloud mode (enables Streamlit Secrets)
+- `YURTEG_DESKTOP` - Set "1" for desktop mode (disables tkinter import)
 
-**Optional Configuration:**
-- `YURTEG_DESKTOP=1` - Forces desktop mode, enables tkinter
-- Model selection: `config.use_prod_model` flag (default: False, uses dev model)
+**Secrets location:**
+- Development: `.env` file (loaded via `python-dotenv`)
+- Cloud (Streamlit): Streamlit Secrets dashboard
+- Cloud (FastAPI): Environment variables on hosting platform
+- Persisted user settings: `~/.yurteg/settings.json` (JSON file)
 
 ## Webhooks & Callbacks
 
-**Incoming:**
-- None (desktop/web app, not API service)
+**Incoming Webhooks:**
+- **Telegram Webhook** - `POST /telegram/webhook` (`bot_server/main.py`)
+  - Receives Telegram updates via long polling configured in webhook
+  - Endpoint registered at startup via `app_bot.bot.set_webhook()`
+  - Webhook URL: `{SERVER_URL}/telegram/webhook`
 
-**Outgoing:**
-- None to external services
-- Internal callbacks: `on_progress()`, `on_file_done()` for UI updates (passed to `Controller.process_archive()`)
+**Outgoing Webhooks:**
+- None configured
 
-## Data Flow Architecture
+**Bot Server REST API:**
+- `POST /api/bind` - Exchange 6-digit code for chat_id (`bot_server/main.py`)
+- `GET /api/queue/{chat_id}` - Fetch pending files for a user
+- `GET /api/files/{file_id}` - Download a specific queued file
+- `DELETE /api/queue/{file_id}` - Confirm file retrieval
+- `POST /api/deadlines/{chat_id}` - Sync deadline alerts from local app
+- `GET /api/health` - Liveness probe
 
-**Processing Pipeline:**
-1. **Scanner** (`modules/scanner.py`)
-   - Scans source directory for PDF/DOCX files
-   - Calculates file hash (SHA-256) for deduplication
+**Local App ↔ Bot Server Communication:**
+- Client: `TelegramSync` class (`services/telegram_sync.py`)
+- Protocol: HTTP REST with `httpx` client (async-capable)
+- Features: Timeout handling (5s for health, 30s for file ops), graceful error handling
 
-2. **Extractor** (`modules/extractor.py`)
-   - Extracts raw text from PDF (pdfplumber) or DOCX (python-docx)
-   - Detects scanned PDFs (is_scanned flag)
+## LLM Provider Routing
 
-3. **Anonymizer** (`modules/anonymizer.py`)
-   - Uses natasha NER to identify and mask personal data
-   - Masks: names → [ФИО_N], phones → [ТЕЛЕФОН_N], etc.
+**Provider Selection Logic:**
+- `config.active_provider` - Currently active provider ("ollama", "zai", "openrouter")
+- `config.fallback_provider` - Fallback if active unavailable
+- Persisted: `~/.yurteg/settings.json` stores user preference
+- Initialization: `ai_extractor.py` instantiates provider via factory pattern
+- Key verification: Each provider's `verify_key()` called before use
+- Fallback trigger: If active provider `verify_key()` fails, system auto-switches to fallback
 
-4. **AI Extractor** (`modules/ai_extractor.py`)
-   - Sends anonymized text + system prompt to LLM (ZAI or OpenRouter)
-   - Receives JSON with: document_type, counterparty, subject, dates, amount, parties, confidence
-   - Parallel execution: ThreadPoolExecutor with max_workers=5
-
-5. **Validator** (`modules/validator.py`)
-   - L1: Basic field presence validation
-   - L2: Format validation (dates, amounts)
-   - L3: Consistency checks (date_start <= date_end)
-   - L4: Metadata conflict detection across batch
-   - L5: Selective AI re-verification of low-confidence extracts
-
-6. **Database** (`modules/database.py`)
-   - Stores metadata in SQLite `contracts` table
-   - Tracks processing status, validation results, organized file paths
-
-7. **Organizer** (`modules/organizer.py`)
-   - Copies files to output directory with hierarchical structure
-   - No deletion or moving of original files
-
-8. **Reporter** (`modules/reporter.py`)
-   - Generates Excel workbook with:
-     - Metadata sheet (all contracts with columns)
-     - Statistics sheet (charts, counts by type/counterparty)
-     - Issues sheet (validation warnings)
-
-## Rate Limiting & Quotas
-
-**ZAI/GLM-4.7:**
-- No explicit rate limit configuration
-- Retry logic: 2 retries on RateLimitError (429)
-- Parallel requests: 5 concurrent (max_workers)
-- Per-file processing time: ~4 seconds (bottleneck)
-
-**OpenRouter:**
-- Uses free tier model (may have stricter limits)
-- Activated as fallback when ZAI rate-limited
+**Default Provider Order:**
+1. ollama (local, no API key required)
+2. zai (GLM-4.7, primary cloud provider)
+3. openrouter (free tier backup)
 
 ---
 
-*Integration audit: 2026-03-19*
+*Integration audit: 2026-03-25*
