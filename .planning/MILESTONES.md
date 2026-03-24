@@ -1,5 +1,22 @@
 # Milestones
 
+## v0.8 Hardening & Cleanup (Shipped: 2026-03-25)
+
+**Phases completed:** 4 phases, 7 plans, 315 tests green
+
+**Key accomplishments:**
+
+- INSERT OR REPLACE → UPSERT — заметки и статусы юриста больше не стираются при повторной обработке документов
+- Foreign keys enforced + migration v7 — платёжные данные сохраняются, связи между документами не рвутся
+- Все кнопки UI работают: split panel, скачивание PDF, переобработка, настройки, массовая смена статуса
+- Streamlit UI (2247 строк) и legacy-функции удалены — кодовая база чистая, одна точка входа
+- 315 тестов зелёные (было 268 с 15 FAIL и 8 xfail) — +47 новых тестов для scanner, extractor, reporter, postprocessor, controller
+- Шрифты и FullCalendar бандлятся локально — приложение работает полностью офлайн
+- Все зависимости пиннуты с ==, numpy и httpx добавлены — воспроизводимая установка
+- L5 verification и OllamaProvider используют провайдер-систему вместо legacy-кода
+
+---
+
 ## v0.7.1 UI Polish & Fixes (Shipped: 2026-03-22)
 
 **Phases completed:** 2 phases, 6 plans, 7 tasks
