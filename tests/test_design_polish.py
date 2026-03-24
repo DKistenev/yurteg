@@ -62,10 +62,10 @@ def test_seg_active_indigo():
 
 
 def test_font_injection():
-    """main.py must inject IBM Plex Sans."""
+    """main.py must inject IBM Plex Sans from local static files (no CDN)."""
     content = MAIN_PY.read_text(encoding="utf-8")
-    assert "IBM+Plex+Sans" in content
-    assert re.search(r"font-family.*IBM Plex Sans", content)
+    assert "IBMPlexSans-Regular.woff2" in content, "Local Regular font not referenced"
+    assert re.search(r"font-family.*IBM Plex Sans", content), "font-family declaration missing"
 
 
 # ── DSGN-04: AppState has calendar_visible ───────────────────────────────────
