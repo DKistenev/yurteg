@@ -7,6 +7,7 @@ Per D-14: нативный file picker (OPEN_DIALOG) → диалог имени
 Per D-15: кнопки «Изменить» и «Удалить» на каждой карточке.
 Per D-16: run.io_bound() для extract_text (blocking I/O).
 """
+from itertools import groupby
 from pathlib import Path
 from typing import Optional
 
@@ -125,11 +126,28 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                 )
             return
 
-        with ui.grid(columns=2).classes("w-full gap-4"):
-            for tmpl in templates:
-                # ANIM-02: wrapper div с .card-enter для stagger-эффекта (не на ui.card напрямую)
-                with ui.element('div').classes("card-enter"):
-                    _render_card(tmpl, container, on_add=on_add)
+        # Group templates by contract_type
+        templates_sorted = sorted(templates, key=lambda t: t.contract_type or "Прочее")
+        for doc_type, group in groupby(templates_sorted, key=lambda t: t.contract_type or "Прочее"):
+            group_list = list(group)
+            colors = TMPL_TYPE_COLORS.get(doc_type, TMPL_TYPE_DEFAULT)
+            with ui.column().classes("w-full gap-4 yt-fade-stagger"):
+                # Section header
+                with ui.row().classes("items-center gap-2 mt-4 mb-1"):
+                    ui.html(
+                        f'<div style="width:20px;height:20px;border-radius:6px;'
+                        f'background:{colors["badge_bg"]};display:flex;'
+                        f'align-items:center;justify-content:center;'
+                        f'font-size:0.7rem;flex-shrink:0">{colors["icon"]}</div>'
+                    )
+                    ui.label(doc_type.upper()).classes(
+                        "text-xs font-semibold text-slate-400 uppercase tracking-wide"
+                    )
+                with ui.grid(columns=2).classes("w-full gap-4"):
+                    for tmpl in group_list:
+                        # ANIM-02: wrapper div с .card-enter для stagger-эффекта
+                        with ui.element('div').classes("card-enter yt-hover-card"):
+                            _render_card(tmpl, container, on_add=on_add)
 
 
 def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
@@ -139,7 +157,7 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
     usage_count = getattr(tmpl, "usage_count", 0) or 0
 
     with ui.card().classes(
-        APPLE_CARD + " overflow-hidden cursor-default"
+        APPLE_CARD + " overflow-hidden cursor-default yt-hover-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
     ).style("padding:0").props(f'role="article" aria-label="Шаблон: {tmpl.name}"'):
         with ui.row().classes("w-full gap-0").style("min-height:100%"):
             # 4px color-coded left bar
@@ -174,8 +192,8 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
                 # Date
                 if tmpl.created_at:
                     ui.label(tmpl.created_at).classes("text-slate-300 mt-0.5").style("font-size:11px")
-                # Action buttons
-                with ui.row().classes("mt-2 gap-1"):
+                # Action buttons (visible on hover via hover-parent-show)
+                with ui.row().classes("mt-2 gap-1 hover-parent-show"):
                     ui.button(
                         "Изменить",
                         on_click=lambda t=tmpl: _open_edit_dialog(t, cards_container, on_add=on_add),

@@ -15,6 +15,8 @@ from app.styles import (
     BREADCRUMB_LINK, BREADCRUMB_SEP, BREADCRUMB_CURRENT,
     SECTION_DIVIDER_HEADER, AI_REVIEW_BLOCK, AI_REVIEW_BORDER_STYLE,
     META_KEY, META_VAL, VERSION_DOT, VERSION_LINE,
+    ACTION_BAR, ACTION_BTN, ACTION_BTN_PRIMARY,
+    CONFIDENCE_TRACK, GROUP_CARD, GROUP_CARD_TITLE,
 )
 from modules.models import ContractMetadata
 from services.client_manager import ClientManager
@@ -33,42 +35,57 @@ _client_manager = ClientManager()
 
 
 def _render_metadata(contract: dict) -> None:
-    """Отображает метаданные контракта в 3-column grid (per D-04, D-05).
+    """Отображает метаданные контракта в двух группированных карточках.
 
-    При низкой уверенности AI (confidence < threshold) оборачивает грид
-    в amber-подсветку и показывает предупреждение.
+    Card 1: Основная информация (Тип, Контрагент, Предмет)
+    Card 2: Сроки и финансы (Начало, Окончание, Сумма)
+
+    При низкой уверенности AI (confidence < threshold) показывает предупреждение.
     """
     settings = load_settings()
     confidence_threshold = settings.get("confidence_low", 0.5)
     confidence = contract.get("confidence", 1.0)
     low_confidence = confidence < confidence_threshold
 
-    fields = [
+    if low_confidence:
+        with ui.element("div").classes("bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3"):
+            ui.label(
+                "\u26a0 \u041d\u0438\u0437\u043a\u0430\u044f \u0443\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI \u2014 \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435"
+            ).classes("text-xs text-amber-600 font-medium")
+
+    group1_fields = [
         ("Тип документа", contract.get("contract_type") or "—"),
         ("Контрагент", contract.get("counterparty") or "—"),
         ("Предмет договора", contract.get("subject") or "—"),
+    ]
+    group2_fields = [
         ("Дата начала", contract.get("date_start") or "—"),
         ("Дата окончания", contract.get("date_end") or "—"),
         ("Сумма", contract.get("amount") or "—"),
-        ("Дата подписания", contract.get("date_signed") or "—"),
     ]
 
-    if low_confidence:
-        with ui.element("div").classes("bg-amber-50 border border-amber-200 rounded-lg p-3"):
-            ui.label(
-                "\u26a0 \u041d\u0438\u0437\u043a\u0430\u044f \u0443\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI \u2014 \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0434\u0430\u043d\u043d\u044b\u0435"
-            ).classes("text-xs text-amber-600 font-medium mb-2")
+    with ui.column().classes("w-full gap-3"):
+        # Card 1: Основная информация
+        with ui.element("div").classes(GROUP_CARD):
+            with ui.row().classes(GROUP_CARD_TITLE + " mb-3"):
+                ui.icon("description").classes("text-indigo-500 text-base")
+                ui.label("Основная информация")
             with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
-                for label, value in fields:
+                for label, value in group1_fields:
                     with ui.column().classes("gap-0.5"):
                         ui.label(label).classes(TEXT_LABEL_UPPER)
                         ui.label(value).classes("text-sm text-slate-900")
-    else:
-        with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
-            for label, value in fields:
-                with ui.column().classes("gap-0.5"):
-                    ui.label(label).classes(TEXT_LABEL_UPPER)
-                    ui.label(value).classes("text-sm text-slate-900")
+
+        # Card 2: Сроки и финансы
+        with ui.element("div").classes(GROUP_CARD):
+            with ui.row().classes(GROUP_CARD_TITLE + " mb-3"):
+                ui.icon("calendar_month").classes("text-amber-500 text-base")
+                ui.label("Сроки и финансы")
+            with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full"):
+                for label, value in group2_fields:
+                    with ui.column().classes("gap-0.5"):
+                        ui.label(label).classes(TEXT_LABEL_UPPER)
+                        ui.label(value).classes("text-sm text-slate-900")
 
 
 def _render_special_conditions(contract: dict) -> None:
@@ -202,6 +219,22 @@ async def build(doc_id: str = "") -> None:
                     on_click=lambda nid=next_id: ui.navigate.to(f"/document/{nid}")
                 ).props('flat dense aria-label="Следующий документ"').classes("text-slate-400")
                 next_btn.set_enabled(next_id is not None)
+
+        # ── Action bar (below breadcrumbs) ─────────────────────────────────────
+        with ui.row().classes(ACTION_BAR + " w-full rounded-lg mb-4"):
+            ui.button("← Назад", on_click=lambda: ui.navigate.to("/")).props(
+                "flat dense no-caps"
+            ).classes(ACTION_BTN)
+            ui.button("Скачать PDF", on_click=lambda: ui.download(
+                f"/download/{doc_id}"
+            )).props("flat dense no-caps").classes(ACTION_BTN)
+            ui.button("Переобработать", on_click=lambda: ui.navigate.to(
+                f"/document/{doc_id}"
+            )).props("flat dense no-caps").classes(ACTION_BTN)
+            ui.element("div").classes("flex-1")  # spacer
+            action_review_btn = ui.button("Проверить по шаблону").props(
+                "dense no-caps unelevated"
+            ).classes(ACTION_BTN_PRIMARY)
 
         # ── Two-column layout ─────────────────────────────────────────────────
         with ui.row().classes("w-full gap-6 items-start"):
@@ -342,19 +375,22 @@ async def build(doc_id: str = "") -> None:
                 # Amber/orange accent wrapper — визуально отличает AI-контент от фактических данных
                 with ui.element("div").classes(AI_REVIEW_BLOCK).style(AI_REVIEW_BORDER_STYLE):
 
-                    # ── Индикатор уверенности AI ──────────────────────────────────
+                    # ── Индикатор уверенности AI с прогресс-баром ─────────────────
                     _confidence = contract.get("confidence")
                     if _confidence is not None:
                         _pct = round(_confidence * 100)
                         if _confidence >= 0.8:
                             _conf_color = "text-green-600"
                             _dot_color = "#16a34a"
+                            _bar_color = "#16a34a"
                         elif _confidence >= 0.5:
                             _conf_color = "text-amber-600"
                             _dot_color = "#d97706"
+                            _bar_color = "#d97706"
                         else:
                             _conf_color = "text-red-600"
                             _dot_color = "#dc2626"
+                            _bar_color = "#dc2626"
                         with ui.row().classes("items-center gap-1.5 mb-1"):
                             ui.html(
                                 f'<span style="display:inline-block;width:8px;height:8px;'
@@ -362,6 +398,11 @@ async def build(doc_id: str = "") -> None:
                             )
                             ui.label(f"\u0423\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI: {_pct}%").classes(
                                 f"text-xs font-medium {_conf_color}"
+                            )
+                        # Progress bar
+                        with ui.element("div").classes(CONFIDENCE_TRACK):
+                            ui.element("div").classes("h-full rounded-full").style(
+                                f"width:{_pct}%;background:{_bar_color}"
                             )
 
                     review_container = ui.column().classes("w-full gap-2 py-2")

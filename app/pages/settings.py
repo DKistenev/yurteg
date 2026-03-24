@@ -43,7 +43,7 @@ def _settings_row(label: str, description: str = "", *, control_fn=None) -> None
             control_fn()
 
 
-def _render_summary_cards(settings: dict, switch_fn) -> None:
+def _render_summary_cards(settings: dict, switch_fn, card_refs: dict) -> None:
     """Рендерит компактные summary-карточки над sidebar layout."""
     # --- AI summary ---
     cfg = Config()
@@ -82,13 +82,19 @@ def _render_summary_cards(settings: dict, switch_fn) -> None:
         },
     ]
 
+    _CARD_BASE = APPLE_CARD_COMPACT + " flex-1 cursor-pointer transition-colors duration-150"
+    _CARD_ACTIVE_ADD = "border-indigo-200 bg-indigo-50/50"
+    _CARD_ACTIVE_REMOVE = "border-slate-200 bg-white"
+
     with ui.row().classes("gap-3 px-6 py-4 w-full"):
         for card in cards_data:
-            with ui.card().classes(
-                APPLE_CARD_COMPACT + " flex-1 cursor-pointer"
+            card_el = ui.card().classes(
+                _CARD_BASE
             ).style("padding:14px").on(
                 "click", lambda s=card["section"]: switch_fn(s)
-            ):
+            )
+            card_refs[card["section"]] = card_el
+            with card_el:
                 with ui.row().classes("items-center gap-3"):
                     # Icon in colored rounded square
                     ui.html(
@@ -112,6 +118,7 @@ def build() -> None:
     settings = load_settings()
     active_section: list[str] = ["ИИ"]  # mutable container для захвата в closures
     nav_buttons: dict[str, ui.button] = {}
+    summary_card_refs: dict[str, ui.card] = {}
 
     # Placeholder for switch_fn — will be set after definition
     switch_ref: list = []
@@ -140,6 +147,7 @@ def build() -> None:
 
     def _switch(section: str) -> None:
         active_section[0] = section
+        # Update sidebar nav buttons
         for name, btn in nav_buttons.items():
             if name == section:
                 btn.classes(
@@ -150,6 +158,18 @@ def build() -> None:
                 btn.classes(
                     remove="text-indigo-700 bg-indigo-50 font-medium",
                     add="text-slate-600 hover:bg-slate-100 bg-transparent",
+                )
+        # Update summary card active state
+        for name, card_el in summary_card_refs.items():
+            if name == section:
+                card_el.classes(
+                    remove="border-slate-200 bg-white",
+                    add="border-indigo-200 bg-indigo-50/50",
+                )
+            else:
+                card_el.classes(
+                    remove="border-indigo-200 bg-indigo-50/50",
+                    add="border-slate-200 bg-white",
                 )
         if section == "ИИ":
             _render_ai(content, settings)
@@ -167,186 +187,193 @@ def build() -> None:
     def _render_ai(content_el, s) -> None:
         content_el.clear()
         with content_el:
-            ui.label("ИИ-помощник").classes(TEXT_HEADING)
-            ui.label("Провайдер для извлечения метаданных из документов").classes(TEXT_SECONDARY + " mb-4")
+            with ui.column().classes("w-full gap-6 yt-fade-stagger"):
+                ui.label("ИИ-помощник").classes(TEXT_HEADING)
+                ui.label("Провайдер для извлечения метаданных из документов").classes(TEXT_SECONDARY + " mb-4")
 
-            # Row 1: Provider dropdown
-            def _provider_control():
-                sel = ui.select(
-                    options=_PROVIDERS,
-                    value=s.get("active_provider", "ollama"),
-                ).props("dense outlined").classes("w-48")
-                sel.on_value_change(lambda e: save_setting("active_provider", e.value))
+                # Row 1: Provider dropdown
+                def _provider_control():
+                    sel = ui.select(
+                        options=_PROVIDERS,
+                        value=s.get("active_provider", "ollama"),
+                    ).props("dense outlined").classes("w-48")
+                    sel.on_value_change(lambda e: save_setting("active_provider", e.value))
 
-            _settings_row("Провайдер", "Локальная модель работает офлайн", control_fn=_provider_control)
+                _settings_row("Провайдер", "Локальная модель работает офлайн", control_fn=_provider_control)
 
-            # Row 2: Model status
-            def _model_status():
-                cfg = Config()
-                model_path = Path.home() / ".yurteg" / cfg.llama_model_filename
-                exists = model_path.exists()
-                size_mb = f"{model_path.stat().st_size / 1024 / 1024:.0f} MB" if exists else ""
-                badge_cls = "bg-green-100 text-green-700" if exists else "bg-amber-100 text-amber-700"
-                badge_text = "Готова" if exists else "Не скачана"
-                with ui.row().classes("items-center gap-2"):
-                    if exists:
-                        ui.label(f"{cfg.llama_model_filename} \u00b7 {size_mb}").classes("text-xs text-slate-400")
-                    ui.label(badge_text).classes(f"text-xs px-2 py-0.5 rounded-full {badge_cls}")
+                # Row 2: Model status
+                def _model_status():
+                    cfg = Config()
+                    model_path = Path.home() / ".yurteg" / cfg.llama_model_filename
+                    exists = model_path.exists()
+                    size_mb = f"{model_path.stat().st_size / 1024 / 1024:.0f} MB" if exists else ""
+                    badge_cls = "bg-green-100 text-green-700" if exists else "bg-amber-100 text-amber-700"
+                    badge_text = "Готова" if exists else "Не скачана"
+                    with ui.row().classes("items-center gap-2"):
+                        if exists:
+                            ui.label(f"{cfg.llama_model_filename} \u00b7 {size_mb}").classes("text-xs text-slate-400")
+                        ui.label(badge_text).classes(f"text-xs px-2 py-0.5 rounded-full {badge_cls}")
 
-            _settings_row("Статус модели", "", control_fn=_model_status)
+                _settings_row("Статус модели", "", control_fn=_model_status)
 
-            # Row 3: Thinking mode toggle
-            def _thinking_control():
-                sw = ui.switch(value=s.get("ai_disable_thinking", True)).props("dense")
-                sw.on_value_change(lambda e: save_setting("ai_disable_thinking", e.value))
+                # Row 3: Thinking mode toggle
+                def _thinking_control():
+                    sw = ui.switch(value=s.get("ai_disable_thinking", True)).props("dense")
+                    sw.on_value_change(lambda e: save_setting("ai_disable_thinking", e.value))
 
-            _settings_row("Thinking mode", "Отключить для 5-7x ускорения", control_fn=_thinking_control)
+                _settings_row("Thinking mode", "Отключить для 5-7x ускорения", control_fn=_thinking_control)
 
-            # Row 4: Check connection
-            def _check_control():
-                result_label = ui.label("").classes("text-xs")
+                # Row 4: Check connection
+                def _check_control():
+                    result_label = ui.label("").classes("text-xs")
 
-                async def _check():
-                    import httpx as _httpx
-                    try:
-                        async with _httpx.AsyncClient(timeout=3) as client:
-                            resp = await client.get("http://localhost:8080/health")
-                        if resp.status_code == 200:
-                            result_label.set_text("\u2713 Работает")
-                            result_label.classes(remove="text-red-500", add="text-green-600")
-                        else:
-                            result_label.set_text("\u2717 Недоступен")
+                    async def _check():
+                        import httpx as _httpx
+                        check_btn.props(add="loading")
+                        result_label.set_text("")
+                        try:
+                            async with _httpx.AsyncClient(timeout=3) as client:
+                                resp = await client.get("http://localhost:8080/health")
+                            if resp.status_code == 200:
+                                result_label.set_text("Подключено")
+                                result_label.classes(remove="text-red-500", add="text-green-600")
+                            else:
+                                result_label.set_text("Ошибка")
+                                result_label.classes(remove="text-green-600", add="text-red-500")
+                        except Exception:
+                            result_label.set_text("Ошибка")
                             result_label.classes(remove="text-green-600", add="text-red-500")
-                    except Exception:
-                        result_label.set_text("\u2717 Недоступен")
-                        result_label.classes(remove="text-green-600", add="text-red-500")
+                        finally:
+                            check_btn.props(remove="loading")
 
-                with ui.row().classes("items-center gap-2"):
-                    ui.button("Проверить", on_click=_check).props("flat dense no-caps").classes("text-indigo-600 text-sm")
-                    result_label  # noqa: B018 — side-effect: attaches to current context
+                    with ui.row().classes("items-center gap-2"):
+                        check_btn = ui.button("Проверить", on_click=_check).props("flat dense no-caps").classes("text-indigo-600 text-sm")
+                        result_label  # noqa: B018 — side-effect: attaches to current context
 
-            _settings_row("Соединение", "", control_fn=_check_control)
+                _settings_row("Соединение", "", control_fn=_check_control)
 
     # --- Секция Обработка ---
 
     def _render_processing(content_el, s) -> None:
         content_el.clear()
         with content_el:
-            ui.label("Обработка").classes(TEXT_HEADING)
-            ui.label("Параметры извлечения метаданных").classes(TEXT_SECONDARY + " mb-4")
+            with ui.column().classes("w-full gap-6 yt-fade-stagger"):
+                ui.label("Обработка").classes(TEXT_HEADING)
+                ui.label("Параметры извлечения метаданных").classes(TEXT_SECONDARY + " mb-4")
 
-            # Row 1: Anonymization toggle
-            def _anon_control():
-                sw = ui.switch(value=s.get("anonymize_for_cloud", True)).props("dense")
-                sw.on_value_change(lambda e: save_setting("anonymize_for_cloud", e.value))
+                # Row 1: Anonymization toggle
+                def _anon_control():
+                    sw = ui.switch(value=s.get("anonymize_for_cloud", True)).props("dense")
+                    sw.on_value_change(lambda e: save_setting("anonymize_for_cloud", e.value))
 
-            _settings_row(
-                "Анонимизация для облака",
-                "Маскировать ФИО и телефоны при отправке в облачные провайдеры",
-                control_fn=_anon_control,
-            )
+                _settings_row(
+                    "Анонимизация для облака",
+                    "Маскировать ФИО и телефоны при отправке в облачные провайдеры",
+                    control_fn=_anon_control,
+                )
 
-            # Row 2: Confidence threshold
-            def _confidence_control():
-                raw = s.get("confidence_low", 0.5)
-                inp = ui.number(
-                    value=int(raw * 100),
-                    min=0, max=100, step=5,
-                ).props("dense outlined suffix='%'").classes("w-24")
-                inp.on_value_change(lambda e: save_setting("confidence_low", (e.value or 50) / 100))
+                # Row 2: Confidence threshold
+                def _confidence_control():
+                    raw = s.get("confidence_low", 0.5)
+                    inp = ui.number(
+                        value=int(raw * 100),
+                        min=0, max=100, step=5,
+                    ).props("dense outlined suffix='%'").classes("w-24")
+                    inp.on_value_change(lambda e: save_setting("confidence_low", (e.value or 50) / 100))
 
-            _settings_row(
-                "Порог уверенности",
-                "Поля с уверенностью ниже порога будут подсвечены",
-                control_fn=_confidence_control,
-            )
+                _settings_row(
+                    "Порог уверенности",
+                    "Поля с уверенностью ниже порога будут подсвечены",
+                    control_fn=_confidence_control,
+                )
 
-            # Row 3: Max workers
-            def _workers_control():
-                inp = ui.number(
-                    value=s.get("max_workers", 5),
-                    min=1, max=10, step=1,
-                ).props("dense outlined").classes("w-24")
-                inp.on_value_change(lambda e: save_setting("max_workers", int(e.value or 5)))
+                # Row 3: Max workers
+                def _workers_control():
+                    inp = ui.number(
+                        value=s.get("max_workers", 5),
+                        min=1, max=10, step=1,
+                    ).props("dense outlined").classes("w-24")
+                    inp.on_value_change(lambda e: save_setting("max_workers", int(e.value or 5)))
 
-            _settings_row(
-                "Параллельные потоки",
-                "Количество одновременных AI-запросов",
-                control_fn=_workers_control,
-            )
+                _settings_row(
+                    "Параллельные потоки",
+                    "Количество одновременных AI-запросов",
+                    control_fn=_workers_control,
+                )
 
     # --- Секция Уведомления ---
 
     def _render_notifications(content_el, s) -> None:
         content_el.clear()
         with content_el:
-            ui.label("Уведомления").classes(TEXT_HEADING)
-            ui.label("Telegram-бот для напоминаний о сроках").classes(TEXT_SECONDARY + " mb-4")
+            with ui.column().classes("w-full gap-6 yt-fade-stagger"):
+                ui.label("Уведомления").classes(TEXT_HEADING)
+                ui.label("Telegram-бот для напоминаний о сроках").classes(TEXT_SECONDARY + " mb-4")
 
-            # Row 1: Telegram binding
-            def _telegram_control():
-                srv_url = s.get("telegram_server_url", "")
-                chat_id = s.get("telegram_chat_id", 0)
-                is_bound = bool(chat_id)
+                # Row 1: Telegram binding
+                def _telegram_control():
+                    srv_url = s.get("telegram_server_url", "")
+                    chat_id = s.get("telegram_chat_id", 0)
+                    is_bound = bool(chat_id)
 
-                if is_bound:
-                    with ui.row().classes("items-center gap-2"):
-                        ui.label("Привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
-                        )
-                        ui.button("Отвязать", on_click=lambda: (
-                            save_setting("telegram_chat_id", ""),
-                            ui.navigate.to("/settings"),
-                        )).props("flat dense no-caps").classes("text-red-500 text-xs")
-                else:
-                    with ui.column().classes("gap-2"):
-                        ui.label("Не привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
-                        )
+                    if is_bound:
                         with ui.row().classes("items-center gap-2"):
-                            code_input = ui.input(placeholder="Код из Telegram").props("dense outlined").classes("w-32")
-
-                            async def _bind():
-                                code = code_input.value
-                                if code and len(code) == 6:
-                                    try:
-                                        sync = TelegramSync(server_url=srv_url, chat_id=0)
-                                        result = await run.io_bound(sync.bind, code)
-                                        if result:
-                                            save_setting("telegram_chat_id", result)
-                                            ui.notify("Telegram привязан!", type="positive")
-                                            ui.navigate.to("/settings")
-                                        else:
-                                            ui.notify("Неверный код или бот недоступен", type="negative")
-                                    except Exception:
-                                        ui.notify("Неверный код или бот недоступен", type="negative")
-
-                            ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
-                                "bg-indigo-600 text-white text-xs"
+                            ui.label("Привязан").classes(
+                                "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
                             )
-                        ui.label("Отправьте /start боту @YurTagBot \u2014 он пришлёт код").classes(
-                            "text-xs text-slate-400"
-                        )
+                            ui.button("Отвязать", on_click=lambda: (
+                                save_setting("telegram_chat_id", ""),
+                                ui.navigate.to("/settings"),
+                            )).props("flat dense no-caps").classes("text-red-500 text-xs")
+                    else:
+                        with ui.column().classes("gap-2"):
+                            ui.label("Не привязан").classes(
+                                "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
+                            )
+                            with ui.row().classes("items-center gap-2"):
+                                code_input = ui.input(placeholder="Код из Telegram").props("dense outlined").classes("w-32")
 
-            _settings_row("Telegram", "", control_fn=_telegram_control)
+                                async def _bind():
+                                    code = code_input.value
+                                    if code and len(code) == 6:
+                                        try:
+                                            sync = TelegramSync(server_url=srv_url, chat_id=0)
+                                            result = await run.io_bound(sync.bind, code)
+                                            if result:
+                                                save_setting("telegram_chat_id", result)
+                                                ui.notify("Telegram привязан!", type="positive")
+                                                ui.navigate.to("/settings")
+                                            else:
+                                                ui.notify("Неверный код или бот недоступен", type="negative")
+                                        except Exception:
+                                            ui.notify("Неверный код или бот недоступен", type="negative")
 
-            # Row 2: Warning threshold
-            def _threshold_control():
-                inp = ui.number(
-                    value=s.get("warning_days_threshold", 30),
-                    min=1, max=90, step=1,
-                ).props("dense outlined suffix='\u0434\u043d\u0435\u0439'").classes("w-28")
-                inp.on_value_change(lambda e: save_setting("warning_days_threshold", int(e.value or 30)))
+                                ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
+                                    "bg-indigo-600 text-white text-xs"
+                                )
+                            ui.label("Отправьте /start боту @YurTagBot \u2014 он пришлёт код").classes(
+                                "text-xs text-slate-400"
+                            )
 
-            _settings_row(
-                "Порог напоминания",
-                "За сколько дней до истечения предупреждать",
-                control_fn=_threshold_control,
-            )
+                _settings_row("Telegram", "", control_fn=_telegram_control)
+
+                # Row 2: Warning threshold
+                def _threshold_control():
+                    inp = ui.number(
+                        value=s.get("warning_days_threshold", 30),
+                        min=1, max=90, step=1,
+                    ).props("dense outlined suffix='\u0434\u043d\u0435\u0439'").classes("w-28")
+                    inp.on_value_change(lambda e: save_setting("warning_days_threshold", int(e.value or 30)))
+
+                _settings_row(
+                    "Порог напоминания",
+                    "За сколько дней до истечения предупреждать",
+                    control_fn=_threshold_control,
+                )
 
     # Рендерим summary cards (теперь _switch определён)
     with summary_container:
-        _render_summary_cards(settings, _switch)
+        _render_summary_cards(settings, _switch, summary_card_refs)
 
     # Инициализация — открываем ИИ секцию (после определения всех render-функций)
     _switch("ИИ")

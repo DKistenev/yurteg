@@ -10,10 +10,10 @@ class TestAppStateFields:
     """Verify AppState dataclass structure and defaults."""
 
     def test_appstate_has_all_fields(self):
-        """AppState must have exactly 16 fields (dead settings cache fields removed in polish)."""
+        """AppState must have exactly 19 fields (16 original + 3 UI overhaul: split_panel_doc_id, selected_doc_ids, bulk_mode)."""
         from app.state import AppState
         fields = AppState.__dataclass_fields__
-        assert len(fields) == 16, f"Expected 16 fields, got {len(fields)}: {list(fields.keys())}"
+        assert len(fields) == 19, f"Expected 19 fields, got {len(fields)}: {list(fields.keys())}"
 
     def test_appstate_defaults(self):
         """Verify default values match spec."""
