@@ -154,7 +154,7 @@ def root() -> None:
 
     state = get_state()
     # Bridge persisted warning_days → AppState (BUG-02 fix)
-    state.warning_days_threshold = app_settings.get("warning_days", 30)
+    state.warning_days_threshold = app_settings.get("warning_days_threshold", 30)
 
     async def _handle_upload(path):
         """Delegate upload to registry page's on_upload callback (stored on state)."""
@@ -201,6 +201,40 @@ async def download_redline(contract_id: int, other_id: int):
         content=docx_bytes,
         media_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         headers={'Content-Disposition': f'attachment; filename="redline_{contract_id}_vs_{other_id}.docx"'},
+    )
+
+
+# ── Document download route (UIFIX-02) ────────────────────────────────────────
+@app.get('/download/{doc_id}')
+async def download_document(doc_id: int):
+    """Скачивает оригинальный файл документа."""
+    from pathlib import Path as _Path
+    from services.client_manager import ClientManager as _CM
+
+    cm = _CM()
+    db = cm.get_db("Основной реестр")
+    doc = await run.io_bound(db.get_contract_by_id, doc_id)
+    if doc is None:
+        return FastAPIResponse(content="Документ не найден", status_code=404)
+
+    original_path = _Path(doc.get("original_path", ""))
+    if not original_path.exists():
+        return FastAPIResponse(
+            content=f"Файл не найден: {original_path.name}", status_code=404
+        )
+
+    content_bytes = original_path.read_bytes()
+    suffix = original_path.suffix.lower()
+    media_type = {
+        ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".doc": "application/msword",
+    }.get(suffix, "application/octet-stream")
+
+    return FastAPIResponse(
+        content=content_bytes,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{original_path.name}"'},
     )
 
 

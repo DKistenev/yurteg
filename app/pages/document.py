@@ -228,9 +228,46 @@ async def build(doc_id: str = "") -> None:
             ui.button("Скачать PDF", on_click=lambda: ui.download(
                 f"/download/{doc_id}"
             )).props("flat dense no-caps").classes(ACTION_BTN)
-            ui.button("Переобработать", on_click=lambda: ui.navigate.to(
-                f"/document/{doc_id}"
-            )).props("flat dense no-caps").classes(ACTION_BTN)
+            async def _reprocess():
+                """Re-run pipeline for this single document (UIFIX-03)."""
+                from pathlib import Path as _Path
+                original_path = _Path(contract.get("original_path", ""))
+                if not original_path.exists():
+                    ui.notify("Файл не найден — переобработка невозможна", type="negative")
+                    return
+                import tempfile, os
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tmp_path = _Path(tmpdir)
+                    link = tmp_path / original_path.name
+                    try:
+                        os.symlink(original_path, link)
+                    except OSError:
+                        import shutil
+                        shutil.copy2(original_path, link)
+                    from config import Config
+                    from controller import Controller
+                    from services.client_manager import ClientManager
+                    cm = ClientManager()
+                    db_path = cm.get_db_path(state.current_client)
+                    ctrl = Controller(Config())
+                    ui.notify("Переобработка запущена...", type="info")
+                    stats = await run.io_bound(
+                        ctrl.process_archive,
+                        tmp_path,
+                        "both",
+                        True,
+                        None,
+                        None,
+                        db_path.parent,
+                    )
+                    errors = stats.get("errors", 0)
+                    if errors:
+                        ui.notify(f"Переобработка завершена с ошибками: {errors}", type="warning")
+                    else:
+                        ui.notify("Документ переобработан", type="positive")
+                    ui.navigate.to(f"/document/{doc_id}")
+
+            ui.button("Переобработать", on_click=_reprocess).props("flat dense no-caps").classes(ACTION_BTN)
             ui.element("div").classes("flex-1")  # spacer
             action_review_btn = ui.button("Проверить по шаблону").props(
                 "dense no-caps unelevated"
