@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.8
 milestone_name: Hardening & Cleanup
-status: Ready to plan
-stopped_at: Completed 22-code-cleanup 22-02-PLAN.md
-last_updated: "2026-03-24T23:13:18.401Z"
+status: Ready to execute
+stopped_at: Completed 23-production-readiness 23-02-PLAN.md
+last_updated: "2026-03-24T23:27:17.206Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 7
+  completed_plans: 6
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 22 — code-cleanup
+**Current focus:** Phase 23 — production-readiness
 
 ## Current Position
 
-Phase: 23
-Plan: Not started
+Phase: 23 (production-readiness) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: Not started
 | Phase 21-ui-fixes P01 | 5 | 2 tasks | 6 files |
 | Phase 22-code-cleanup P01 | 8min | 2 tasks | 15 files |
 | Phase 22-code-cleanup P02 | 25min | 1 tasks | 7 files |
+| Phase 23-production-readiness P02 | 15min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,7 @@ Recent decisions affecting v0.8 work:
 - [Phase 22-code-cleanup]: CLEAN-02: _merge_system_into_user moved to single source in providers/openrouter.py; active_model simplified to 'glm-4.7'; AppState reduced from 19 to 16 fields
 - [Phase 22-code-cleanup]: CLEAN-03: proxy env cleanup is session-scoped in conftest.py — fixes httpx socks5h failures in 10 tests
 - [Phase 22-code-cleanup]: CLEAN-03: test_design_polish assertions moved from Tailwind classes in main.py to hex values in design-system.css
+- [Phase 23-production-readiness]: Controller tests patch at import site (controller.scan_directory) not at source — ensures mock intercepts Python's already-imported reference
 
 ### Pending Todos
 
@@ -82,6 +84,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 22-code-cleanup 22-02-PLAN.md
+Stopped at: Completed 23-production-readiness 23-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 20
