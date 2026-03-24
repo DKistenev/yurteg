@@ -55,29 +55,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | — | Pending |
-| DATA-02 | — | Pending |
-| DATA-03 | — | Pending |
-| DATA-04 | — | Pending |
-| UIFIX-01 | — | Pending |
-| UIFIX-02 | — | Pending |
-| UIFIX-03 | — | Pending |
-| UIFIX-04 | — | Pending |
-| UIFIX-05 | — | Pending |
-| UIFIX-06 | — | Pending |
-| CLEAN-01 | — | Pending |
-| CLEAN-02 | — | Pending |
-| CLEAN-03 | — | Pending |
-| PROD-01 | — | Pending |
-| PROD-02 | — | Pending |
-| PROD-03 | — | Pending |
-| PROD-04 | — | Pending |
+| DATA-01 | Phase 20 | Pending |
+| DATA-02 | Phase 20 | Pending |
+| DATA-03 | Phase 20 | Pending |
+| DATA-04 | Phase 20 | Pending |
+| UIFIX-01 | Phase 21 | Pending |
+| UIFIX-02 | Phase 21 | Pending |
+| UIFIX-03 | Phase 21 | Pending |
+| UIFIX-04 | Phase 21 | Pending |
+| UIFIX-05 | Phase 21 | Pending |
+| UIFIX-06 | Phase 21 | Pending |
+| CLEAN-01 | Phase 22 | Pending |
+| CLEAN-02 | Phase 22 | Pending |
+| CLEAN-03 | Phase 22 | Pending |
+| PROD-01 | Phase 23 | Pending |
+| PROD-02 | Phase 23 | Pending |
+| PROD-03 | Phase 23 | Pending |
+| PROD-04 | Phase 23 | Pending |
 
 **Coverage:**
 - v0.8 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 — traceability filled after roadmap creation*
