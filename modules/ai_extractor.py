@@ -193,6 +193,9 @@ def _create_client(config: Config, use_fallback: bool = False) -> OpenAI:
 
     Основной провайдер: ZAI (ключ ZHIPU_API_KEY или ZAI_API_KEY)
     Запасной: OpenRouter (ключ OPENROUTER_API_KEY)
+
+    # DEPRECATED: используется только в extract_metadata(). Новые функции должны
+    # использовать provider.complete() через систему провайдеров.
     """
     if use_fallback:
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -487,18 +490,21 @@ def verify_metadata(
     anonymized_text_preview: str,
     metadata: ContractMetadata,
     config: Config,
+    provider: "LLMProvider | None" = None,
 ) -> dict:
     """
     AI-валидация L5 (опциональная).
 
     Отправляет первые 500 символов текста + метаданные на верификацию.
-    Использует fallback-модель (более быструю).
+    Использует provider.complete() — если provider не передан, создаётся через get_provider(config).
 
     Возвращает: {"correct": bool, "corrections": [...], "reasoning": str}
     При ошибке: {"correct": True, "corrections": [], "reasoning": "verification_failed"}
     """
     try:
-        client = _create_client(config)
+        if provider is None:
+            from providers import get_provider
+            provider = get_provider(config)
 
         metadata_dict = {
             "contract_type": metadata.contract_type,
@@ -514,22 +520,12 @@ def verify_metadata(
             metadata_json=json.dumps(metadata_dict, ensure_ascii=False, indent=2),
         )
 
-        extra = {}
-        if config.ai_disable_thinking:
-            extra["extra_body"] = {"thinking": {"type": "disabled"}}
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
 
-        response = client.chat.completions.create(
-            model=config.active_model,
-            temperature=0,
-            max_tokens=1000,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            **extra,
-        )
-
-        raw_text = response.choices[0].message.content
+        raw_text = provider.complete(messages, temperature=0, max_tokens=1000)
         if not raw_text:
             raise ValueError("Пустой ответ")
 
@@ -550,37 +546,18 @@ def verify_metadata(
         }
 
 
-def verify_api_key(config: Config) -> bool:
+def verify_api_key(config: Config, provider: "LLMProvider | None" = None) -> bool:
     """
-    Проверяет валидность API-ключа одним дешёвым запросом.
+    Проверяет валидность API-ключа через provider.verify_key().
     Возвращает True если ключ рабочий, False если нет.
 
-    Rate limit (429) считается подтверждением — ключ валиден,
-    просто модель перегружена.
+    Если provider не передан, создаётся через get_provider(config).
     """
     try:
-        client = _create_client(config)
-        # Определить модель по тому же ключу, что использует _create_client
-        active_key = (
-            os.environ.get("ZHIPU_API_KEY", "")
-            or os.environ.get("ZAI_API_KEY", "")
-            or os.environ.get("OPENROUTER_API_KEY", "")
-        )
-        if active_key.startswith("sk-or-"):
-            model = config.model_fallback
-        else:
-            model = config.active_model
-        response = client.chat.completions.create(
-            model=model,
-            max_tokens=50,
-            messages=[{"role": "user", "content": "Ответь: ok"}],
-        )
-        # Успех если получили ответ (даже пустой — главное нет ошибки)
-        return True
-    except RateLimitError:
-        # 429 = ключ валиден, но модель перегружена
-        logger.info("API-ключ валиден (rate limit — модель временно перегружена)")
-        return True
+        if provider is None:
+            from providers import get_provider
+            provider = get_provider(config)
+        return provider.verify_key()
     except RuntimeError:
         # Ключ не найден
         return False

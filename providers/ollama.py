@@ -19,8 +19,10 @@ class OllamaProvider(LLMProvider):
 
     name = "ollama"
 
-    def __init__(self, config: Config, base_url: str = "http://localhost:8080/v1") -> None:
+    def __init__(self, config: Config, base_url: str | None = None) -> None:
         self._config = config
+        if base_url is None:
+            base_url = f"http://localhost:{config.llama_server_port}/v1"
         self._client = OpenAI(
             base_url=base_url,
             api_key="not-needed",  # llama-server не требует ключ
