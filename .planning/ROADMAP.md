@@ -38,7 +38,9 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
   2. Связи между версиями документа остаются целыми после повторной обработки
   3. Поля сумма/частота/направление платежа отображаются в карточке документа после обработки
   4. В поле «предмет» договора отображаются реальные имена контрагентов, а не маски [ФИО_1]
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 20-01-PLAN.md — UPSERT, FK pragma, migration v7, deanonymization, db.conn fix
 
 ### Phase 21: UI Fixes
 **Goal**: Все кнопки и элементы интерфейса работают без ошибок и крашей
@@ -79,7 +81,7 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
-| 20. Data Integrity | v0.8 | 0/? | Not started | - |
+| 20. Data Integrity | v0.8 | 0/1 | Planning | - |
 | 21. UI Fixes | v0.8 | 0/? | Not started | - |
 | 22. Code Cleanup | v0.8 | 0/? | Not started | - |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |
