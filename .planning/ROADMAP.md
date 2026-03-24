@@ -23,7 +23,7 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
 **Milestone Goal:** Починить критические баги, вычистить мёртвый код, довести тестовое покрытие — подготовить кодовую базу к production-сборке.
 
 - [x] **Phase 20: Data Integrity** — UPSERT, foreign keys, платёжные поля, деанонимизация subject (completed 2026-03-24)
-- [ ] **Phase 21: UI Fixes** — боковая панель, скачивание PDF, переобработка, warning_days, bulk status
+- [x] **Phase 21: UI Fixes** — боковая панель, скачивание PDF, переобработка, warning_days, bulk status (completed 2026-03-24)
 - [ ] **Phase 22: Code Cleanup** — удаление Streamlit, legacy-кода, починка тестов
 - [ ] **Phase 23: Production Readiness** — тесты для непокрытых модулей, офлайн-ресурсы, requirements.txt, локальная модель
 
@@ -54,7 +54,7 @@ Plans:
   5. Диалог массовой смены статуса показывает читаемые русские названия статусов
 **Plans**: 2 plans
 Plans:
-- [ ] 21-01-PLAN.md — Fix get_contract method name, warning_days key, bulk status labels, logging
+- [x] 21-01-PLAN.md — Fix get_contract method name, warning_days key, bulk status labels, logging
 - [x] 21-02-PLAN.md — Download PDF route, reprocess button handler
 **UI hint**: yes
 
@@ -85,6 +85,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
-| 21. UI Fixes | v0.8 | 1/2 | In Progress|  |
+| 21. UI Fixes | v0.8 | 2/2 | Complete   | 2026-03-24 |
 | 22. Code Cleanup | v0.8 | 0/? | Not started | - |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |

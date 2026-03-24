@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.8
 milestone_name: Hardening & Cleanup
-status: Ready to execute
-stopped_at: Completed 21-ui-fixes 21-02-PLAN.md
-last_updated: "2026-03-24T22:35:57.058Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 21-ui-fixes 21-01-PLAN.md
+last_updated: "2026-03-24T22:40:04.239Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -44,6 +44,7 @@ Plan: 2 of 2
 *Updated after each plan completion*
 | Phase 20-data-integrity P01 | 5 | 2 tasks | 2 files |
 | Phase 21-ui-fixes P02 | 5 | 1 tasks | 2 files |
+| Phase 21-ui-fixes P01 | 5 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,8 @@ Recent decisions affecting v0.8 work:
 - [Phase 20-data-integrity]: clear_all() deletes in FK order: payments → document_versions → embeddings → contracts
 - [Phase 20-data-integrity]: get_contract_id_by_hash() replaces raw db.conn.execute in controller pipeline for thread safety
 - [Phase 21-ui-fixes]: Download route placed after redline route — FastAPI specificity ensures correct matching
+- [Phase 21-ui-fixes]: logger.exception() used (not logger.error()) to capture full traceback in all silent except blocks
+- [Phase 21-ui-fixes]: Dead action_review_btn removed from document.py — duplicate of working review_btn
 
 ### Pending Todos
 
@@ -73,6 +76,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 21-ui-fixes 21-02-PLAN.md
+Stopped at: Completed 21-ui-fixes 21-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 20
