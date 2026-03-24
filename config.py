@@ -16,12 +16,9 @@ class Config:
     # AI — провайдеры и модели
     # Основной: ZAI Coding Plan Pro (GLM-4.7)
     ai_base_url: str = "https://api.z.ai/api/coding/paas/v4"
-    model_dev: str = "glm-4.7"
-    model_prod: str = "glm-4.7"
     # Запасной: OpenRouter (бесплатные модели)
     ai_fallback_base_url: str = "https://openrouter.ai/api/v1"
     model_fallback: str = "arcee-ai/trinity-large-preview:free"
-    use_prod_model: bool = False
     ai_max_retries: int = 2
     ai_temperature: float = 0
     ai_max_tokens: int = 2000
@@ -147,7 +144,7 @@ class Config:
 
     @property
     def active_model(self) -> str:
-        return self.model_prod if self.use_prod_model else self.model_dev
+        return "glm-4.7"
 
 
 # ---------------------------------------------------------------------------

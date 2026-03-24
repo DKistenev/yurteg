@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 from nicegui import ui
 
-from app.styles import CARD_DIALOG, CARD_DIALOG_SM
+from app.styles import CARD_DIALOG_SM
 
 
 def action_buttons(
@@ -61,38 +61,6 @@ def confirm_dialog(
     dlg.open()
 
 
-def form_dialog(
-    title: str,
-    content_builder: Callable,
-    on_confirm: Callable,
-    confirm_label: str = "Сохранить",
-) -> None:
-    """Открывает диалог с формой (добавление, редактирование).
-
-    Args:
-        title: заголовок диалога.
-        content_builder: функция, рендерящая содержимое формы. Получает dlg.
-        on_confirm: async callback при подтверждении.
-        confirm_label: текст кнопки подтверждения.
-    """
-    with ui.dialog() as dlg, ui.card().classes(CARD_DIALOG):
-        ui.label(title).classes("text-lg font-semibold text-slate-900 mb-4")
-        content_builder(dlg)
-
-        async def _wrapped():
-            btn.disable()
-            try:
-                await on_confirm()
-                dlg.close()
-            except Exception:
-                ui.notify("Не удалось сохранить. Попробуйте ещё раз.", type="negative")
-            finally:
-                btn.enable()
-
-        btn = action_buttons(confirm_label, on_primary=_wrapped, on_cancel=dlg.close)
-    dlg.open()
-
-
 def empty_state(
     icon_svg: str,
     title: str,
@@ -127,13 +95,3 @@ def empty_state(
                     ui.label(f"· {hint}").classes("text-sm text-slate-400 font-normal")
 
 
-def section_card(title: str) -> ui.card:
-    """Создаёт секционную карточку с заголовком (для страницы документа).
-
-    Returns:
-        card element — используй `with card:` для добавления содержимого.
-    """
-    card = ui.card().classes("w-full shadow-none border rounded-lg p-5")
-    with card:
-        ui.label(title).classes("text-sm font-semibold text-slate-700 mb-3")
-    return card

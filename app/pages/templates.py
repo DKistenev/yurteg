@@ -20,15 +20,12 @@ from app.components.ui_helpers import confirm_dialog
 from app.state import get_state
 from app.styles import (
     TEXT_HEADING_2XL,
-    TEXT_MUTED,
     TMPL_TYPE_COLORS,
     TMPL_TYPE_DEFAULT,
     BTN_ACCENT_FILLED,
-    TMPL_EMPTY_ICON,
     TMPL_EMPTY_TITLE,
     TMPL_EMPTY_BODY,
     APPLE_CARD,
-    APPLE_CARD_ICON,
 )
 from config import Config, load_settings, save_setting
 from modules.models import FileInfo

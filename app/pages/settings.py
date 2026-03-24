@@ -10,11 +10,10 @@ from pathlib import Path
 from nicegui import run, ui
 
 from app.styles import (
-    TEXT_HEADING, TEXT_LABEL_SECTION, TEXT_SECONDARY, SECTION_DIVIDER_HEADER,
-    APPLE_CARD_COMPACT, APPLE_CARD_COMPACT_ICON,
+    TEXT_HEADING, TEXT_SECONDARY, SECTION_DIVIDER_HEADER,
+    APPLE_CARD_COMPACT,
 )
 from config import Config, load_settings, save_setting
-from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
 
 logger = logging.getLogger(__name__)

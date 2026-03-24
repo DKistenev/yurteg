@@ -11,11 +11,11 @@ from nicegui import run, ui
 from app.state import get_state
 from config import load_settings, save_setting
 from app.styles import (
-    CARD_SECTION, TEXT_SUBHEAD, TEXT_LABEL_UPPER, HEX,
+    TEXT_LABEL_UPPER,
     BREADCRUMB_LINK, BREADCRUMB_SEP, BREADCRUMB_CURRENT,
     SECTION_DIVIDER_HEADER, AI_REVIEW_BLOCK, AI_REVIEW_BORDER_STYLE,
-    META_KEY, META_VAL, VERSION_DOT, VERSION_LINE,
-    ACTION_BAR, ACTION_BTN, ACTION_BTN_PRIMARY,
+    VERSION_DOT, VERSION_LINE,
+    ACTION_BAR, ACTION_BTN,
     CONFIDENCE_TRACK, GROUP_CARD, GROUP_CARD_TITLE,
 )
 from modules.models import ContractMetadata
@@ -28,7 +28,7 @@ from services.lifecycle_service import (
     clear_manual_status,
 )
 from services.review_service import match_template, review_against_template, list_templates
-from services.version_service import get_version_group, diff_versions, generate_redline_docx
+from services.version_service import get_version_group, diff_versions
 
 logger = logging.getLogger(__name__)
 _client_manager = ClientManager()

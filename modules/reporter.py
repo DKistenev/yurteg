@@ -298,9 +298,6 @@ def _create_summary_sheet(wb, db_results: list[dict]) -> None:
         bar.set_categories(cats_ref)
         bar.width = 16
         bar.height = 12
-        # Цвета
-        from openpyxl.chart.series import DataPoint
-        from openpyxl.drawing.fill import PatternFillProperties, ColorChoice
         ws.add_chart(bar, "A25")
 
     # --- Аудит-блок ---

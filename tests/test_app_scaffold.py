@@ -10,10 +10,10 @@ class TestAppStateFields:
     """Verify AppState dataclass structure and defaults."""
 
     def test_appstate_has_all_fields(self):
-        """AppState must have exactly 19 fields (16 original + 3 UI overhaul: split_panel_doc_id, selected_doc_ids, bulk_mode)."""
+        """AppState must have exactly 16 fields (removed filter_type, filter_status, selected_doc_id in CLEAN-02)."""
         from app.state import AppState
         fields = AppState.__dataclass_fields__
-        assert len(fields) == 19, f"Expected 19 fields, got {len(fields)}: {list(fields.keys())}"
+        assert len(fields) == 16, f"Expected 16 fields, got {len(fields)}: {list(fields.keys())}"
 
     def test_appstate_defaults(self):
         """Verify default values match spec."""
@@ -35,11 +35,8 @@ class TestAppStateFields:
 
         # Navigation
         assert s.current_client == "Основной реестр"
-        assert s.selected_doc_id is None
 
         # Filters
-        assert s.filter_type == ""
-        assert s.filter_status == ""
         assert s.filter_search == ""
 
     def test_appstate_field_types(self):
@@ -53,7 +50,6 @@ class TestAppStateFields:
         assert fields['processing'].default is False
         assert fields['warning_days_threshold'].default == 30
         assert fields['current_client'].default == "Основной реестр"
-        assert fields['selected_doc_id'].default is None
 
     def test_appstate_mutable(self):
         """AppState fields can be mutated (it's a plain dataclass, not frozen)."""

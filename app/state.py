@@ -27,12 +27,9 @@ class AppState:
 
     # Navigation
     current_client: str = "Основной реестр"
-    selected_doc_id: Optional[int] = None
     filtered_doc_ids: list = field(default_factory=list)
 
     # Filters
-    filter_type: str = ""
-    filter_status: str = ""
     filter_search: str = ""
 
     # Calendar toggle (Phase 13)

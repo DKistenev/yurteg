@@ -23,11 +23,6 @@ CARD_SECTION = "w-full shadow-none border rounded-lg p-5"
 CARD_DIALOG = "p-6 min-w-[400px]"
 CARD_DIALOG_SM = "p-6 min-w-[360px]"
 
-# ── Button styles ─────────────────────────────────────────────────────────────
-
-BTN_PRIMARY = "px-6 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
-BTN_FLAT = "text-sm text-slate-400 hover:text-slate-600"
-
 # ── Segment toggle ────────────────────────────────────────────────────────────
 
 SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
@@ -41,10 +36,7 @@ TOGGLE_INACTIVE = "p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-s
 # ── Typography ────────────────────────────────────────────────────────────────
 
 TEXT_HEADING = "text-lg font-semibold text-slate-900"
-TEXT_HEADING_XL = "text-xl font-semibold text-slate-900"
 TEXT_HEADING_2XL = "text-2xl font-semibold text-slate-900"
-TEXT_SUBHEAD = "text-sm font-semibold text-slate-700"
-TEXT_BODY = "text-sm text-slate-600 font-normal"
 TEXT_SECONDARY = "text-sm text-slate-500"
 TEXT_MUTED = "text-sm text-slate-400"
 TEXT_LABEL_UPPER = "text-xs font-normal text-slate-400 uppercase tracking-wide"
@@ -60,13 +52,6 @@ TEXT_EYEBROW = "text-xs font-semibold text-slate-400 uppercase tracking-widest"
 # Stats bar (Phase 16)
 STAT_NUMBER = "text-2xl font-bold tabular-nums"
 STAT_LABEL = "text-xs uppercase tracking-wide"
-
-# Section structural
-SECTION_LABEL = "text-xs font-semibold uppercase tracking-wider"
-DIVIDER = "border-t border-slate-200 my-4"
-
-# Template card (Phase 17)
-TEMPLATE_CARD = "bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
 
 # Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
 BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"

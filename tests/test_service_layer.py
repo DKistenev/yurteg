@@ -1,9 +1,6 @@
 """Тесты сервис-слоя — изоляция от Streamlit, сигнатуры, делегирование (FUND-02)."""
-import importlib
 import inspect
 import sys
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -41,13 +38,3 @@ def test_process_archive_signature():
     )
 
 
-def test_registry_get_contracts():
-    """registry_service.get_all_contracts(db) делегирует в db.get_all_results()."""
-    from services import registry_service
-    mock_db = MagicMock()
-    mock_db.get_all_results.return_value = [{"id": 1, "filename": "test.pdf"}]
-
-    result = registry_service.get_all_contracts(mock_db)
-
-    mock_db.get_all_results.assert_called_once()
-    assert result == [{"id": 1, "filename": "test.pdf"}]

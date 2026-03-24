@@ -20,6 +20,7 @@ from dateutil.parser import ParserError
 from config import Config
 from modules.models import ContractMetadata
 from modules.postprocessor import sanitize_metadata
+from providers.openrouter import _merge_system_into_user
 
 if TYPE_CHECKING:
     from providers.base import LLMProvider
@@ -184,39 +185,6 @@ def _normalize_date(raw: str | None) -> str | None:
     except (ParserError, ValueError, OverflowError):
         logger.warning("Не удалось нормализовать дату: %r", raw)
         return None
-
-
-def _merge_system_into_user(messages: list[dict]) -> list[dict]:
-    """Вклеивает system-сообщения в начало первого user-сообщения.
-
-    Нужно для моделей, не поддерживающих role='system'
-    (gemma, некоторые бесплатные модели на OpenRouter).
-    """
-    system_parts: list[str] = []
-    other: list[dict] = []
-    for msg in messages:
-        if msg["role"] == "system":
-            system_parts.append(msg["content"])
-        else:
-            other.append(msg)
-
-    if not system_parts or not other:
-        return messages
-
-    # Вклеиваем system prompt как инструкцию в начало user-сообщения
-    prefix = "\n\n".join(system_parts)
-    merged = []
-    injected = False
-    for msg in other:
-        if msg["role"] == "user" and not injected:
-            merged.append({
-                "role": "user",
-                "content": f"[Инструкция]\n{prefix}\n\n[Задание]\n{msg['content']}",
-            })
-            injected = True
-        else:
-            merged.append(msg)
-    return merged
 
 
 def _create_client(config: Config, use_fallback: bool = False) -> OpenAI:
