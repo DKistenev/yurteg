@@ -122,3 +122,28 @@ APPLE_CARD = "bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow
 APPLE_CARD_ICON = "w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
 APPLE_CARD_COMPACT = "bg-white border border-slate-200 rounded-xl shadow-sm"
 APPLE_CARD_COMPACT_ICON = "w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
+
+# ── Split panel (UI Overhaul) ────────────────────────────────────────────────
+PANEL_CONTAINER = "border-l border-slate-200 bg-slate-50 overflow-y-auto"
+PANEL_HEADER = "flex items-center justify-between px-4 py-3 border-b border-slate-200"
+PANEL_FIELD = "px-4 py-2"
+PANEL_FIELD_LABEL = "text-xs font-normal text-slate-400 uppercase tracking-wide"
+PANEL_FIELD_VALUE = "text-sm font-medium text-slate-800"
+
+# ── Bulk actions (UI Overhaul) ───────────────────────────────────────────────
+BULK_TOOLBAR = "flex items-center gap-3 px-4 py-2 bg-indigo-50 border-b border-indigo-100"
+BULK_BTN = "px-3 py-1 text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+BULK_BTN_DANGER = "px-3 py-1 text-xs font-medium rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50"
+BULK_COUNT = "text-sm font-semibold text-indigo-600"
+
+# ── Action bar — document page (UI Overhaul) ─────────────────────────────────
+ACTION_BAR = "flex items-center gap-2 px-5 py-2.5 bg-slate-50 border-b border-slate-200"
+ACTION_BTN = "px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors duration-150"
+ACTION_BTN_PRIMARY = "px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-150"
+
+# ── Confidence bar (UI Overhaul) ─────────────────────────────────────────────
+CONFIDENCE_TRACK = "h-1.5 w-full rounded-full bg-slate-200 overflow-hidden"
+
+# ── Grouped card (UI Overhaul) ───────────────────────────────────────────────
+GROUP_CARD = "border border-slate-200 rounded-xl p-4 bg-white"
+GROUP_CARD_TITLE = "text-sm font-semibold text-slate-800 flex items-center gap-2"

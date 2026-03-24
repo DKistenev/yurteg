@@ -69,6 +69,20 @@ def _actions_html(is_child: bool = False) -> str:
 # NiceGUI aggrid html_columns renders HTML from rowData values directly.
 
 COLUMN_DEFS = [
+    # Checkbox column for bulk actions (UI Overhaul)
+    {
+        "headerName": "",
+        "field": "selected",
+        "width": 40,
+        "maxWidth": 40,
+        "checkboxSelection": True,
+        "headerCheckboxSelection": True,
+        "pinned": "left",
+        "sortable": False,
+        "filter": False,
+        "resizable": False,
+        "suppressSizeToFit": True,
+    },
     # Expand toggle (D-15, D-16) — HTML via _expand_html()
     {
         "headerName": "",
@@ -408,7 +422,8 @@ async def render_registry_table(state: "AppState"):
                 "sortable": True,
                 "resizable": True,
             },
-            "rowSelection": "single",
+            "rowSelection": "multiple",
+            "suppressRowClickSelection": True,
             "pagination": True,
             "paginationPageSize": 50,
             "paginationAutoPageSize": False,
@@ -433,7 +448,7 @@ async def render_registry_table(state: "AppState"):
                 "pageSize": "Размер",
             },
         },
-        html_columns=[0, 4, 7],  # expand, status, actions — render HTML from rowData
+        html_columns=[1, 5, 8],  # expand, status, actions — render HTML from rowData (shifted +1 for checkbox col)
         theme="quartz",
         auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
     ).classes("w-full max-w-none").style("height: 520px;")

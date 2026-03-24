@@ -241,7 +241,7 @@ p, li, label { line-height: 1.5; }
 .status-suspended   { background:#f3f4f6; color:#4b5563; }
 
 /* ── Skeleton loader (ANIM-04) ─────────────────────────────────────────────── */
-/* GitHub-style: серые блоки с pulse. Без backdrop-filter (CPU spikes macOS pywebview) */
+/* deprecated: use .yt-skeleton-pulse for new code */
 
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
@@ -250,7 +250,7 @@ p, li, label { line-height: 1.5; }
 
 @layer components {
   .skeleton-row {
-    height: 44px;           /* AG Grid row height из --ag-row-height */
+    height: 44px;
     background: var(--yt-p-slate-200);
     border-radius: var(--yt-radius-sm);
     animation: skeleton-pulse 1.5s ease-in-out infinite;
@@ -261,6 +261,83 @@ p, li, label { line-height: 1.5; }
   .skeleton-row:nth-child(4) { animation-delay: 450ms; opacity: 0.6;  }
   .skeleton-row:nth-child(5) { animation-delay: 600ms; opacity: 0.5;  }
 }
+
+/* ── NEW: Shimmer skeleton (UI Overhaul) ───────────────────────────────────── */
+.yt-skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    var(--yt-p-slate-100) 0%,
+    var(--yt-p-slate-50) 40%,
+    var(--yt-p-slate-100) 80%
+  );
+  background-size: 200% 100%;
+  animation: yt-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes yt-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Slide-in transitions (UI Overhaul) ────────────────────────────────────── */
+.yt-slide-in-right {
+  animation: yt-slide-right var(--yt-anim-slide, 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes yt-slide-right {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.yt-slide-in-up {
+  animation: yt-slide-up var(--yt-anim-slide, 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes yt-slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Fade-in with stagger support ──────────────────────────────────────────── */
+.yt-fade-stagger {
+  animation: yt-fade-in 0.3s ease both;
+}
+
+@keyframes yt-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Panel slide (UI Overhaul) ─────────────────────────────────────────────── */
+.yt-panel-enter {
+  animation: yt-panel-slide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes yt-panel-slide {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Bulk toolbar slide-down ───────────────────────────────────────────────── */
+.yt-toolbar-enter {
+  animation: yt-toolbar-slide 0.2s ease;
+}
+
+@keyframes yt-toolbar-slide {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ── Hover-reveal for card children ────────────────────────────────────────── */
+.yt-hover-card .hover-parent-show { opacity: 0; transition: opacity 0.15s; }
+.yt-hover-card:hover .hover-parent-show { opacity: 1; }
+
+/* ── Stagger delay utilities ───────────────────────────────────────────────── */
+.yt-delay-1 { animation-delay: 60ms; }
+.yt-delay-2 { animation-delay: 120ms; }
+.yt-delay-3 { animation-delay: 180ms; }
+.yt-delay-4 { animation-delay: 240ms; }
+.yt-delay-5 { animation-delay: 300ms; }
 
 /* ── Template card stagger (ANIM-02) ──────────────────────────────────────── */
 /* .card-enter применяется на каждую карточку в grid (аналогично .hero-enter) */
