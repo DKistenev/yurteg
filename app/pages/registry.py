@@ -597,18 +597,18 @@ def build() -> None:
     _fc_loaded = {"done": False}
 
     async def _ensure_fullcalendar() -> None:
-        """Lazy-load FullCalendar CDN on first calendar toggle."""
+        """Lazy-load FullCalendar from local vendor/ on first calendar toggle."""
         if _fc_loaded["done"]:
             return
         await ui.run_javascript("""
             if (!window.FullCalendar) {
                 const link = document.createElement('link');
                 link.rel = 'stylesheet';
-                link.href = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css';
+                link.href = '/static/vendor/fullcalendar.global.min.css';
                 document.head.appendChild(link);
                 await new Promise((resolve, reject) => {
                     const script = document.createElement('script');
-                    script.src = 'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js';
+                    script.src = '/static/vendor/fullcalendar.global.min.js';
                     script.onload = resolve;
                     script.onerror = reject;
                     document.head.appendChild(script);

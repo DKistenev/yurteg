@@ -87,12 +87,25 @@ from pathlib import Path as _Path
 
 _STATIC = _Path(__file__).parent / "static"
 
-# Font (must load before any rendered element) — weights 300/400/500/600/700 + cyrillic
+# Font (must load before any rendered element) — served locally, no CDN
 ui.add_head_html("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&display=swap&subset=cyrillic" rel="stylesheet">
-<style>body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; color: var(--yt-color-text-primary); }</style>
+<style>
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/static/fonts/IBMPlexSans-Bold.woff2') format('woff2');
+}
+body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; color: var(--yt-color-text-primary); }
+</style>
 """, shared=True)
 
 # tokens.css — ПЕРВЫМ (CSS custom properties должны быть до всех потребителей)
