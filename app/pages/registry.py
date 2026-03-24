@@ -16,6 +16,7 @@ Per D-12 (onboarding): empty state при пустой БД без активн�
 Per D-14 (onboarding): guided tour после первой обработки, один раз.
 """
 import json
+import logging
 from pathlib import Path
 
 from nicegui import run, ui
@@ -42,6 +43,8 @@ from app.state import get_state
 from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
 from services.payment_service import get_calendar_events
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -623,6 +626,7 @@ def build() -> None:
         try:
             payment_events = await run.io_bound(get_calendar_events, db)
         except Exception:
+            logger.exception("Ошибка при загрузке событий календаря (платежи)")
             payment_events = []
         for ev in payment_events:
             ev["color"] = "#94a3b8"  # slate-400 — all payments same color
@@ -642,6 +646,7 @@ def build() -> None:
                 ).fetchall()
             )
         except Exception:
+            logger.exception("Ошибка при загрузке событий календаря (договоры)")
             rows = []
         end_events: list[dict] = []
         for r in rows:
@@ -794,6 +799,7 @@ def build() -> None:
         try:
             await run.io_bound(set_manual_status, db, contract_id, status)
         except Exception as e:
+            logger.exception("Ошибка при обработке реестра: смена статуса")
             ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
         if grid_ref["grid"]:
@@ -809,6 +815,7 @@ def build() -> None:
         try:
             await run.io_bound(clear_manual_status, db, contract_id)
         except Exception as e:
+            logger.exception("Ошибка при обработке реестра: сброс статуса")
             ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
         if grid_ref["grid"]:

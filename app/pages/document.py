@@ -269,9 +269,6 @@ async def build(doc_id: str = "") -> None:
 
             ui.button("Переобработать", on_click=_reprocess).props("flat dense no-caps").classes(ACTION_BTN)
             ui.element("div").classes("flex-1")  # spacer
-            action_review_btn = ui.button("Проверить по шаблону").props(
-                "dense no-caps unelevated"
-            ).classes(ACTION_BTN_PRIMARY)
 
         # ── Two-column layout ─────────────────────────────────────────────────
         with ui.row().classes("w-full gap-6 items-start"):
@@ -306,6 +303,7 @@ async def build(doc_id: str = "") -> None:
                         try:
                             await run.io_bound(clear_manual_status, db, int(doc_id))
                         except Exception:
+                            logger.exception("Ошибка при загрузке/обработке документа: сброс статуса")
                             ui.notify("Не удалось сбросить статус. Попробуйте ещё раз.", type="negative")
                             return
                         ui.navigate.to(f"/document/{doc_id}")
@@ -341,6 +339,7 @@ async def build(doc_id: str = "") -> None:
                                 try:
                                     await run.io_bound(set_manual_status, db, int(doc_id), val)
                                 except Exception:
+                                    logger.exception("Ошибка при загрузке/обработке документа: смена статуса")
                                     ui.notify("Не удалось изменить статус. Попробуйте ещё раз.", type="negative")
                                     return
                                 ui.navigate.to(f"/document/{doc_id}")
@@ -399,6 +398,7 @@ async def build(doc_id: str = "") -> None:
                                 comment_text,
                             )
                         except Exception:
+                            logger.exception("Ошибка при загрузке/обработке документа: сохранение заметки")
                             ui.notify("Не удалось сохранить заметку. Попробуйте ещё раз.", type="negative")
 
                 comment_area = ui.textarea(
@@ -457,12 +457,14 @@ async def build(doc_id: str = "") -> None:
                                     match_template, _db, contract.get("subject", ""), contract.get("contract_type")
                                 )
                             except Exception:
+                                logger.exception("Ошибка при загрузке/обработке документа: подбор шаблона")
                                 ui.notify("Не удалось подобрать шаблон автоматически.", type="negative")
                                 return
                             if template is None:
                                 try:
                                     templates = await run.io_bound(list_templates, _db)
                                 except Exception:
+                                    logger.exception("Ошибка при загрузке/обработке документа: список шаблонов")
                                     ui.notify("Не удалось загрузить список шаблонов.", type="negative")
                                     return
                                 if not templates:
@@ -506,6 +508,7 @@ async def build(doc_id: str = "") -> None:
                                 review_against_template, template_text, contract.get("subject", "")
                             )
                         except Exception:
+                            logger.exception("Ошибка при загрузке/обработке документа: проверка по шаблону")
                             review_container.clear()
                             with review_container:
                                 ui.notify("Не удалось выполнить проверку. Попробуйте ещё раз.", type="negative")
@@ -550,6 +553,7 @@ async def build(doc_id: str = "") -> None:
                                                     try:
                                                         other = await run.io_bound(_db2.get_contract_by_id, other_id)
                                                     except Exception:
+                                                        logger.exception("Ошибка при загрузке/обработке документа: загрузка версии")
                                                         ui.notify("Не удалось загрузить версию документа.", type="negative")
                                                         return
                                                     if other is None:
@@ -559,6 +563,7 @@ async def build(doc_id: str = "") -> None:
                                                     try:
                                                         diffs = await run.io_bound(diff_versions, meta_current, meta_other)
                                                     except Exception:
+                                                        logger.exception("Ошибка при загрузке/обработке документа: сравнение версий")
                                                         ui.notify("Не удалось сравнить версии.", type="negative")
                                                         return
                                                     diff_container = ui.column().classes("w-full mt-2")

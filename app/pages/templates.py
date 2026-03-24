@@ -7,6 +7,7 @@ Per D-14: нативный file picker (OPEN_DIALOG) → диалог имени
 Per D-15: кнопки «Изменить» и «Удалить» на каждой карточке.
 Per D-16: run.io_bound() для extract_text (blocking I/O).
 """
+import logging
 from itertools import groupby
 from pathlib import Path
 from typing import Optional
@@ -32,6 +33,8 @@ from app.styles import (
 from config import Config, load_settings, save_setting
 from modules.models import FileInfo
 from services.client_manager import ClientManager
+
+logger = logging.getLogger(__name__)
 
 
 async def _pick_file() -> Optional[Path]:
@@ -235,6 +238,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None)
                         review_service.update_template, db, tmpl.id, new_name, new_type
                     )
                 except Exception as e:
+                    logger.exception("Ошибка при работе с шаблонами: сохранение изменений")
                     ui.notify("Не удалось сохранить изменения. Попробуйте ещё раз.", type="negative")
                     return
                 dlg.close()
@@ -258,6 +262,7 @@ def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: callable = Non
         try:
             await run.io_bound(review_service.delete_template, db, tmpl.id)
         except Exception:
+            logger.exception("Ошибка при работе с шаблонами: удаление шаблона")
             ui.notify("Не удалось удалить шаблон. Попробуйте ещё раз.", type="negative")
             return
         _render_cards(cards_container, on_add=on_add)
@@ -323,6 +328,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
                 try:
                     extracted = await run.io_bound(extractor.extract_text, fi)
                 except Exception as e:
+                    logger.exception("Ошибка при работе с шаблонами: чтение файла")
                     ui.notify("Не удалось прочитать файл. Проверьте формат документа.", type="negative")
                     return
 
@@ -340,6 +346,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
                         str(file_path),
                     )
                 except Exception as e:
+                    logger.exception("Ошибка при работе с шаблонами: сохранение шаблона")
                     ui.notify("Не удалось сохранить шаблон. Попробуйте ещё раз.", type="negative")
                     return
 

@@ -4,6 +4,7 @@ Phase 11, Plan 02.
 Три секции: AI-провайдер · Обработка · Telegram.
 Всё сохраняется в ~/.yurteg/settings.json через load_settings / save_setting.
 """
+import logging
 from pathlib import Path
 
 from nicegui import run, ui
@@ -15,6 +16,8 @@ from app.styles import (
 from config import Config, load_settings, save_setting
 from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
+
+logger = logging.getLogger(__name__)
 
 # Текстовые метки навигации
 _NAV_ITEMS = ["ИИ", "Обработка", "Уведомления"]
@@ -241,6 +244,7 @@ def build() -> None:
                                 result_label.set_text("Ошибка")
                                 result_label.classes(remove="text-green-600", add="text-red-500")
                         except Exception:
+                            logger.exception("Ошибка при проверке подключения провайдера")
                             result_label.set_text("Ошибка")
                             result_label.classes(remove="text-green-600", add="text-red-500")
                         finally:
@@ -346,6 +350,7 @@ def build() -> None:
                                             else:
                                                 ui.notify("Неверный код или бот недоступен", type="negative")
                                         except Exception:
+                                            logger.exception("Ошибка при привязке Telegram-бота")
                                             ui.notify("Неверный код или бот недоступен", type="negative")
 
                                 ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(

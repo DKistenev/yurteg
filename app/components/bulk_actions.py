@@ -114,7 +114,7 @@ def show_bulk_status_dialog(selected_ids: list[int], on_apply: Callable) -> None
         ui.label("Изменить статус").classes("text-base font-semibold text-slate-900 mb-3")
         ui.label(f"Для {len(selected_ids)} документов").classes("text-sm text-slate-500 mb-4")
         status_select = ui.select(
-            options={k: v for k, v in STATUS_LABELS.items() if k in MANUAL_STATUSES},
+            options={k: v[1] for k, v in STATUS_LABELS.items() if k in MANUAL_STATUSES},
             label="Новый статус",
         ).classes("w-full mb-4")
 
