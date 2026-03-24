@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.8
 milestone_name: Hardening & Cleanup
-status: Ready to plan
-stopped_at: null
-last_updated: "2026-03-25T00:00:00.000Z"
-last_activity: 2026-03-25
+status: Phase complete — ready for verification
+stopped_at: Completed 20-data-integrity 20-01-PLAN.md
+last_updated: "2026-03-24T22:28:29.529Z"
+last_activity: 2026-03-24
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -20,20 +20,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 20 — Data Integrity
+**Current focus:** Phase 20 — data-integrity
 
 ## Current Position
 
-Phase: 20 of 23 in v0.8 (Data Integrity)
-Plan: — (not started)
-Status: Ready to plan
-Last activity: 2026-03-25 — Roadmap v0.8 создан (4 фазы, 17 требований)
-
-Progress: [████████████████░░░░] ~80% (phases 1-19 complete, 20-23 pending)
+Phase: 20 (data-integrity) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: ~52 (phases 1-19)
 - Average duration: ~4 min/plan (v0.6-v0.7 reference)
 - Total execution time: ~3.5 hours
@@ -45,6 +42,7 @@ Progress: [████████████████░░░░] ~80% (p
 | v0.8 phases | TBD | TBD | TBD |
 
 *Updated after each plan completion*
+| Phase 20-data-integrity P01 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -57,6 +55,9 @@ Recent decisions affecting v0.8 work:
 - [v0.8 Roadmap]: Phase 22 (Streamlit удаление) после Phase 21 — не потерять reference при отладке
 - [v0.8 Roadmap]: Phase 23 тесты — покрывают уже исправленный код, не сломанный
 - [v0.7 Decisions]: tokens.css + --yt-* prefix, @layer discipline, AG Grid --ag-* theming — см. историю выше
+- [Phase 20-data-integrity]: UPSERT excludes user-editable fields (review_status, lawyer_comment, manual_status, warning_days) so user annotations survive reprocessing
+- [Phase 20-data-integrity]: clear_all() deletes in FK order: payments → document_versions → embeddings → contracts
+- [Phase 20-data-integrity]: get_contract_id_by_hash() replaces raw db.conn.execute in controller pipeline for thread safety
 
 ### Pending Todos
 
@@ -69,7 +70,7 @@ None yet.
 
 ## Session Continuity
 
-Last activity: 2026-03-25
-Stopped at: Roadmap v0.8 создан, Phase 20 готова к планированию
+Last activity: 2026-03-24
+Stopped at: Completed 20-data-integrity 20-01-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 20
