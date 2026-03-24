@@ -201,7 +201,7 @@ class Controller:
                     result.metadata = metadata
                     result.model_used = self.config.active_model
 
-                    # Деанонимизация контрагента и сторон
+                    # Деанонимизация контрагента, сторон, предмета и особых условий
                     if anonymized.replacements:
                         if metadata.counterparty:
                             metadata.counterparty = _deanonymize(
@@ -214,6 +214,15 @@ class Controller:
                             ]
                         else:
                             metadata.parties = []
+                        if metadata.subject:
+                            metadata.subject = _deanonymize(
+                                metadata.subject, anonymized.replacements
+                            )
+                        if metadata.special_conditions:
+                            metadata.special_conditions = [
+                                _deanonymize(sc, anonymized.replacements)
+                                for sc in metadata.special_conditions
+                            ]
 
                     # Валидация L1–L3
                     validation = validate_metadata(metadata, self.config)
@@ -286,12 +295,8 @@ class Controller:
                 # Версионирование: связываем с предыдущей версией если есть (non-blocking)
                 if result.status == "done" and result.metadata and result.text:
                     try:
-                        saved = db.conn.execute(
-                            "SELECT id FROM contracts WHERE file_hash=?",
-                            (result.file_info.file_hash,),
-                        ).fetchone()
-                        if saved:
-                            cid = saved[0]
+                        cid = db.get_contract_id_by_hash(result.file_info.file_hash)
+                        if cid:
                             group_id = find_version_match(
                                 db, cid, result.text.text,
                                 result.metadata.contract_type,
@@ -307,12 +312,9 @@ class Controller:
                 # Платёжный календарь: сохраняем платежи если есть сумма (non-blocking)
                 if result.status == "done" and result.metadata and result.metadata.payment_amount is not None:
                     try:
-                        saved = db.conn.execute(
-                            "SELECT id FROM contracts WHERE file_hash=?",
-                            (result.file_info.file_hash,),
-                        ).fetchone()
-                        if saved:
-                            save_payments(db, saved[0], result.metadata)
+                        cid = db.get_contract_id_by_hash(result.file_info.file_hash)
+                        if cid:
+                            save_payments(db, cid, result.metadata)
                     except Exception as _pe:
                         logger.warning(
                             "Сохранение платежей не удалось для %s: %s",
