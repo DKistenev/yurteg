@@ -55,7 +55,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [ ] 21-01-PLAN.md — Fix get_contract method name, warning_days key, bulk status labels, logging
-- [ ] 21-02-PLAN.md — Download PDF route, reprocess button handler
+- [x] 21-02-PLAN.md — Download PDF route, reprocess button handler
 **UI hint**: yes
 
 ### Phase 22: Code Cleanup
@@ -85,6 +85,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
-| 21. UI Fixes | v0.8 | 0/2 | Not started | - |
+| 21. UI Fixes | v0.8 | 1/2 | In Progress|  |
 | 22. Code Cleanup | v0.8 | 0/? | Not started | - |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |

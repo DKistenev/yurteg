@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.8
 milestone_name: Hardening & Cleanup
-status: Ready to plan
-stopped_at: Completed 20-data-integrity 20-01-PLAN.md
-last_updated: "2026-03-24T22:29:03.653Z"
+status: Ready to execute
+stopped_at: Completed 21-ui-fixes 21-02-PLAN.md
+last_updated: "2026-03-24T22:35:57.058Z"
 last_activity: 2026-03-24
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_plans: 3
+  completed_plans: 2
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 20 — data-integrity
+**Current focus:** Phase 21 — ui-fixes
 
 ## Current Position
 
-Phase: 21
-Plan: Not started
+Phase: 21 (ui-fixes) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -43,6 +43,7 @@ Plan: Not started
 
 *Updated after each plan completion*
 | Phase 20-data-integrity P01 | 5 | 2 tasks | 2 files |
+| Phase 21-ui-fixes P02 | 5 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -58,6 +59,7 @@ Recent decisions affecting v0.8 work:
 - [Phase 20-data-integrity]: UPSERT excludes user-editable fields (review_status, lawyer_comment, manual_status, warning_days) so user annotations survive reprocessing
 - [Phase 20-data-integrity]: clear_all() deletes in FK order: payments → document_versions → embeddings → contracts
 - [Phase 20-data-integrity]: get_contract_id_by_hash() replaces raw db.conn.execute in controller pipeline for thread safety
+- [Phase 21-ui-fixes]: Download route placed after redline route — FastAPI specificity ensures correct matching
 
 ### Pending Todos
 
@@ -71,6 +73,6 @@ None yet.
 ## Session Continuity
 
 Last activity: 2026-03-24
-Stopped at: Completed 20-data-integrity 20-01-PLAN.md
+Stopped at: Completed 21-ui-fixes 21-02-PLAN.md
 Resume file: None
 Next: /gsd:plan-phase 20
