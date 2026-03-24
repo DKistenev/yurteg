@@ -1,31 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.7.1
-milestone_name: UI Polish & Fixes
-status: v0.7.1 milestone complete
-stopped_at: Completed 19-onboarding-demo/19-02-PLAN.md
-last_updated: "2026-03-22T21:00:55.621Z"
-last_activity: 2026-03-22
+milestone: v0.8
+milestone_name: Hardening & Cleanup
+status: Defining requirements
+stopped_at: null
+last_updated: "2026-03-25T00:00:00.000Z"
+last_activity: 2026-03-25
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-22)
+See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 19 — Onboarding + Demo Data
+**Current focus:** v0.8 Hardening & Cleanup — defining requirements
 
 ## Current Position
 
-Phase: 19
-Plan: Not started
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-25 — Milestone v0.8 started
 
 ## Performance Metrics
 
