@@ -24,7 +24,7 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
 
 - [x] **Phase 20: Data Integrity** — UPSERT, foreign keys, платёжные поля, деанонимизация subject (completed 2026-03-24)
 - [x] **Phase 21: UI Fixes** — боковая панель, скачивание PDF, переобработка, warning_days, bulk status (completed 2026-03-24)
-- [ ] **Phase 22: Code Cleanup** — удаление Streamlit, legacy-кода, починка тестов
+- [x] **Phase 22: Code Cleanup** — удаление Streamlit, legacy-кода, починка тестов (completed 2026-03-24)
 - [ ] **Phase 23: Production Readiness** — тесты для непокрытых модулей, офлайн-ресурсы, requirements.txt, локальная модель
 
 ## Phase Details
@@ -69,7 +69,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 22-01-PLAN.md — Delete Streamlit main.py/desktop_app.py, remove dead functions/imports/fields
-- [ ] 22-02-PLAN.md — Fix proxy test failures, remove xfail markers, clean CSS tests
+- [x] 22-02-PLAN.md — Fix proxy test failures, remove xfail markers, clean CSS tests
 
 ### Phase 23: Production Readiness
 **Goal**: Приложение работает офлайн, устанавливается на чистой машине и запускает локальную модель без ручной настройки
@@ -89,5 +89,5 @@ Plans:
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
 | 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
-| 22. Code Cleanup | v0.8 | 1/2 | In Progress|  |
+| 22. Code Cleanup | v0.8 | 2/2 | Complete   | 2026-03-24 |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |

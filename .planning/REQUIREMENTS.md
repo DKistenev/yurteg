@@ -25,7 +25,7 @@
 
 - [x] **CLEAN-01**: Старый интерфейс (Streamlit, 1700 строк) удалён — одна точка входа
 - [x] **CLEAN-02**: Неиспользуемые функции и дубликаты удалены из бэкенда
-- [ ] **CLEAN-03**: Падающие и отключённые тесты починены или удалены — все тесты зелёные
+- [x] **CLEAN-03**: Падающие и отключённые тесты починены или удалены — все тесты зелёные
 
 ### Подготовка к релизу (PROD)
 
@@ -67,7 +67,7 @@
 | UIFIX-06 | Phase 21 | Complete |
 | CLEAN-01 | Phase 22 | Complete |
 | CLEAN-02 | Phase 22 | Complete |
-| CLEAN-03 | Phase 22 | Pending |
+| CLEAN-03 | Phase 22 | Complete |
 | PROD-01 | Phase 23 | Pending |
 | PROD-02 | Phase 23 | Pending |
 | PROD-03 | Phase 23 | Pending |
