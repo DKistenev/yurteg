@@ -59,7 +59,7 @@ async def export_selected_to_excel(doc_ids: list[int], db) -> None:
     """
     rows = []
     for doc_id in doc_ids:
-        doc = db.get_contract(doc_id)
+        doc = db.get_contract_by_id(doc_id)
         if doc:
             rows.append(doc)
 
