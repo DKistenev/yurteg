@@ -219,6 +219,25 @@ def _migrate_v6_templates(conn: sqlite3.Connection) -> None:
     _mark_migration_applied(conn, 6)
 
 
+def _migrate_v7_payment_columns(conn: sqlite3.Connection) -> None:
+    """v7: Добавить платёжные поля в contracts."""
+    if _is_migration_applied(conn, 7):
+        return
+    columns = [
+        ("payment_terms", "TEXT"),
+        ("payment_amount", "REAL"),
+        ("payment_frequency", "TEXT"),
+        ("payment_direction", "TEXT"),
+    ]
+    for col_name, col_type in columns:
+        try:
+            conn.execute(f"ALTER TABLE contracts ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+    conn.commit()
+    _mark_migration_applied(conn, 7)
+
+
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     """Проверяет существование таблицы в БД."""
     row = conn.execute(
@@ -247,6 +266,7 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     _migrate_v4_document_versions(conn)
     _migrate_v5_payments(conn)
     _migrate_v6_templates(conn)
+    _migrate_v7_payment_columns(conn)
 
 
 class Database:
@@ -259,6 +279,7 @@ class Database:
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
+        self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(_SCHEMA)
 
@@ -308,18 +329,48 @@ class Database:
             v.score if v else None,
             str(result.organized_path) if result.organized_path else None,
             result.model_used,
+            m.payment_terms if m else None,
+            m.payment_amount if m else None,
+            m.payment_frequency if m else None,
+            m.payment_direction if m else None,
         )
 
         with self._lock:
             self.conn.execute(
                 """
-                INSERT OR REPLACE INTO contracts
+                INSERT INTO contracts
                 (original_path, filename, file_hash, status, error_message,
                  contract_type, counterparty, subject, date_signed, date_start, date_end,
                  amount, special_conditions, parties, confidence,
                  validation_status, validation_warnings, validation_score,
-                 organized_path, model_used)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 organized_path, model_used,
+                 payment_terms, payment_amount, payment_frequency, payment_direction)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(file_hash) DO UPDATE SET
+                  original_path = excluded.original_path,
+                  filename = excluded.filename,
+                  status = excluded.status,
+                  error_message = excluded.error_message,
+                  contract_type = excluded.contract_type,
+                  counterparty = excluded.counterparty,
+                  subject = excluded.subject,
+                  date_signed = excluded.date_signed,
+                  date_start = excluded.date_start,
+                  date_end = excluded.date_end,
+                  amount = excluded.amount,
+                  special_conditions = excluded.special_conditions,
+                  parties = excluded.parties,
+                  confidence = excluded.confidence,
+                  validation_status = excluded.validation_status,
+                  validation_warnings = excluded.validation_warnings,
+                  validation_score = excluded.validation_score,
+                  organized_path = excluded.organized_path,
+                  model_used = excluded.model_used,
+                  payment_terms = excluded.payment_terms,
+                  payment_amount = excluded.payment_amount,
+                  payment_frequency = excluded.payment_frequency,
+                  payment_direction = excluded.payment_direction,
+                  processed_at = CURRENT_TIMESTAMP
                 """,
                 data,
             )
@@ -350,6 +401,14 @@ class Database:
         d.setdefault("manual_status", None)
         return d
 
+    def get_contract_id_by_hash(self, file_hash: str) -> int | None:
+        """Возвращает ID контракта по хешу файла."""
+        with self._lock:
+            row = self.conn.execute(
+                "SELECT id FROM contracts WHERE file_hash = ?", (file_hash,)
+            ).fetchone()
+        return row[0] if row else None
+
     def get_all_results(self) -> list[dict]:
         """Возвращает все записи для генерации отчёта."""
         cursor = self.conn.execute(
@@ -379,6 +438,9 @@ class Database:
     def clear_all(self) -> None:
         """Удаляет все записи. Используется при принудительной переобработке."""
         with self._lock:
+            self.conn.execute("DELETE FROM payments")
+            self.conn.execute("DELETE FROM document_versions")
+            self.conn.execute("DELETE FROM embeddings")
             self.conn.execute("DELETE FROM contracts")
             self.conn.commit()
         logger.info("БД очищена для переобработки")
