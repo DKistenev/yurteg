@@ -68,7 +68,7 @@ Plans:
   3. `pytest` проходит без FAIL и xfail — все 268+ тестов зелёные
 **Plans**: 2 plans
 Plans:
-- [ ] 22-01-PLAN.md — Delete Streamlit main.py/desktop_app.py, remove dead functions/imports/fields
+- [x] 22-01-PLAN.md — Delete Streamlit main.py/desktop_app.py, remove dead functions/imports/fields
 - [ ] 22-02-PLAN.md — Fix proxy test failures, remove xfail markers, clean CSS tests
 
 ### Phase 23: Production Readiness
@@ -89,5 +89,5 @@ Plans:
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
 | 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
-| 22. Code Cleanup | v0.8 | 0/2 | In progress | - |
+| 22. Code Cleanup | v0.8 | 1/2 | In Progress|  |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |
