@@ -85,6 +85,6 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 1-19. Phases 1-19 | v0.4–v0.7.1 | — | Complete | 2026-03-22 |
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
-| 21. UI Fixes | v0.8 | 2/2 | Complete   | 2026-03-24 |
+| 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
 | 22. Code Cleanup | v0.8 | 0/? | Not started | - |
 | 23. Production Readiness | v0.8 | 0/? | Not started | - |
