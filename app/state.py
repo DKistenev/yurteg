@@ -38,6 +38,13 @@ class AppState:
     # Calendar toggle (Phase 13)
     calendar_visible: bool = False
 
+    # Split panel (UI Overhaul)
+    split_panel_doc_id: Optional[int] = None
+
+    # Bulk actions (UI Overhaul)
+    selected_doc_ids: list = field(default_factory=list)
+    bulk_mode: bool = False
+
 
 def get_state() -> AppState:
     """Return per-connection AppState from app.storage.client (D-05)."""
