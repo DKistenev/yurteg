@@ -19,20 +19,20 @@ DESIGN_CSS = PROJECT_ROOT / "app" / "static" / "design-system.css"
 
 
 def test_status_css_slate():
-    """Status CSS must use slate for unknown/terminated, not gray."""
-    content = MAIN_PY.read_text(encoding="utf-8")
+    """Status CSS must use slate hex values for unknown/terminated, not gray."""
+    # Since v0.6+ the app uses design-system.css with hex color values,
+    # not Tailwind utility classes in main.py.
+    css = DESIGN_CSS.read_text(encoding="utf-8")
 
-    assert "bg-slate-100" in content, "status-unknown/terminated should use bg-slate-100"
-    assert "text-slate-500" in content, "status-unknown/terminated should use text-slate-500"
-    assert "bg-gray-100" not in content, "bg-gray-100 found — should be migrated to slate"
-
-    # Semantic status colors preserved
-    assert "bg-green-50" in content
-    assert "bg-yellow-50" in content
-    assert "bg-red-50" in content
-    assert "bg-indigo-50" in content
-    assert "bg-purple-50" in content
-    assert "bg-orange-50" in content
+    # unknown and terminated statuses use slate-100 (#f1f5f9) background
+    assert "#f1f5f9" in css, "status-unknown/terminated should use #f1f5f9 (slate-100)"
+    # unknown uses slate-500 (#64748b) text
+    assert "#64748b" in css, "status-unknown should use #64748b (slate-500) text"
+    # terminated uses slate-600 (#475569) text
+    assert "#475569" in css, "status-terminated should use #475569 (slate-600) text"
+    # expired uses red (#fee2e2 background, #b91c1c text)
+    assert "#fee2e2" in css, "status-expired should use #fee2e2 (red-100) background"
+    assert "#b91c1c" in css, "status-expired should use #b91c1c (red-700) text"
 
 
 # ── DSGN-01: Action icons use slate/indigo hex codes ─────────────────────────
@@ -81,13 +81,16 @@ def test_appstate_calendar_visible():
 
 
 def test_animation_keyframes():
-    """Design system CSS must contain staggered row and page fade-in keyframes."""
+    """Design system CSS must contain page fade-in and animation keyframes."""
     css = DESIGN_CSS.read_text(encoding="utf-8")
 
-    assert "@keyframes row-in" in css
-    assert "@keyframes page-fade-in" in css
-    assert "cubic-bezier(0.25, 1, 0.5, 1)" in css
-    assert "animation-delay: 560ms" in css
+    # Page fade-in animation (AG Grid row-in was removed due to AG Grid 34 conflict)
+    assert "@keyframes page-fade-in" in css, "@keyframes page-fade-in must be in design-system.css"
+    # Spring easing used in dialog, badge, toast, and other transitions
+    assert "cubic-bezier(0.25, 1, 0.5, 1)" in css, "Spring easing cubic-bezier(0.25, 1, 0.5, 1) must be present"
+    # Stagger delay utilities present (yt-delay-* classes)
+    assert "animation-delay: 60ms" in css, "Stagger delay utilities must include 60ms"
+    assert "animation-delay: 300ms" in css, "Stagger delay utilities must include 300ms"
 
 
 # ── DSGN-01: no gray-* in main.py ───────────────────────────────────────────

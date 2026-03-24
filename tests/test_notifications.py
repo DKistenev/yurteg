@@ -43,16 +43,6 @@ def test_startup_toast_flag(temp_db):
     assert len(alerts) > 0, "Должен быть хотя бы один алерт для истекающего документа"
 
 
-@pytest.mark.xfail(reason="INTG-04: фактический рендеринг st.toast нельзя протестировать без Streamlit runtime", strict=False)
-def test_startup_toast_only_once():
-    """INTG-04: session_state флаг предотвращает повторный показ тоста при рерандере.
-
-    Поведение session_state['startup_toast_shown'] проверяется интеграционно —
-    unit-тест невозможен без запущенного Streamlit-сервера.
-    """
-    assert False, "Placeholder: требует Streamlit runtime для проверки st.session_state"
-
-
 def test_no_toast_when_no_alerts(temp_db):
     """INTG-04: get_attention_required возвращает пустой список если нет истекающих документов."""
     from services.lifecycle_service import get_attention_required

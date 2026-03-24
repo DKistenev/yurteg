@@ -20,20 +20,19 @@ def temp_db(tmp_path):
     """Создаёт временную БД с миграциями для тестов."""
     try:
         from modules.database import Database
-        db = Database(tmp_path / "test.db", tmp_path)
+        db = Database(tmp_path / "test.db")
         yield db
         db.close()
     except ImportError:
         pytest.skip("modules.database недоступен — запустите после 02-01")
 
 
-@pytest.mark.xfail(reason="lifecycle_service создаётся в 02-01", strict=False)
 def test_auto_status_computation(temp_db):
     """LIFE-01: SQL CASE корректно вычисляет статус по date_end."""
     from services.lifecycle_service import get_computed_status_sql
 
     db = temp_db
-    conn = db._conn
+    conn = db.conn
 
     # Истёкший договор
     conn.execute(
@@ -66,13 +65,12 @@ def test_auto_status_computation(temp_db):
     assert rows["nodate.pdf"] == "unknown", f"Ожидается unknown, получен {rows.get('nodate.pdf')}"
 
 
-@pytest.mark.xfail(reason="lifecycle_service создаётся в 02-01", strict=False)
 def test_manual_status_override(temp_db):
     """LIFE-02: manual_status имеет приоритет над автоматическим статусом."""
     from services.lifecycle_service import get_computed_status_sql, set_manual_status
 
     db = temp_db
-    conn = db._conn
+    conn = db.conn
 
     conn.execute(
         "INSERT INTO contracts (filename, original_path, status, date_end) "
@@ -82,10 +80,6 @@ def test_manual_status_override(temp_db):
     cid = conn.execute("SELECT id FROM contracts WHERE filename='test.pdf'").fetchone()[0]
 
     # Без ручного статуса — должен быть expired
-    sql = f"SELECT {get_computed_status_sql(30)} AS cs FROM contracts WHERE id=?"
-    row = conn.execute(sql, {"warning_days": 30}, (cid,)).fetchone()
-    # Примечание: sqlite3 не поддерживает смешанные positional+named params
-    # Правильный вызов:
     row = conn.execute(
         f"SELECT {get_computed_status_sql(30)} AS cs FROM contracts WHERE id=:id",
         {"warning_days": 30, "id": cid}
@@ -102,13 +96,12 @@ def test_manual_status_override(temp_db):
     assert row[0] == "extended", f"manual_status должен перекрыть auto, получен {row[0]}"
 
 
-@pytest.mark.xfail(reason="lifecycle_service создаётся в 02-01", strict=False)
 def test_attention_panel(temp_db):
     """LIFE-05: Панель внимания возвращает только документы в пределах warning_days."""
     from services.lifecycle_service import get_attention_required
 
     db = temp_db
-    conn = db._conn
+    conn = db.conn
 
     # Попадает в панель (истёк)
     conn.execute(
@@ -128,13 +121,12 @@ def test_attention_panel(temp_db):
     assert "out_panel.pdf" not in filenames, "Далёкий документ не должен быть в панели"
 
 
-@pytest.mark.xfail(reason="lifecycle_service создаётся в 02-01", strict=False)
 def test_configurable_threshold(temp_db):
     """LIFE-06: Порог warning_days влияет на состав панели внимания."""
     from services.lifecycle_service import get_attention_required
 
     db = temp_db
-    conn = db._conn
+    conn = db.conn
 
     conn.execute(
         "INSERT INTO contracts (filename, original_path, status, date_end) "
