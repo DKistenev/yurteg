@@ -33,6 +33,11 @@ from app.components.registry_table import (
     _collapse_version_children,
     _fetch_counts,
 )
+from app.components.split_panel import render_split_panel
+from app.components.bulk_actions import (
+    render_bulk_toolbar, export_selected_to_excel,
+    show_bulk_status_dialog, show_bulk_delete_dialog,
+)
 from app.state import get_state
 from config import load_settings, save_setting
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
@@ -541,10 +546,21 @@ def build() -> None:
         skeleton_container = ui.column().classes("w-full px-6 pt-2")
         with skeleton_container:
             for _ in range(5):
-                ui.element('div').classes("skeleton-row")
+                ui.element('div').classes("yt-skeleton-pulse rounded").style("height: 44px; margin-bottom: 2px;")
 
-        grid_container = ui.column().classes("w-full max-w-none px-6")
-        grid_container.set_visibility(False)
+        # ── Bulk actions toolbar (UI Overhaul) ─────────────────────────────────────
+        bulk_container = ui.column().classes("w-full")
+
+        # ── Split-view: grid + side panel (UI Overhaul) ───────────────────────────
+        with ui.row().classes("w-full flex-1").style("min-height: 0;"):
+            grid_container = ui.column().classes("flex-1 max-w-none px-6 overflow-hidden")
+            grid_container.set_visibility(False)
+
+            # Split panel — hidden by default, slides in on row click
+            panel_container = ui.column().classes(
+                "border-l border-slate-200 bg-slate-50 overflow-y-auto yt-panel-enter"
+            ).style("width: var(--yt-panel-width, 340px); flex-shrink: 0;")
+            panel_container.set_visibility(False)
 
         # Calendar container — hidden by default, shown when calendar_visible=True (DSGN-04, D-15)
         calendar_container = ui.column().classes("w-full px-6 py-4")
@@ -814,10 +830,73 @@ def build() -> None:
 
     # ── Cell click handler ────────────────────────────────────────────────────────
 
-    # Row click → navigate to document (D-18), with action/expand dispatch (D-19)
+    # ── Split panel helpers (UI Overhaul) ─────────────────────────────────────
+    def _close_panel():
+        state.split_panel_doc_id = None
+        panel_container.set_visibility(False)
+
+    # ── Bulk actions helpers (UI Overhaul) ─────────────────────────────────────
+    def _refresh_bulk_toolbar():
+        bulk_container.clear()
+        if state.bulk_mode and state.selected_doc_ids:
+            total = len(grid_ref["grid"].options.get("rowData", [])) if grid_ref["grid"] else 0
+            db = _client_manager.get_db(state.current_client)
+            with bulk_container:
+                render_bulk_toolbar(
+                    selected_ids=state.selected_doc_ids,
+                    total_count=total,
+                    on_clear=_clear_bulk_selection,
+                    on_export=lambda: export_selected_to_excel(state.selected_doc_ids, db),
+                    on_status_change=lambda: show_bulk_status_dialog(state.selected_doc_ids, _apply_bulk_status),
+                    on_delete=lambda: show_bulk_delete_dialog(state.selected_doc_ids, _delete_bulk),
+                )
+
+    def _clear_bulk_selection():
+        state.selected_doc_ids = []
+        state.bulk_mode = False
+        bulk_container.clear()
+        if grid_ref["grid"]:
+            grid_ref["grid"].run_grid_method("deselectAll")
+
+    async def _apply_bulk_status(doc_ids, new_status):
+        db = _client_manager.get_db(state.current_client)
+        for doc_id in doc_ids:
+            await run.io_bound(set_manual_status, db, doc_id, new_status)
+        _clear_bulk_selection()
+        if grid_ref["grid"]:
+            await load_table_data(grid_ref["grid"], state, active_segment["value"])
+        await _refresh_stats()
+        ui.notify(f"Статус обновлён для {len(doc_ids)} документов", type="positive")
+
+    async def _delete_bulk(doc_ids):
+        db = _client_manager.get_db(state.current_client)
+        for doc_id in doc_ids:
+            await run.io_bound(lambda did=doc_id: db.conn.execute("DELETE FROM contracts WHERE id = ?", (did,)))
+        await run.io_bound(lambda: db.conn.commit())
+        _clear_bulk_selection()
+        if grid_ref["grid"]:
+            await load_table_data(grid_ref["grid"], state, active_segment["value"])
+        await _refresh_stats()
+        ui.notify(f"Удалено {len(doc_ids)} документов", type="positive")
+
+    async def _on_selection_changed(e) -> None:
+        """Handle AG Grid selection change — toggle bulk toolbar."""
+        grid = grid_ref["grid"]
+        if not grid:
+            return
+        selected = await grid.get_selected_rows()
+        state.selected_doc_ids = [r["id"] for r in selected if "id" in r]
+        state.bulk_mode = len(state.selected_doc_ids) > 0
+        _refresh_bulk_toolbar()
+
+    # Row click → show split panel (UI Overhaul — was navigate), with action/expand dispatch
     async def _on_cell_clicked(e) -> None:
         col_id = e.args.get("colId", "")
         data = e.args.get("data", {})
+
+        # Skip checkbox column clicks
+        if col_id == "selected":
+            return
 
         if col_id == "actions_html":
             # D-19: action clicks don't navigate
@@ -829,10 +908,21 @@ def build() -> None:
             await _toggle_expand(data["id"], data)
             return
 
-        # Default: navigate (D-18) — skip child rows
+        # Default: show in split panel (UI Overhaul) — skip child rows
         doc_id = data.get("id")
         if doc_id and not data.get("is_child"):
-            ui.navigate.to(f"/document/{doc_id}")
+            state.split_panel_doc_id = doc_id
+            # Fetch full doc from DB for panel display
+            db = _client_manager.get_db(state.current_client)
+            doc = await run.io_bound(db.get_contract, doc_id)
+            if doc:
+                doc = dict(doc) if not isinstance(doc, dict) else doc
+                doc["computed_status"] = data.get("computed_status", "unknown")
+                render_split_panel(
+                    panel_container, doc,
+                    on_close=_close_panel,
+                    on_open_full=lambda did=doc_id: ui.navigate.to(f"/document/{did}"),
+                )
 
     async def _on_upload(source_dir: Path) -> None:
         """Callback triggered by header upload button (D-06, D-07, D-08, D-11)."""
@@ -859,6 +949,7 @@ def build() -> None:
             grid = await render_registry_table(state)
             grid_ref["grid"] = grid
             grid.on("cellClicked", _on_cell_clicked)
+            grid.on("selectionChanged", _on_selection_changed)
             _inject_hover_preview(grid)
             await load_table_data(grid, state, "all")
             rows = grid.options.get("rowData", [])
