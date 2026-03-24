@@ -80,7 +80,10 @@ Plans:
   2. Приложение запускается без интернета — шрифты и FullCalendar подгружаются из локальных файлов
   3. `pip install -r requirements.txt` устанавливает все зависимости на чистом окружении без ошибок
   4. Локальная QWEN-модель находит llama-server и проверяет качество через провайдер-систему
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 23-01-PLAN.md — Bundle offline fonts/calendar, pin requirements.txt, fix OllamaProvider port, refactor verify_metadata
+- [ ] 23-02-PLAN.md — Tests for scanner, extractor, reporter, postprocessor, controller
 
 ## Progress
 
@@ -90,4 +93,4 @@ Plans:
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
 | 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
 | 22. Code Cleanup | v0.8 | 2/2 | Complete    | 2026-03-24 |
-| 23. Production Readiness | v0.8 | 0/? | Not started | - |
+| 23. Production Readiness | v0.8 | 0/2 | In progress | - |
