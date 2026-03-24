@@ -25,7 +25,7 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
 - [x] **Phase 20: Data Integrity** — UPSERT, foreign keys, платёжные поля, деанонимизация subject (completed 2026-03-24)
 - [x] **Phase 21: UI Fixes** — боковая панель, скачивание PDF, переобработка, warning_days, bulk status (completed 2026-03-24)
 - [x] **Phase 22: Code Cleanup** — удаление Streamlit, legacy-кода, починка тестов (completed 2026-03-24)
-- [ ] **Phase 23: Production Readiness** — тесты для непокрытых модулей, офлайн-ресурсы, requirements.txt, локальная модель
+- [x] **Phase 23: Production Readiness** — тесты для непокрытых модулей, офлайн-ресурсы, requirements.txt, локальная модель (completed 2026-03-24)
 
 ## Phase Details
 
@@ -82,7 +82,7 @@ Plans:
   4. Локальная QWEN-модель находит llama-server и проверяет качество через провайдер-систему
 **Plans**: 2 plans
 Plans:
-- [ ] 23-01-PLAN.md — Bundle offline fonts/calendar, pin requirements.txt, fix OllamaProvider port, refactor verify_metadata
+- [x] 23-01-PLAN.md — Bundle offline fonts/calendar, pin requirements.txt, fix OllamaProvider port, refactor verify_metadata
 - [x] 23-02-PLAN.md — Tests for scanner, extractor, reporter, postprocessor, controller
 
 ## Progress
@@ -93,4 +93,4 @@ Plans:
 | 20. Data Integrity | v0.8 | 1/1 | Complete    | 2026-03-24 |
 | 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
 | 22. Code Cleanup | v0.8 | 2/2 | Complete    | 2026-03-24 |
-| 23. Production Readiness | v0.8 | 1/2 | In Progress|  |
+| 23. Production Readiness | v0.8 | 2/2 | Complete   | 2026-03-24 |
