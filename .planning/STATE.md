@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v0.8
-milestone_name: Hardening & Cleanup
-status: Milestone complete
-stopped_at: Completed 23-production-readiness 23-01-PLAN.md
-last_updated: "2026-03-24T23:34:16.774Z"
-last_activity: 2026-03-24
+milestone: v0.8.1
+milestone_name: UI Polish
+status: Defining requirements
+stopped_at: null
+last_updated: "2026-03-25T00:00:00.000Z"
+last_activity: 2026-03-25
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State

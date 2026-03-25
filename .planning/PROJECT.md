@@ -8,18 +8,16 @@
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current State (после v0.7.1 + UI overhaul)
+## Current State (после v0.8)
 
-**Shipped:** v0.7.1 UI Polish & Fixes (2026-03-22) + UI Overhaul (2026-03-24, commit 55e4e27)
-- Split-view registry с боковой панелью предпросмотра
-- Bulk actions toolbar (Excel-экспорт, смена статуса, удаление)
-- Skeleton loading, slide-in анимации, fade-stagger
-- Two-column document card, confidence bar, action bar
-- Settings с dense rows и _settings_row() хелпером
-- Onboarding с data-tour атрибутами
-- Full-width registry + subject колонка + clickable stats bar
+**Shipped:** v0.8 Hardening & Cleanup (2026-03-25)
+- UPSERT вместо INSERT OR REPLACE — данные юриста не теряются
+- FK enforcement, migration v7, деанонимизация subject
+- Все кнопки UI работают (split panel, download, reprocess, settings)
+- Streamlit удалён (2247 строк), legacy-код вычищен
+- 315 тестов зелёные, офлайн-ресурсы бандлятся, зависимости пиннуты
 
-**Next:** v0.8 Hardening & Cleanup — починка багов, чистка, тесты, подготовка к production
+**Next:** v0.8.1 UI Polish — полная переработка визуала по утверждённым мокапам
 
 ## Codebase
 
@@ -81,19 +79,20 @@
 - ✓ Settings: structured sections, sidebar active state — v0.7
 - ✓ Skeleton loading, card stagger, page fade, footer — v0.7
 
-## Current Milestone: v0.8 Hardening & Cleanup
+## Current Milestone: v0.8.1 UI Polish
 
-**Goal:** Починить критические баги, вычистить мёртвый код, довести тестовое покрытие — подготовить кодовую базу к production-сборке.
+**Goal:** Полная переработка визуала всех экранов по утверждённым HTML-мокапам — от реестра до онбординга.
 
 ### Active
 
-- [ ] Fix data loss: INSERT OR REPLACE → UPSERT, PRAGMA foreign_keys, missing DB columns
-- [ ] Fix UI crashes: split panel method name, download route, settings key mismatch
-- [ ] Remove dead code: Streamlit UI, legacy functions, unused styles/tokens/imports
-- [ ] Wire disconnected UI: Переобработать, Скачать PDF, review button, bulk status labels
-- [ ] Error handling: logger.exception() в except Exception, logging.basicConfig() в entry points
-- [ ] Test coverage: scanner, extractor, reporter, postprocessor, controller
-- [ ] Production hardening: dependencies, offline fonts, redline full text
+- [ ] Реестр: убрать «Уверенность» и Excel, Linear-style панель, русский подвал
+- [ ] Карточка документа: метаданные слева + PDF/DOCX превью справа на всю высоту
+- [ ] Календарь: таймлайн событий + мини-календарь + сводка
+- [ ] Шаблоны: hero + чипы-пресеты + примеры при пустом состоянии
+- [ ] Настройки: единая страница + карточки модели + кольцо точности
+- [ ] Диалог пространства: карточки-пояснения + выбор цвета + превью
+- [ ] Онбординг: пошаговый wizard 3 шага + гид-тур с подсветкой
+- [ ] Обработка: живой реестр + лента файлов в реальном времени
 
 ### Deferred
 
@@ -124,8 +123,9 @@
 | 2 | **Локальная LLM** | ✅ Завершена (v0.5) |
 | 3 | **UI-редизайн** | ✅ Завершена (v0.6) — NiceGUI, реестр-центричная архитектура, Impeccable polish |
 | 4 | **Визуальный продукт** | ✅ Завершена (v0.7) — tokens.css, dark chrome, hero splash, visual density |
-| 5 | **Hardening & Cleanup** | Баги, чистка, тесты, production readiness (v0.8) |
-| 6 | DMG/EXE сборка | Доставка конечным пользователям (v0.9) |
+| 5 | **Hardening & Cleanup** | ✅ Завершена (v0.8) — баги, чистка, 315 тестов |
+| 6 | **UI Polish** | Полная переработка визуала по мокапам (v0.8.1) |
+| 7 | DMG/EXE сборка | Доставка конечным пользователям (v0.9) |
 
 ## Constraints
 
@@ -180,4 +180,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-25 after v0.8 milestone start — Hardening & Cleanup*
+*Last updated: 2026-03-25 after v0.8.1 milestone start — UI Polish*
