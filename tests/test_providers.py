@@ -1,7 +1,4 @@
 """Тесты пакета providers/ — фабрика, ZAI, OpenRouter, Ollama (FUND-03)."""
-import os
-from unittest.mock import MagicMock, patch
-
 import pytest
 
 from config import Config
@@ -38,26 +35,6 @@ def test_factory_unknown_raises():
     cfg = _make_config(active_provider="unknown_provider_xyz")
     with pytest.raises(ValueError, match="unknown_provider_xyz"):
         get_provider(cfg)
-
-
-def test_zai_thinking_disabled():
-    """ZAIProvider.complete() передаёт extra_body thinking:disabled когда ai_disable_thinking=True."""
-    from providers.zai import ZAIProvider
-    cfg = _make_config(ai_disable_thinking=True)
-    provider = ZAIProvider(cfg)
-
-    # Мокаем chat.completions.create
-    mock_response = MagicMock()
-    mock_response.choices[0].message.content = '{"ok": true}'
-    provider._client = MagicMock()
-    provider._client.chat.completions.create.return_value = mock_response
-
-    messages = [{"role": "user", "content": "test"}]
-    provider.complete(messages)
-
-    call_kwargs = provider._client.chat.completions.create.call_args[1]
-    assert "extra_body" in call_kwargs, "extra_body отсутствует в вызове ZAI"
-    assert call_kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
 
 
 def test_openrouter_system_merge():

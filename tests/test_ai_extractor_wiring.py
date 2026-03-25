@@ -1,15 +1,14 @@
-"""Regression tests for ai_extractor wiring bugs (Phase 06, Plan 01).
+"""Regression tests for ai_extractor wiring bugs.
 
 Tests verify:
-- provider.complete() is called when provider is passed (not _try_model)
+- provider.complete() is called when provider is passed
 - sanitize_metadata receives dict (not ContractMetadata dataclass)
 - sanitize_metadata return value is used to rebuild ContractMetadata
-- Legacy path (_try_model) is preserved when provider=None
+- provider=None raises ValueError (legacy _try_model removed in v0.9)
 - fallback_provider.complete() is called when primary provider raises
 """
 import json
 import sys
-from dataclasses import asdict
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -59,34 +58,26 @@ def _make_provider(name: str = "ollama", response: str = _VALID_JSON) -> MagicMo
 
 
 def test_provider_route_called():
-    """When provider is passed, provider.complete() must be called (not _try_model)."""
+    """When provider is passed, provider.complete() must be called."""
     from modules.ai_extractor import extract_metadata
 
     provider = _make_provider()
     cfg = _make_config()
 
-    # _try_model must NOT be called — patch it to raise so we'd notice
-    with patch("modules.ai_extractor._try_model", side_effect=AssertionError("_try_model must not be called when provider is given")):
-        result = extract_metadata("Текст договора", cfg, provider=provider)
+    result = extract_metadata("Текст договора", cfg, provider=provider)
 
     assert provider.complete.called, "provider.complete() должен быть вызван"
     assert isinstance(result, ContractMetadata)
 
 
-
-def test_legacy_route_when_no_provider():
-    """When provider=None, _try_model is used (backward compat)."""
+def test_no_provider_raises_error():
+    """When provider=None, ValueError is raised (legacy _try_model removed in v0.9)."""
     from modules.ai_extractor import extract_metadata
 
     cfg = _make_config()
-    cfg.active_provider = "zai"  # not ollama, so sanitize not triggered
-    expected = ContractMetadata(contract_type="Договор поставки", confidence=0.8)
 
-    with patch("modules.ai_extractor._try_model", return_value=expected) as mock_try:
-        result = extract_metadata("Текст договора", cfg, provider=None)
-
-    assert mock_try.called, "_try_model должен быть вызван когда provider=None"
-    assert result.contract_type == "Договор поставки"
+    with pytest.raises(ValueError, match="provider обязателен"):
+        extract_metadata("Текст договора", cfg, provider=None)
 
 
 
