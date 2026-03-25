@@ -1,6 +1,7 @@
 # GBNF grammar for ContractMetadata JSON
 # Restricts llama-server output to valid JSON matching the ContractMetadata schema.
 # Enum fields are strictly constrained; strings allow Cyrillic + Latin + common punctuation.
+# v2: убрано поле уверенности (считается через logprobs), добавлен contract_number.
 
 root ::= "{" ws (
     "\"contract_type\""    ws ":" ws str-or-null ws ","  ws
@@ -10,9 +11,9 @@ root ::= "{" ws (
     "\"date_start\""       ws ":" ws date-or-null ws "," ws
     "\"date_end\""         ws ":" ws date-or-null ws "," ws
     "\"amount\""           ws ":" ws str-or-null ws ","  ws
+    "\"contract_number\""  ws ":" ws str-or-null ws ","  ws
     "\"special_conditions\"" ws ":" ws str-array ws ","  ws
     "\"parties\""          ws ":" ws str-array ws ","    ws
-    "\"confidence\""       ws ":" ws confidence ws ","   ws
     "\"is_template\""      ws ":" ws boolean ws ","      ws
     "\"payment_terms\""    ws ":" ws str-or-null ws ","  ws
     "\"payment_amount\""   ws ":" ws number-or-null ws "," ws
@@ -26,11 +27,8 @@ payment-frequency ::= "\"monthly\"" | "\"quarterly\"" | "\"yearly\"" | "\"once\"
 # Enum: payment_direction
 payment-direction ::= "\"income\"" | "\"expense\"" | "null"
 
-# Date: YYYY-MM-DD or null
-date-or-null ::= "\"" [0-9] [0-9] [0-9] [0-9] "-" [0-1] [0-9] "-" [0-3] [0-9] "\"" | "null"
-
-# Confidence: float 0.0..1.0 (stored as string rule, llama enforces via grammar)
-confidence ::= "0." [0-9]+ | "1.0" | "1" | "0"
+# Date: YYYY-MM-DD or null (months strictly 01-12, days strictly 01-31)
+date-or-null ::= "\"" [0-9] [0-9] [0-9] [0-9] "-" (("0" [1-9]) | ("1" [0-2])) "-" (("0" [1-9]) | ([1-2] [0-9]) | ("3" [0-1])) "\"" | "null"
 
 # Generic float or null (for payment_amount)
 number-or-null ::= number | "null"
