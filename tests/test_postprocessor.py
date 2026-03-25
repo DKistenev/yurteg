@@ -135,3 +135,42 @@ def test_sanitize_metadata_full():
     # list-поля остаются списками
     assert isinstance(result["parties"], list)
     assert isinstance(result["special_conditions"], list)
+
+
+# ── Whitelist аббревиатур (cyrillic_only) ─────────────────────────────────────
+
+class TestAbbreviationWhitelist:
+    def test_nda_preserved_in_contract_type(self) -> None:
+        result = sanitize_metadata({"contract_type": "NDA о конфиденциальности"})
+        assert result["contract_type"] == "NDA о конфиденциальности"
+
+    def test_sla_preserved(self) -> None:
+        result = sanitize_metadata({"contract_type": "Договор SLA с поддержкой"})
+        assert result["contract_type"] == "Договор SLA с поддержкой"
+
+    def test_multiple_abbreviations_preserved(self) -> None:
+        result = sanitize_metadata({"contract_type": "Соглашение NDA и GPS трекинг"})
+        assert result["contract_type"] == "Соглашение NDA и GPS трекинг"
+
+    def test_non_whitelist_latin_removed(self) -> None:
+        result = sanitize_metadata({"contract_type": "Договор abc def"})
+        assert "abc" not in (result["contract_type"] or "")
+        assert "def" not in (result["contract_type"] or "")
+
+    def test_mixed_whitelist_and_other_latin(self) -> None:
+        result = sanitize_metadata({"contract_type": "Договор NDA abc"})
+        r = result["contract_type"] or ""
+        assert "NDA" in r
+        assert "abc" not in r
+
+    def test_special_conditions_nda_preserved(self) -> None:
+        result = sanitize_metadata({"special_conditions": ["Штраф при нарушении NDA"]})
+        assert result["special_conditions"] == ["Штраф при нарушении NDA"]
+
+    def test_cyrillic_latin_profile_unchanged(self) -> None:
+        result = sanitize_metadata({"counterparty": "ООО Alpha Ltd"})
+        assert result["counterparty"] == "ООО Alpha Ltd"
+
+    def test_inn_abbreviation_preserved(self) -> None:
+        result = sanitize_metadata({"contract_type": "Договор ИНН стороны"})
+        assert "ИНН" in (result["contract_type"] or "")
