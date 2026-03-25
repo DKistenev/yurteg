@@ -7,13 +7,11 @@
 """
 import json
 import logging
-import os
 import re
 import time
 from dataclasses import asdict
 from typing import TYPE_CHECKING, Optional
 
-from openai import OpenAI, APIError, APITimeoutError, RateLimitError
 from dateutil import parser as dateutil_parser
 from dateutil.parser import ParserError
 
@@ -187,57 +185,6 @@ def _normalize_date(raw: str | None) -> str | None:
         return None
 
 
-def _create_client(config: Config, use_fallback: bool = False) -> OpenAI:
-    """
-    Создаёт клиент OpenAI-совместимого API.
-
-    Основной провайдер: ZAI (ключ ZHIPU_API_KEY или ZAI_API_KEY)
-    Запасной: OpenRouter (ключ OPENROUTER_API_KEY)
-
-    # DEPRECATED: используется только в extract_metadata(). Новые функции должны
-    # использовать provider.complete() через систему провайдеров.
-    """
-    if use_fallback:
-        api_key = os.environ.get("OPENROUTER_API_KEY", "")
-        if not api_key:
-            raise RuntimeError("Ключ OpenRouter не найден (OPENROUTER_API_KEY)")
-        return OpenAI(
-            base_url=config.ai_fallback_base_url,
-            api_key=api_key,
-            default_headers={
-                "HTTP-Referer": "https://github.com/yurteg",
-                "X-Title": "YurTeg",
-            },
-        )
-
-    # Основной провайдер — ZAI
-    api_key = (
-        os.environ.get("ZHIPU_API_KEY", "")
-        or os.environ.get("ZAI_API_KEY", "")
-        or os.environ.get("OPENROUTER_API_KEY", "")
-    )
-    if not api_key:
-        raise RuntimeError(
-            "API-ключ не найден. Установите ZHIPU_API_KEY (ZAI) "
-            "или OPENROUTER_API_KEY (OpenRouter)."
-        )
-
-    # Определяем base_url по типу ключа
-    if api_key.startswith("sk-or-"):
-        # OpenRouter ключ
-        base_url = config.ai_fallback_base_url
-        headers = {"HTTP-Referer": "https://github.com/yurteg", "X-Title": "YurTeg"}
-    else:
-        # ZAI ключ
-        base_url = config.ai_base_url
-        headers = {}
-
-    return OpenAI(
-        base_url=base_url,
-        api_key=api_key,
-        default_headers=headers,
-    )
-
 
 def extract_metadata(
     anonymized_text: str,
@@ -283,8 +230,7 @@ def extract_metadata(
         except Exception as e:
             result = e
     else:
-        # Legacy путь для обратной совместимости (прямые вызовы без провайдера)
-        result = _try_model(config, messages, config.active_model, use_fallback=False)
+        raise ValueError("provider обязателен — legacy _try_model удалён в v0.9")
 
     if isinstance(result, ContractMetadata):
         # Post-processing для локальной модели: очистить мусор и строки None
@@ -298,15 +244,12 @@ def extract_metadata(
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": FALLBACK_PROMPT_TEMPLATE.format(text=text[:3000])},
             ]
-            if provider is not None:
-                try:
-                    fb_raw = _try_provider(provider, fallback_msgs, config.ai_max_retries)
-                    fb_json = _parse_json_response(fb_raw)
-                    fb: ContractMetadata | Exception = _json_to_metadata(fb_json)
-                except Exception as fb_e:
-                    fb = fb_e
-            else:
-                fb = _try_model(config, fallback_msgs, config.active_model, use_fallback=False)
+            try:
+                fb_raw = _try_provider(provider, fallback_msgs, config.ai_max_retries)
+                fb_json = _parse_json_response(fb_raw)
+                fb: ContractMetadata | Exception = _json_to_metadata(fb_json)
+            except Exception as fb_e:
+                fb = fb_e
             if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
                 if config.active_provider == "ollama":
                     sanitized = sanitize_metadata(asdict(fb))
@@ -316,7 +259,7 @@ def extract_metadata(
 
     last_error = result
 
-    # Этап 2: Fallback провайдер или fallback модель (OpenRouter)
+    # Этап 2: Fallback провайдер
     if fallback_provider is not None:
         logger.info("Основной провайдер недоступен, пробую fallback_provider: %s", fallback_provider.name)
         try:
@@ -326,17 +269,6 @@ def extract_metadata(
             fallback_result: ContractMetadata | Exception = _json_to_metadata(fb_json)
         except Exception as e:
             fallback_result = e
-        if isinstance(fallback_result, ContractMetadata):
-            return fallback_result
-        last_error = fallback_result
-    elif config.model_fallback and os.environ.get("OPENROUTER_API_KEY"):
-        logger.info("Основная модель недоступна, пробую fallback: %s", config.model_fallback)
-        # Некоторые бесплатные модели не поддерживают system role —
-        # вклеиваем system prompt в начало user-сообщения для надёжности
-        fallback_messages = _merge_system_into_user(messages)
-        fallback_result = _try_model(
-            config, fallback_messages, config.model_fallback, use_fallback=True
-        )
         if isinstance(fallback_result, ContractMetadata):
             return fallback_result
         last_error = fallback_result
@@ -403,87 +335,6 @@ def _try_provider(
         f"Последняя ошибка: {last_error}"
     )
 
-
-def _try_model(
-    config: Config,
-    messages: list[dict],
-    model: str,
-    use_fallback: bool = False,
-) -> "ContractMetadata | Exception":
-    """
-    Пробует извлечь метаданные с конкретной моделью.
-    Возвращает ContractMetadata при успехе, Exception при неудаче.
-    """
-    try:
-        client = _create_client(config, use_fallback=use_fallback)
-    except RuntimeError as e:
-        return e
-
-    last_error: Exception = RuntimeError("Нет попыток")
-
-    for attempt in range(config.ai_max_retries):
-        try:
-            logger.info(
-                "AI-запрос: модель=%s, попытка %d/%d",
-                model, attempt + 1, config.ai_max_retries,
-            )
-
-            # Отключаем thinking mode для ZAI (5-7x ускорение)
-            extra = {}
-            if config.ai_disable_thinking and not use_fallback:
-                extra["extra_body"] = {"thinking": {"type": "disabled"}}
-
-            response = client.chat.completions.create(
-                model=model,
-                temperature=config.ai_temperature,
-                max_tokens=config.ai_max_tokens,
-                messages=messages,
-                **extra,
-            )
-
-            raw_text = response.choices[0].message.content
-            if not raw_text:
-                raise ValueError("Пустой ответ от модели")
-
-            logger.debug("AI ответ (первые 500 символов): %s", raw_text[:500])
-
-            json_data = _parse_json_response(raw_text)
-            metadata = _json_to_metadata(json_data)
-
-            logger.info(
-                "Метаданные извлечены: тип=%s, уверенность=%.2f",
-                metadata.contract_type, metadata.confidence,
-            )
-            return metadata
-
-        except (json.JSONDecodeError, ValueError, KeyError, IndexError) as e:
-            last_error = e
-            logger.warning(
-                "Попытка %d/%d (%s): невалидный ответ - %s",
-                attempt + 1, config.ai_max_retries, model, e,
-            )
-            if attempt < config.ai_max_retries - 1:
-                time.sleep(1)
-
-        except RateLimitError as e:
-            last_error = e
-            logger.warning(
-                "Попытка %d/%d (%s): лимит запросов - %s",
-                attempt + 1, config.ai_max_retries, model, e,
-            )
-            time.sleep(min(2 ** (attempt + 1), 10))
-
-        except (APIError, APITimeoutError) as e:
-            last_error = e
-            logger.warning(
-                "Попытка %d/%d (%s): ошибка API - %s",
-                attempt + 1, config.ai_max_retries, model, e,
-            )
-            if attempt < config.ai_max_retries - 1:
-                time.sleep(2 ** attempt)
-
-    logger.warning("Все попытки исчерпаны для модели %s", model)
-    return last_error
 
 
 def verify_metadata(
