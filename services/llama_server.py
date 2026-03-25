@@ -1,7 +1,6 @@
 """Менеджер загрузки и запуска llama-server для локальной LLM."""
 import atexit
 import logging
-import os
 import platform
 import shutil
 import subprocess
@@ -249,7 +248,6 @@ class LlamaServerManager:
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                 )
-                atexit.register(self.stop)
 
                 # Ожидание готовности
                 health_url = _health_endpoint(port)
@@ -270,6 +268,7 @@ class LlamaServerManager:
 
                 if started:
                     self._port = port
+                    atexit.register(self.stop)
                     logger.info("llama-server запущен на порту %d (PID %d)", port, self._process.pid)
                     return
                 else:
