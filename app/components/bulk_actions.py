@@ -24,20 +24,20 @@ def render_bulk_toolbar(
     """Render the bulk actions toolbar above the table."""
     toolbar = ui.row().classes(BULK_TOOLBAR + " yt-toolbar-enter")
     with toolbar:
-        ui.label(f"Выбрано: {len(selected_ids)} из {total_count}").classes(BULK_COUNT)
+        ui.label(f"Выбрано: {len(selected_ids)}").classes(BULK_COUNT)
 
-        ui.button("Изменить статус", icon="edit", on_click=on_status_change).props(
-            "flat dense no-caps size=sm"
+        ui.button("Изменить статус", on_click=on_status_change).props(
+            "flat dense no-caps"
         ).classes(BULK_BTN)
 
         ui.element("div").classes("flex-1")
 
         ui.button("Снять выбор", on_click=on_clear).props(
-            "flat dense no-caps size=sm"
-        ).classes("text-xs text-slate-400")
+            "flat dense no-caps"
+        ).classes("text-xs text-slate-400 cursor-pointer")
 
-        ui.button("Удалить", icon="delete", on_click=on_delete).props(
-            "flat dense no-caps size=sm"
+        ui.button("Удалить", on_click=on_delete).props(
+            "flat dense no-caps"
         ).classes(BULK_BTN_DANGER)
 
     return toolbar

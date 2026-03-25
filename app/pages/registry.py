@@ -15,7 +15,6 @@ Per D-19: клики actions не триггерят навигацию.
 Per D-12 (onboarding): empty state при пустой БД без активных фильтров.
 Per D-14 (onboarding): guided tour после первой обработки, один раз.
 """
-import json
 import logging
 from pathlib import Path
 
@@ -623,14 +622,12 @@ def build() -> None:
         with ui.element("div").classes("mini-cal"):
             with ui.element("div").classes("mini-cal-header"):
                 ui.label(f"{month_names_ru[month]} {year}").classes("mini-cal-month")
-                with ui.element("div").classes("mini-cal-nav"):
-                    ui.element("button").classes("mini-cal-btn").text("◂")
-                    ui.element("button").classes("mini-cal-btn").text("▸")
 
             with ui.element("div").classes("mini-cal-grid"):
                 # Day headers (Monday first)
                 for day_name in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]:
-                    ui.element("div").classes("mini-cal-day-header").text(day_name)
+                    with ui.element("div").classes("mini-cal-day-header"):
+                        ui.html(day_name)
 
                 # Calendar days
                 cal = cal_module.Calendar(firstweekday=0)
@@ -643,9 +640,8 @@ def build() -> None:
                     if is_today:
                         cls += " mini-cal-day-today"
 
-                    day_el = ui.element("div").classes(cls)
-                    with day_el:
-                        ui.element("span").text(str(d.day))
+                    with ui.element("div").classes(cls):
+                        ui.html(str(d.day))
                         types_on_day = date_events.get(d, [])
                         dot_types = list(set(types_on_day))
                         for i, t in enumerate(dot_types[:2]):  # Max 2 dots per day
@@ -654,14 +650,13 @@ def build() -> None:
                                 "pay": "mini-cal-dot-pay",
                                 "expiring": "mini-cal-dot-expiring",
                             }.get(t, "")
-                            offset = 40 + i * 20  # percentage left offset
+                            offset = 40 + i * 20
                             ui.element("div").classes(f"mini-cal-dot {dot_cls}").style(
                                 f"left:{offset}%; transform:translateX(-50%);"
                             )
 
     async def _show_calendar() -> None:
         """Render timeline view with event cards and mini-calendar (REG-05)."""
-        import calendar as cal_module
         from datetime import date, timedelta
 
         db = _client_manager.get_db(state.current_client)
