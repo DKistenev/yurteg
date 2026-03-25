@@ -193,15 +193,13 @@ class LlamaServerManager:
 
     # ── Управление процессом ─────────────────────────────────────────────────
 
-    def start(self, grammar_path: Optional[Path] = None) -> None:
+    def start(self) -> None:
         """Запускает llama-server как subprocess.
 
         Ожидает готовности через /health endpoint (таймаут 30 сек).
         При порте занятом пробует port+1 (до 3 раз).
         Регистрирует atexit handler для корректного завершения.
-
-        Args:
-            grammar_path: Опциональный путь к .gbnf файлу грамматики.
+        Грамматика передаётся через тело запроса (per-request), не через флаг сервера.
         """
         if self.is_running():
             logger.info("llama-server уже запущен на порту %d", self._port)
@@ -232,9 +230,6 @@ class LlamaServerManager:
             "--top-p", "1.0",
             "--repeat-penalty", "1.1",
         ]
-
-        if grammar_path is not None and grammar_path.exists():
-            cmd_base += ["--grammar-file", str(grammar_path)]
 
         # Попытки с резервными портами
         for attempt in range(3):

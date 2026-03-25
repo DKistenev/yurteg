@@ -16,7 +16,6 @@ from app.components.header import render_header
 from app.pages import document, registry, settings, templates
 from app.state import get_state
 from config import Config
-from modules.postprocessor import get_grammar_path
 from services.llama_server import LlamaServerManager
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,7 @@ async def _start_llama() -> None:
     try:
         await run.io_bound(manager.ensure_model)
         await run.io_bound(manager.ensure_server_binary)
-        await run.io_bound(manager.start, get_grammar_path())
+        await run.io_bound(manager.start)
         _llama_manager = manager
         logger.info("llama-server запущен")
     except Exception as e:

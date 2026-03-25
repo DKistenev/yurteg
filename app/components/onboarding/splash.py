@@ -17,7 +17,6 @@ from nicegui import run, ui
 
 from app.styles import TEXT_HERO, TEXT_HERO_SUB, TEXT_EYEBROW, BTN_ACCENT_FILLED
 from config import Config, save_setting
-from modules.postprocessor import get_grammar_path
 from services.llama_server import LlamaServerManager
 
 logger = logging.getLogger(__name__)
@@ -234,7 +233,7 @@ def render_splash() -> None:
 
                 try:
                     await run.io_bound(manager.ensure_server_binary)
-                    await run.io_bound(manager.start, get_grammar_path())
+                    await run.io_bound(manager.start)
                     logger.info('llama-server запущен через splash screen')
                 except Exception as exc:
                     logger.warning('llama-server не запустился из splash: %s', exc)
