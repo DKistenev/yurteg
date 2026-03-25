@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from config import Config
-from modules.ai_extractor import extract_metadata, verify_api_key, verify_metadata
+from modules.ai_extractor import extract_metadata
 from modules.anonymizer import anonymize
 from modules.database import Database
 from modules.extractor import extract_text
@@ -23,7 +23,6 @@ from modules.models import AnonymizedText, ProcessingResult
 from modules.organizer import organize_file, prepare_output_directory
 from modules.reporter import generate_report
 from modules.scanner import scan_directory
-from modules.validator import validate_batch, validate_metadata
 from providers import get_provider, get_fallback_provider
 from services.client_manager import ClientManager
 from services.payment_service import save_payments
@@ -98,7 +97,7 @@ class Controller:
         Этапы:
           A) extract_text + anonymize — последовательно (быстро, <0.1 с/файл)
           B) extract_metadata (AI) — параллельно через ThreadPoolExecutor (~4 с/файл)
-          C) validate + organize + save — последовательно (быстро)
+          C) organize + save — последовательно (быстро)
         """
         # 3. Сканировать файлы
         _notify(on_progress, 0, 0, "Сканирование файлов...")
@@ -224,58 +223,6 @@ class Controller:
                                 for sc in metadata.special_conditions
                             ]
 
-                    # Валидация L1–L3
-                    validation = validate_metadata(metadata, self.config)
-                    result.validation = validation
-
-                    # AI-верификация L5 (selective: только для проблемных)
-                    if (
-                        self.config.validation_mode == "selective"
-                        and validation.status in ("warning", "unreliable")
-                    ) or self.config.validation_mode == "full":
-                        logger.info("L5 верификация: %s", result.file_info.filename)
-                        v5 = verify_metadata(
-                            anonymized.text, metadata, self.config,
-                        )
-                        if v5.get("correct", True):
-                            validation.warnings.append(
-                                "L5: AI подтвердил корректность данных"
-                            )
-                        else:
-                            # AI нашёл проблемы — пробуем применить исправления
-                            applied = 0
-                            for corr in v5.get("corrections") or []:
-                                field = corr.get("field", "")
-                                suggested = corr.get("suggested")
-                                if field and suggested and hasattr(metadata, field):
-                                    old_val = getattr(metadata, field)
-                                    setattr(metadata, field, suggested)
-                                    validation.warnings.append(
-                                        f"L5: AI исправил {field}: "
-                                        f"«{old_val}» → «{suggested}»"
-                                    )
-                                    applied += 1
-                            if applied > 0:
-                                # Пересчитать валидацию после исправлений
-                                l5_warnings = [
-                                    w for w in validation.warnings
-                                    if w.startswith("L5:")
-                                ]
-                                validation = validate_metadata(
-                                    metadata, self.config,
-                                )
-                                validation.warnings.extend(l5_warnings)
-                                result.validation = validation
-                            else:
-                                # AI сказал «неправильно», но не предложил
-                                # конкретных исправлений
-                                reasoning = v5.get("reasoning", "")
-                                validation.warnings.append(
-                                    f"L5: AI считает данные неточными"
-                                    + (f" ({reasoning[:120]})"
-                                       if reasoning else "")
-                                )
-
                     # Организация файла
                     organized_path = organize_file(result, output_dir, grouping)
                     result.organized_path = organized_path
@@ -328,15 +275,7 @@ class Controller:
                 _notify(on_progress, completed_count, total,
                         f"Обработка: {result.file_info.filename}")
 
-        # 6. Перекрёстная валидация L4
-        if results:
-            _notify(on_progress, total, total, "Перекрёстная валидация...")
-            results = validate_batch(results, self.config)
-            for r in results:
-                if r.status == "done":
-                    db.save_result(r)
-
-        # 7. Генерация Excel-реестра
+        # 6. Генерация Excel-реестра
         _notify(on_progress, total, total, "Генерация Excel-реестра...")
         all_data = db.get_all_results()
         report_path = generate_report(all_data, output_dir)

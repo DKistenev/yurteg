@@ -1,13 +1,10 @@
 """Тесты контроллера — оркестрация пайплайна с замоканными модулями."""
 import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock, call
-from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 from config import Config
 from modules.models import (
-    FileInfo, ExtractedText, AnonymizedText, ContractMetadata,
-    ValidationResult, ProcessingResult,
+    FileInfo, ExtractedText, ContractMetadata,
 )
 
 
@@ -48,11 +45,6 @@ def sample_metadata():
         counterparty="ООО Тест",
         date_signed="2024-01-01",
     )
-
-
-@pytest.fixture
-def sample_validation():
-    return ValidationResult(status="ok", warnings=[], score=1.0)
 
 
 # ── Controller.__init__ ────────────────────────────────────────────────────────
@@ -96,9 +88,9 @@ def test_process_archive_empty_dir(cfg, tmp_path):
 # ── process_archive — вызов пайплайна ─────────────────────────────────────────
 
 def test_process_archive_calls_pipeline(
-    cfg, tmp_path, sample_file_info, sample_text, sample_metadata, sample_validation
+    cfg, tmp_path, sample_file_info, sample_text, sample_metadata
 ):
-    """Пайплайн вызывает scan → extract → anonymize → ai → validate → save."""
+    """Пайплайн вызывает scan → extract → ai → organize → save."""
     source = tmp_path / "source"
     source.mkdir()
     output = tmp_path / "output"
@@ -109,17 +101,13 @@ def test_process_archive_calls_pipeline(
     mock_db.get_all_results.return_value = []
     mock_db.get_contract_id_by_hash.return_value = None
 
-    mock_report_path = output / "Реестр_договоров.xlsx"
-
     with patch("controller.get_provider", return_value=MagicMock()), \
          patch("controller.get_fallback_provider", return_value=MagicMock()), \
          patch("controller.scan_directory", return_value=[sample_file_info]), \
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
-         patch("controller.validate_metadata", return_value=sample_validation), \
-         patch("controller.validate_batch", side_effect=lambda results, cfg: results), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=mock_report_path), \
+         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -133,7 +121,7 @@ def test_process_archive_calls_pipeline(
 # ── process_archive — обработка ошибок ────────────────────────────────────────
 
 def test_process_archive_error_handling(
-    cfg, tmp_path, sample_file_info, sample_metadata, sample_validation
+    cfg, tmp_path, sample_file_info, sample_metadata
 ):
     """Если extract_text бросает исключение, файл помечается как error и пайплайн продолжается."""
     source = tmp_path / "source"
@@ -145,14 +133,11 @@ def test_process_archive_error_handling(
     mock_db.is_processed.return_value = False
     mock_db.get_all_results.return_value = []
 
-    mock_report_path = output / "Реестр_договоров.xlsx"
-
     with patch("controller.get_provider", return_value=MagicMock()), \
          patch("controller.get_fallback_provider", return_value=MagicMock()), \
          patch("controller.scan_directory", return_value=[sample_file_info]), \
          patch("controller.extract_text", side_effect=RuntimeError("IO Error")), \
-         patch("controller.generate_report", return_value=mock_report_path), \
-         patch("controller.validate_batch", side_effect=lambda results, cfg: results), \
+         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -167,7 +152,7 @@ def test_process_archive_error_handling(
 # ── process_archive — progress callback ───────────────────────────────────────
 
 def test_process_archive_progress_callback(
-    cfg, tmp_path, sample_file_info, sample_text, sample_metadata, sample_validation
+    cfg, tmp_path, sample_file_info, sample_text, sample_metadata
 ):
     """on_progress вызывается с (current, total, message)."""
     source = tmp_path / "source"
@@ -184,17 +169,14 @@ def test_process_archive_progress_callback(
     mock_db.is_processed.return_value = False
     mock_db.get_all_results.return_value = []
     mock_db.get_contract_id_by_hash.return_value = None
-    mock_report_path = output / "Реестр_договоров.xlsx"
 
     with patch("controller.get_provider", return_value=MagicMock()), \
          patch("controller.get_fallback_provider", return_value=MagicMock()), \
          patch("controller.scan_directory", return_value=[sample_file_info]), \
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
-         patch("controller.validate_metadata", return_value=sample_validation), \
-         patch("controller.validate_batch", side_effect=lambda results, cfg: results), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=mock_report_path), \
+         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -212,7 +194,7 @@ def test_process_archive_progress_callback(
 # ── process_archive — force_reprocess ─────────────────────────────────────────
 
 def test_process_archive_force_reprocess(
-    cfg, tmp_path, sample_file_info, sample_text, sample_metadata, sample_validation
+    cfg, tmp_path, sample_file_info, sample_text, sample_metadata
 ):
     """force_reprocess=True вызывает db.clear_all() и обрабатывает все файлы."""
     source = tmp_path / "source"
@@ -224,17 +206,14 @@ def test_process_archive_force_reprocess(
     mock_db.is_processed.return_value = True  # файл уже обработан
     mock_db.get_all_results.return_value = []
     mock_db.get_contract_id_by_hash.return_value = None
-    mock_report_path = output / "Реестр_договоров.xlsx"
 
     with patch("controller.get_provider", return_value=MagicMock()), \
          patch("controller.get_fallback_provider", return_value=MagicMock()), \
          patch("controller.scan_directory", return_value=[sample_file_info]), \
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
-         patch("controller.validate_metadata", return_value=sample_validation), \
-         patch("controller.validate_batch", side_effect=lambda results, cfg: results), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=mock_report_path), \
+         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
