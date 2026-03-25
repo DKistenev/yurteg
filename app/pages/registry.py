@@ -23,7 +23,6 @@ from nicegui import run, ui
 
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
-from app.components.ui_helpers import empty_state
 from app.demo_data import insert_demo_contracts
 from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL, BTN_ACCENT_FILLED
 from app.components.registry_table import (
@@ -36,7 +35,7 @@ from app.components.registry_table import (
 )
 from app.components.split_panel import render_split_panel
 from app.components.bulk_actions import (
-    render_bulk_toolbar, export_selected_to_excel,
+    render_bulk_toolbar,
     show_bulk_status_dialog, show_bulk_delete_dialog,
 )
 from app.state import get_state
@@ -594,92 +593,295 @@ def build() -> None:
             b.classes(remove=SEG_ACTIVE + " " + SEG_INACTIVE)
             b.classes(SEG_ACTIVE if k == active_key else SEG_INACTIVE)
 
-    _fc_loaded = {"done": False}
+    def _sum_row(dot_color: str, label: str, count: str) -> None:
+        """Render a summary row with colored dot, label, and count."""
+        with ui.row().classes("cal-sum-row"):
+            ui.element("div").classes("cal-sum-dot").style(f"background:{dot_color};")
+            ui.label(label).classes("cal-sum-label")
+            ui.label(count).classes("cal-sum-count")
 
-    async def _ensure_fullcalendar() -> None:
-        """Lazy-load FullCalendar from local vendor/ on first calendar toggle."""
-        if _fc_loaded["done"]:
-            return
-        await ui.run_javascript("""
-            if (!window.FullCalendar) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = '/static/vendor/fullcalendar.global.min.css';
-                document.head.appendChild(link);
-                await new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = '/static/vendor/fullcalendar.global.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            }
-        """)
-        _fc_loaded["done"] = True
+    def _render_mini_calendar(today_date, events: list) -> None:
+        """Render mini calendar with colored dots for events (REG-05)."""
+        import calendar as cal_module
+        from datetime import date as date_cls
+
+        # Build date -> event_types map
+        date_events: dict = {}
+        for ev in events:
+            try:
+                d = date_cls.fromisoformat(str(ev["date"])[:10])
+                date_events.setdefault(d, []).append(ev["type"])
+            except Exception:
+                continue
+
+        year, month = today_date.year, today_date.month
+        month_names_ru = [
+            "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+        ]
+
+        with ui.element("div").classes("mini-cal"):
+            with ui.element("div").classes("mini-cal-header"):
+                ui.label(f"{month_names_ru[month]} {year}").classes("mini-cal-month")
+                with ui.element("div").classes("mini-cal-nav"):
+                    ui.element("button").classes("mini-cal-btn").text("◂")
+                    ui.element("button").classes("mini-cal-btn").text("▸")
+
+            with ui.element("div").classes("mini-cal-grid"):
+                # Day headers (Monday first)
+                for day_name in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]:
+                    ui.element("div").classes("mini-cal-day-header").text(day_name)
+
+                # Calendar days
+                cal = cal_module.Calendar(firstweekday=0)
+                for d in cal.itermonthdates(year, month):
+                    is_other = d.month != month
+                    is_today = d == today_date
+                    cls = "mini-cal-day"
+                    if is_other:
+                        cls += " mini-cal-day-other"
+                    if is_today:
+                        cls += " mini-cal-day-today"
+
+                    day_el = ui.element("div").classes(cls)
+                    with day_el:
+                        ui.element("span").text(str(d.day))
+                        types_on_day = date_events.get(d, [])
+                        dot_types = list(set(types_on_day))
+                        for i, t in enumerate(dot_types[:2]):  # Max 2 dots per day
+                            dot_cls = {
+                                "end": "mini-cal-dot-end",
+                                "pay": "mini-cal-dot-pay",
+                                "expiring": "mini-cal-dot-expiring",
+                            }.get(t, "")
+                            offset = 40 + i * 20  # percentage left offset
+                            ui.element("div").classes(f"mini-cal-dot {dot_cls}").style(
+                                f"left:{offset}%; transform:translateX(-50%);"
+                            )
 
     async def _show_calendar() -> None:
-        """Fetch events and render FullCalendar via JS (D-10, D-11, D-12, D-16)."""
-        await _ensure_fullcalendar()
-        db = _client_manager.get_db(state.current_client)
+        """Render timeline view with event cards and mini-calendar (REG-05)."""
+        import calendar as cal_module
+        from datetime import date, timedelta
 
-        # Payment events — override color to slate-400 (Pitfall 5, D-12)
+        db = _client_manager.get_db(state.current_client)
+        today = date.today()
+
+        def _parse_date_safe(d):
+            try:
+                return date.fromisoformat(str(d)[:10])
+            except Exception:
+                return None
+
+        # 1. Fetch payment events
         try:
             payment_events = await run.io_bound(get_calendar_events, db)
         except Exception:
-            logger.exception("Ошибка при загрузке событий календаря (платежи)")
+            logger.exception("Ошибка загрузки событий (платежи)")
             payment_events = []
-        for ev in payment_events:
-            ev["color"] = "#94a3b8"  # slate-400 — all payments same color
-            ev["id"] = f"payment-{ev.get('extendedProps', {}).get('contract_id', 0)}-{ev.get('start', '')}"
-            # Normalise extendedProps to include type=payment
-            if "extendedProps" not in ev:
-                ev["extendedProps"] = {}
-            ev["extendedProps"]["type"] = "payment"
 
-        # Contract end-date events — indigo (D-12)
-        # Optimized: fetch only needed columns instead of get_all_results (full table scan)
+        # 2. Fetch contract end-date events
         try:
-            rows = await run.io_bound(
+            end_rows = await run.io_bound(
                 lambda: db.conn.execute(
-                    "SELECT id, contract_type, counterparty, date_end "
+                    "SELECT id, contract_type, counterparty, subject, date_end, amount "
                     "FROM contracts WHERE date_end IS NOT NULL AND status = 'done'"
                 ).fetchall()
             )
         except Exception:
-            logger.exception("Ошибка при загрузке событий календаря (договоры)")
-            rows = []
-        end_events: list[dict] = []
-        for r in rows:
+            logger.exception("Ошибка загрузки событий (договоры)")
+            end_rows = []
+
+        # 3. Fetch expiring contracts (within warning_days threshold)
+        try:
+            expiring_rows = await run.io_bound(
+                lambda: db.conn.execute(
+                    "SELECT id FROM contracts WHERE date_end IS NOT NULL AND status = 'done' "
+                    "AND date_end > date('now') AND date_end <= date('now', '+' || :wd || ' days')",
+                    {"wd": state.warning_days_threshold},
+                ).fetchall()
+            )
+        except Exception:
+            logger.exception("Ошибка загрузки скоро истекающих")
+            expiring_rows = []
+
+        # 4. Build unified events list
+        expiring_ids = {dict(r)["id"] for r in expiring_rows} if expiring_rows else set()
+        events: list[dict] = []
+
+        for r in end_rows:
             c = dict(r)
-            end_events.append({
-                "id": f"contract-{c['id']}",
-                "title": f"{c.get('counterparty', '')} · {c.get('contract_type', '')}",
-                "start": c["date_end"],
-                "color": "#4f46e5",  # indigo-600
-                "extendedProps": {
-                    "type": "end_date",
-                    "contract_id": c["id"],
-                    "counterparty": c.get("counterparty", ""),
-                    "doc_type": c.get("contract_type", ""),
-                },
+            evt_type = "expiring" if c["id"] in expiring_ids else "end"
+            events.append({
+                "type": evt_type,
+                "date": c["date_end"],
+                "contract_id": c["id"],
+                "contract_type": c.get("contract_type", ""),
+                "counterparty": c.get("counterparty", ""),
+                "subject": c.get("subject", ""),
+                "amount": c.get("amount"),
             })
 
-        all_events = payment_events + end_events
+        for ev in payment_events:
+            title = ev.get("title", "")
+            counterparty = title.split(" · ")[0] if " · " in title else title
+            events.append({
+                "type": "pay",
+                "date": ev.get("start", ""),
+                "contract_id": ev.get("extendedProps", {}).get("contract_id"),
+                "contract_type": "",
+                "counterparty": counterparty,
+                "subject": title,
+                "amount": ev.get("extendedProps", {}).get("amount"),
+            })
 
-        if not all_events:
-            ui.notify(
-                "Не удалось загрузить события календаря. Попробуйте переключить вид.",
-                type="warning",
-            )
+        # Sort by date
+        events.sort(key=lambda e: str(e.get("date", "9999")))
 
-        json_str = json.dumps(all_events, ensure_ascii=False, default=str)
+        # 5. Group events: today / this week / this month / later
+        week_end = today + timedelta(days=7)
+        month_end = today.replace(day=28) + timedelta(days=4)
+        month_end = month_end.replace(day=1)  # first day of next month
 
+        groups: dict[str, list] = {"today": [], "week": [], "month": [], "later": []}
+        for ev in events:
+            d = _parse_date_safe(ev["date"])
+            if d is None:
+                continue
+            if d == today:
+                groups["today"].append(ev)
+            elif d <= week_end:
+                groups["week"].append(ev)
+            elif d < month_end:
+                groups["month"].append(ev)
+            else:
+                groups["later"].append(ev)
+
+        # 6. Stats for summary panel (current month)
+        end_count = sum(
+            1 for e in events
+            if e["type"] == "end"
+            and _parse_date_safe(e["date"])
+            and _parse_date_safe(e["date"]).month == today.month
+        )
+        pay_count = sum(
+            1 for e in events
+            if e["type"] == "pay"
+            and _parse_date_safe(e["date"])
+            and _parse_date_safe(e["date"]).month == today.month
+        )
+        exp_count = sum(1 for e in events if e["type"] == "expiring")
+        pay_total = sum(
+            float(str(e.get("amount", 0) or 0).replace(" ", "").replace(",", "."))
+            for e in events
+            if e["type"] == "pay"
+            and _parse_date_safe(e["date"])
+            and _parse_date_safe(e["date"]).month == today.month
+        )
+
+        # 7. Render UI
         calendar_container.clear()
         with calendar_container:
-            ui.html('<div id="yurteg-calendar"></div>').classes("w-full")
+            with ui.row().classes("w-full gap-4 px-5 py-4"):
 
-        # Per Pitfall 2: delay JS init to ensure DOM element exists
-        ui.timer(0.1, lambda: ui.run_javascript(f"window.initCalendar({json_str})"), once=True)
+                # LEFT: Timeline feed
+                with ui.column().classes("flex-1"):
+                    ui.label("Ближайшие события").style(
+                        "font-size:15px; font-weight:600; color:#1e293b; margin-bottom:14px;"
+                    )
+
+                    def _render_event_card(ev: dict, future: bool = False) -> None:
+                        type_map = {
+                            "end": ("Окончание договора", "timeline-card-end", "timeline-type-end"),
+                            "pay": ("Платёж", "timeline-card-pay", "timeline-type-pay"),
+                            "expiring": (
+                                f"Скоро истекает ({state.warning_days_threshold} дн.)",
+                                "timeline-card-expiring",
+                                "timeline-type-expiring",
+                            ),
+                        }
+                        type_label, card_cls, type_cls = type_map.get(ev["type"], ("Событие", "", ""))
+                        extra_cls = " timeline-future" if future else ""
+
+                        cid = ev.get("contract_id")
+                        card = ui.element("div").classes(f"timeline-card {card_cls}{extra_cls}")
+                        with card:
+                            with ui.column().classes("gap-0"):
+                                ui.label(type_label).classes(f"timeline-type {type_cls}")
+                                ui.label(ev.get("counterparty", "")).classes("timeline-name")
+                                ui.label(ev.get("subject", "")).classes("timeline-meta")
+                            with ui.column().classes("items-end gap-0 shrink-0"):
+                                d = _parse_date_safe(ev["date"])
+                                if d and d != today:
+                                    ui.label(d.strftime("%d %b")).classes("timeline-date")
+                                if ev.get("amount"):
+                                    try:
+                                        amt = (
+                                            f"{int(float(str(ev['amount']).replace(' ', '').replace(',', '.'))):,}"
+                                            .replace(",", " ") + " ₽"
+                                        )
+                                    except (ValueError, TypeError):
+                                        amt = str(ev["amount"])
+                                    ui.label(amt).classes("timeline-amount")
+                        if cid:
+                            card.on("click", lambda c=cid: ui.navigate.to(f"/document/{c}"))
+
+                    # Today group
+                    if groups["today"]:
+                        ui.label(f"Сегодня · {today.strftime('%d %B').lstrip('0')}").classes(
+                            "timeline-group-title timeline-group-today"
+                        ).style("margin-top:4px;")
+                        for ev in groups["today"]:
+                            _render_event_card(ev)
+
+                    # This week group
+                    if groups["week"]:
+                        ui.label("На этой неделе").classes("timeline-group-title timeline-group-week")
+                        for ev in groups["week"]:
+                            _render_event_card(ev)
+
+                    # This month group
+                    if groups["month"]:
+                        month_names = [
+                            "", "января", "февраля", "марта", "апреля", "мая", "июня",
+                            "июля", "августа", "сентября", "октября", "ноября", "декабря",
+                        ]
+                        ui.label(f"В {month_names[today.month]}").classes(
+                            "timeline-group-title timeline-group-month"
+                        )
+                        for ev in groups["month"]:
+                            _render_event_card(ev)
+
+                    # Later group (next month+, max 5)
+                    if groups["later"]:
+                        ui.label("Позже").classes("timeline-group-title timeline-group-month")
+                        for ev in groups["later"][:5]:
+                            _render_event_card(ev, future=True)
+
+                    if not any(groups.values()):
+                        ui.label("Нет предстоящих событий").classes(
+                            "text-sm text-slate-400 py-8 text-center"
+                        )
+
+                # RIGHT: Mini-calendar + summary (220px)
+                with ui.column().classes("shrink-0").style("width: 220px;"):
+                    _render_mini_calendar(today, events)
+
+                    with ui.element("div").classes("cal-summary"):
+                        ui.label("Итого в этом месяце").classes("cal-sum-title")
+                        _sum_row("#dc2626", "Истекает", str(end_count))
+                        _sum_row("#2563eb", "Платежей", str(pay_count))
+                        _sum_row("#d97706", "Скоро истекает", str(exp_count))
+                        with ui.element("div").style(
+                            "border-top:1px solid #f1f5f9; margin-top:8px; padding-top:8px;"
+                        ):
+                            with ui.row().classes("cal-sum-row"):
+                                ui.label("Сумма платежей").classes("cal-sum-label")
+                                try:
+                                    pay_fmt = f"{int(pay_total):,}".replace(",", " ") + " ₽"
+                                except Exception:
+                                    pay_fmt = "—"
+                                ui.label(pay_fmt).classes("cal-sum-count").style("font-size:14px;")
 
     async def _switch_view(view: str) -> None:
         """Переключает вид между списком и календарём (DSGN-04, D-15)."""
@@ -798,7 +1000,7 @@ def build() -> None:
         db = _client_manager.get_db(state.current_client)
         try:
             await run.io_bound(set_manual_status, db, contract_id, status)
-        except Exception as e:
+        except Exception:
             logger.exception("Ошибка при обработке реестра: смена статуса")
             ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
@@ -814,7 +1016,7 @@ def build() -> None:
         db = _client_manager.get_db(state.current_client)
         try:
             await run.io_bound(clear_manual_status, db, contract_id)
-        except Exception as e:
+        except Exception:
             logger.exception("Ошибка при обработке реестра: сброс статуса")
             ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
             return
@@ -847,13 +1049,11 @@ def build() -> None:
         bulk_container.clear()
         if state.bulk_mode and state.selected_doc_ids:
             total = len(grid_ref["grid"].options.get("rowData", [])) if grid_ref["grid"] else 0
-            db = _client_manager.get_db(state.current_client)
             with bulk_container:
                 render_bulk_toolbar(
                     selected_ids=state.selected_doc_ids,
                     total_count=total,
                     on_clear=_clear_bulk_selection,
-                    on_export=lambda: export_selected_to_excel(state.selected_doc_ids, db),
                     on_status_change=lambda: show_bulk_status_dialog(state.selected_doc_ids, _apply_bulk_status),
                     on_delete=lambda: show_bulk_delete_dialog(state.selected_doc_ids, _delete_bulk),
                 )
@@ -935,7 +1135,7 @@ def build() -> None:
         """Callback triggered by header upload button (D-06, D-07, D-08, D-11)."""
         # Re-grab upload_btn ref (may not be set at module init time)
         ui_refs["upload_btn"] = _header_refs.get("upload_btn")
-        stats = await start_pipeline(source_dir, state, ui_refs)
+        await start_pipeline(source_dir, state, ui_refs)
         # Mark first processing done for trust-building prompt (Phase 16)
         settings = load_settings()
         if not settings.get("first_processing_done"):
