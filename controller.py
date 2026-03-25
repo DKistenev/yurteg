@@ -21,7 +21,6 @@ from modules.database import Database
 from modules.extractor import extract_text
 from modules.models import AnonymizedText, ProcessingResult
 from modules.organizer import organize_file, prepare_output_directory
-from modules.reporter import generate_report
 from modules.scanner import scan_directory
 from providers import get_provider, get_fallback_provider
 from services.client_manager import ClientManager
@@ -60,6 +59,7 @@ class Controller:
 
         Returns:
             dict: {total, done, errors, skipped, output_dir, report_path}
+                  report_path: None (Excel reporter удалён в v0.9)
         """
         # 1. Подготовить выходную директорию
         if output_dir_override:
@@ -275,10 +275,7 @@ class Controller:
                 _notify(on_progress, completed_count, total,
                         f"Обработка: {result.file_info.filename}")
 
-        # 6. Генерация Excel-реестра
-        _notify(on_progress, total, total, "Генерация Excel-реестра...")
-        all_data = db.get_all_results()
-        report_path = generate_report(all_data, output_dir)
+        report_path = None  # Excel reporter удалён в v0.9
 
         stats = {
             "total": total,

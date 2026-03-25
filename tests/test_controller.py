@@ -107,7 +107,6 @@ def test_process_archive_calls_pipeline(
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -137,7 +136,6 @@ def test_process_archive_error_handling(
          patch("controller.get_fallback_provider", return_value=MagicMock()), \
          patch("controller.scan_directory", return_value=[sample_file_info]), \
          patch("controller.extract_text", side_effect=RuntimeError("IO Error")), \
-         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -176,7 +174,6 @@ def test_process_archive_progress_callback(
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
@@ -213,7 +210,6 @@ def test_process_archive_force_reprocess(
          patch("controller.extract_text", return_value=sample_text), \
          patch("controller.extract_metadata", return_value=sample_metadata), \
          patch("controller.organize_file", return_value=output / "done" / "sample.pdf"), \
-         patch("controller.generate_report", return_value=None), \
          patch("controller.Database", return_value=mock_db):
 
         from controller import Controller
