@@ -108,18 +108,21 @@ APPLE_CARD_ICON = "w-8 h-8 rounded-lg flex items-center justify-center text-base
 APPLE_CARD_COMPACT = "bg-white border border-slate-200 rounded-xl shadow-sm"
 APPLE_CARD_COMPACT_ICON = "w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
 
-# ── Split panel (UI Overhaul) ────────────────────────────────────────────────
-PANEL_CONTAINER = "border-l border-slate-200 bg-slate-50 overflow-y-auto"
+# ── Split panel (UI Overhaul → REG-04 Linear-style) ─────────────────────────
+PANEL_CONTAINER = "border-l border-slate-200 bg-white flex flex-col shrink-0 overflow-y-auto"
 PANEL_HEADER = "flex items-center justify-between px-4 py-3 border-b border-slate-200"
 PANEL_FIELD = "px-4 py-2"
-PANEL_FIELD_LABEL = "text-xs font-normal text-slate-400 uppercase tracking-wide"
-PANEL_FIELD_VALUE = "text-sm font-medium text-slate-800"
+PANEL_FIELD_LABEL = "text-[11px] text-slate-400"  # NO uppercase — per REG-04 mockup
+PANEL_FIELD_VALUE = "text-[13px] text-slate-900"
+# Linear-style tokens (REG-04)
+PANEL_TYPE_TAG = "inline-block text-[10px] py-0.5 px-1.5 rounded bg-indigo-50 text-indigo-600 font-medium mt-1"
+PANEL_SEC_TITLE = "text-[10px] text-slate-400 font-semibold uppercase tracking-[0.06em] mb-2"
 
 # ── Bulk actions (UI Overhaul) ───────────────────────────────────────────────
-BULK_TOOLBAR = "flex items-center gap-3 px-4 py-2 bg-indigo-50 border-b border-indigo-100"
-BULK_BTN = "px-3 py-1 text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-BULK_BTN_DANGER = "px-3 py-1 text-xs font-medium rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50"
-BULK_COUNT = "text-sm font-semibold text-indigo-600"
+BULK_TOOLBAR = "flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg"
+BULK_BTN = "text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+BULK_BTN_DANGER = "text-xs font-medium rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50"
+BULK_COUNT = "text-sm font-medium text-slate-600"
 
 # ── Action bar — document page (UI Overhaul) ─────────────────────────────────
 ACTION_BAR = "flex items-center gap-2 px-5 py-2.5 bg-slate-50 border-b border-slate-200"

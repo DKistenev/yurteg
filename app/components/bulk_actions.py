@@ -1,17 +1,15 @@
 """Bulk actions toolbar for registry.
 
 Shows when one or more documents are selected via checkboxes.
-Supports: Export to Excel, Change Status, Delete.
+Supports: Change Status, Delete.
 """
-import io
 import logging
-from pathlib import Path
 from typing import Callable
 
-from nicegui import run, ui
+from nicegui import ui
 
 from app.styles import BULK_TOOLBAR, BULK_BTN, BULK_BTN_DANGER, BULK_COUNT
-from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
+from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,6 @@ def render_bulk_toolbar(
     selected_ids: list[int],
     total_count: int,
     on_clear: Callable,
-    on_export: Callable,
     on_status_change: Callable,
     on_delete: Callable,
 ) -> ui.row:
@@ -28,10 +25,6 @@ def render_bulk_toolbar(
     toolbar = ui.row().classes(BULK_TOOLBAR + " yt-toolbar-enter")
     with toolbar:
         ui.label(f"Выбрано: {len(selected_ids)} из {total_count}").classes(BULK_COUNT)
-
-        ui.button("Экспорт в Excel", icon="download", on_click=on_export).props(
-            "flat dense no-caps size=sm"
-        ).classes(BULK_BTN)
 
         ui.button("Изменить статус", icon="edit", on_click=on_status_change).props(
             "flat dense no-caps size=sm"
@@ -48,64 +41,6 @@ def render_bulk_toolbar(
         ).classes(BULK_BTN_DANGER)
 
     return toolbar
-
-
-async def export_selected_to_excel(doc_ids: list[int], db) -> None:
-    """Export selected documents to Excel and trigger download.
-
-    Args:
-        doc_ids: List of document IDs to export.
-        db: DatabaseManager instance.
-    """
-    rows = []
-    for doc_id in doc_ids:
-        doc = db.get_contract_by_id(doc_id)
-        if doc:
-            rows.append(doc)
-
-    if not rows:
-        ui.notify("Нет данных для экспорта", type="warning")
-        return
-
-    try:
-        import openpyxl
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Реестр"
-        headers = ["Тип", "Контрагент", "Предмет", "Дата начала", "Дата окончания", "Сумма", "Статус"]
-        ws.append(headers)
-        for r in rows:
-            ws.append([
-                r.get("contract_type", ""),
-                r.get("counterparty", ""),
-                r.get("subject", ""),
-                r.get("date_start", ""),
-                r.get("date_end", ""),
-                r.get("amount", ""),
-                r.get("computed_status", ""),
-            ])
-        buf = io.BytesIO()
-        wb.save(buf)
-        buf.seek(0)
-        ui.download(buf.getvalue(), "yurteg-export.xlsx")
-        ui.notify(f"Экспортировано {len(rows)} документов", type="positive")
-    except ImportError:
-        import csv
-        buf = io.StringIO()
-        writer = csv.writer(buf)
-        writer.writerow(["Тип", "Контрагент", "Предмет", "Дата начала", "Дата окончания", "Сумма", "Статус"])
-        for r in rows:
-            writer.writerow([
-                r.get("contract_type", ""),
-                r.get("counterparty", ""),
-                r.get("subject", ""),
-                r.get("date_start", ""),
-                r.get("date_end", ""),
-                r.get("amount", ""),
-                r.get("computed_status", ""),
-            ])
-        ui.download(buf.getvalue().encode("utf-8-sig"), "yurteg-export.csv")
-        ui.notify(f"Экспортировано {len(rows)} документов (CSV)", type="positive")
 
 
 def show_bulk_status_dialog(selected_ids: list[int], on_apply: Callable) -> None:

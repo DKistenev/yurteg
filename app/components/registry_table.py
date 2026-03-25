@@ -125,12 +125,6 @@ COLUMN_DEFS = [
         "filter": "agTextColumnFilter",
     },
     {
-        "headerName": "Уверенность",
-        "field": "confidence_display",
-        "minWidth": 120,
-        "sortable": True,
-    },
-    {
         "headerName": "Сумма",
         "field": "amount",
         "minWidth": 150,
@@ -265,7 +259,6 @@ def build_version_rows(base_rows: list[dict], db) -> list[dict]:
         # HTML columns — rendered via html_columns=[0, 4, 7]
         row["expand_html"] = _expand_html(has_ch)
         row["status_html"] = _status_html(row.get("computed_status", "unknown"))
-        row["confidence_display"] = f"{int(row.get('confidence', 0) * 100)}%" if row.get('confidence') else "\u2014"
         row["actions_html"] = _actions_html()
         result.append(row)
     return result
@@ -445,10 +438,10 @@ async def render_registry_table(state: "AppState"):
                 "last": "Последняя",
                 "first": "Первая",
                 "previous": "Назад",
-                "pageSize": "Размер",
+                "pageSize": "",
             },
         },
-        html_columns=[1, 5, 8],  # expand, status, actions — render HTML from rowData (shifted +1 for checkbox col)
+        html_columns=[1, 5, 7],  # expand, status, actions — render HTML from rowData (shifted +1 for checkbox col)
         theme="quartz",
         auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
     ).classes("w-full max-w-none").style("height: 520px;")
