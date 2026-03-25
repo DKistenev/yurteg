@@ -55,7 +55,11 @@ Plans:
   2. GBNF не содержит поля confidence; дата и contract_number проходят грамматику без ошибок
   3. Аббревиатуры NDA, SLA, GPS, ИНН не транслитерируются и не заменяются в cyrillic_only профиле
   4. Документ с низким logprobs-confidence помечается для перепроверки (отображается в карточке)
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 29-01-PLAN.md — GBNF: убрать confidence, добавить contract_number, ужесточить даты; убрать --grammar-file из llama_server
+- [ ] 29-02-PLAN.md — Двухзапросный flow: grammar в request body + logprobs confidence в OllamaProvider и ai_extractor
+- [ ] 29-03-PLAN.md — Whitelist аббревиатур NDA/SLA/GPS/ИНН в постпроцессоре (cyrillic_only профиль)
 
 ### Phase 30: Redline + Vectors
 **Goal**: Redline-DOCX генерируется на уровне слов и открывается в Word без диалога «восстановить документ»; шаблонные embeddings кэшируются и используют полный текст документа
@@ -88,7 +92,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 28. Cleanup | 2/3 | Complete    | 2026-03-25 |
-| 29. AI Pipeline | 0/? | Not started | - |
+| 29. AI Pipeline | 0/3 | Planned | - |
 | 30. Redline + Vectors | 0/? | Not started | - |
 | 31. UI Wire-up | 0/? | Not started | - |
 
@@ -125,4 +129,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-03-26*
-*Last updated: 2026-03-26 — Phase 28 plans created (3 plans)*
+*Last updated: 2026-03-26 — Phase 29 plans created (3 plans)*
