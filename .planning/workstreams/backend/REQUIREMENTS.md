@@ -41,8 +41,8 @@
 
 ### Stability
 
-- [ ] **STAB-01**: atexit.register() вызывать 1 раз (не в retry-цикле llama-server)
-- [ ] **STAB-02**: Предупреждение пользователю при обрезке текста >30K символов
+- [x] **STAB-01**: atexit.register() вызывать 1 раз (не в retry-цикле llama-server)
+- [x] **STAB-02**: Предупреждение пользователю при обрезке текста >30K символов
 
 ## Future Requirements
 
@@ -73,8 +73,8 @@
 | CLEAN-03 | Phase 28 | Pending |
 | CLEAN-04 | Phase 28 | Pending |
 | CLEAN-05 | Phase 28 | Pending |
-| STAB-01 | Phase 28 | Pending |
-| STAB-02 | Phase 28 | Pending |
+| STAB-01 | Phase 28 | Complete |
+| STAB-02 | Phase 28 | Complete |
 | AI-01 | Phase 29 | Pending |
 | AI-02 | Phase 29 | Pending |
 | AI-03 | Phase 29 | Pending |

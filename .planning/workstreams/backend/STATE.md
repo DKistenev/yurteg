@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
 status: planning
-stopped_at: Completed 28-cleanup-01-PLAN.md
+stopped_at: Completed 28-cleanup-03-PLAN.md
 last_updated: "2026-03-25T22:01:23.355Z"
 last_activity: 2026-03-26 — ROADMAP.md created, 21/21 requirements mapped
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 3
 ---
 
 # Project State
@@ -48,6 +48,8 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0/4 pha
 - [v0.9 2026-03-26]: python-docx OxmlElement подход верный, нужна word-level алгоритмическая правка (~30 LOC)
 - [v0.9 2026-03-26]: MiniLM-L12-v2 достаточен для русских договоров, truncation исправляем 8000→3000
 - [Phase 28-cleanup]: stress_test.py validator sections deferred — слишком большой scope, залогировано в deferred-items.md
+- [28-03 2026-03-26]: atexit.register перемещён внутрь if started: — вызывается ровно 1 раз при успехе
+- [28-03 2026-03-26]: logging.warning при обрезке >30K — юрист видит что часть документа не проанализирована
 
 ### Critical Risks
 
@@ -65,6 +67,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 28-cleanup-01-PLAN.md
+Stopped at: Completed 28-cleanup-03-PLAN.md
 Resume file: None
-Next: `/gsd:plan-phase 28`
+Next: Phase 28 complete — ready for Phase 29 (GBNF/logprobs)
