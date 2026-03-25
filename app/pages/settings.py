@@ -122,9 +122,6 @@ def build() -> None:
     nav_buttons: dict[str, ui.button] = {}
     summary_card_refs: dict[str, ui.card] = {}
 
-    # Placeholder for switch_fn — will be set after definition
-    switch_ref: list = []
-
     # Summary cards at top (rendered after switch_fn is defined)
     summary_container = ui.column().classes("w-full")
 
@@ -218,14 +215,7 @@ def build() -> None:
 
                 _settings_row("Статус модели", "", control_fn=_model_status)
 
-                # Row 3: Thinking mode toggle
-                def _thinking_control():
-                    sw = ui.switch(value=s.get("ai_disable_thinking", True)).props("dense")
-                    sw.on_value_change(lambda e: save_setting("ai_disable_thinking", e.value))
-
-                _settings_row("Thinking mode", "Отключить для 5-7x ускорения", control_fn=_thinking_control)
-
-                # Row 4: Check connection
+                # Row 3: Check connection
                 def _check_control():
                     result_label = ui.label("").classes("text-xs")
 
