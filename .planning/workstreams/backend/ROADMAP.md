@@ -40,7 +40,11 @@ last_updated: "2026-03-26"
   3. Тест-сюит проходит без патчей на удалённые модули
   4. Пользователь видит предупреждение в UI, если документ обрезан до 30K символов
   5. llama-server регистрирует atexit-хук ровно один раз при запуске приложения
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 28-01-PLAN.md — Удалить validator.py и reporter.py из controller + тестов
+- [ ] 28-02-PLAN.md — Удалить _create_client/_try_model, thinking mode, мёртвые imports
+- [ ] 28-03-PLAN.md — atexit fix в llama_server + truncation warning в ai_extractor
 
 ### Phase 29: AI Pipeline
 **Goal**: AI-слой выдаёт реальный confidence через logprobs, GBNF-грамматика отражает актуальную схему, постпроцессор не ломает латинские аббревиатуры
@@ -83,7 +87,7 @@ last_updated: "2026-03-26"
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Cleanup | 0/? | Not started | - |
+| 28. Cleanup | 0/3 | Planned | - |
 | 29. AI Pipeline | 0/? | Not started | - |
 | 30. Redline + Vectors | 0/? | Not started | - |
 | 31. UI Wire-up | 0/? | Not started | - |
@@ -121,4 +125,4 @@ last_updated: "2026-03-26"
 ---
 
 *Roadmap created: 2026-03-26*
-*Last updated: 2026-03-26 — initial creation*
+*Last updated: 2026-03-26 — Phase 28 plans created (3 plans)*
