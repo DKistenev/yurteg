@@ -79,11 +79,11 @@
 - ✓ Settings: structured sections, sidebar active state — v0.7
 - ✓ Skeleton loading, card stagger, page fade, footer — v0.7
 
-## Current Milestone: v0.8.1 UI Polish
+## Current Milestones
+
+### v0.8.1 UI Polish (workstream: hardening-cleanup)
 
 **Goal:** Полная переработка визуала всех экранов по утверждённым HTML-мокапам — от реестра до онбординга.
-
-### Active
 
 - [ ] Реестр: убрать «Уверенность» и Excel, Linear-style панель, русский подвал
 - [ ] Карточка документа: метаданные слева + PDF/DOCX превью справа на всю высоту
@@ -94,11 +94,22 @@
 - [ ] Онбординг: пошаговый wizard 3 шага + гид-тур с подсветкой
 - [ ] Обработка: живой реестр + лента файлов в реальном времени
 
+### v0.9 Backend Hardening (workstream: backend)
+
+**Goal:** Привести бэкенд в рабочее состояние — снести устаревшую валидацию, доработать GBNF, убрать Excel, реализовать полноценный redline и векторную систему, оптимизировать под локальную модель.
+
+- [ ] Снести валидацию L1-L5 и Excel reporter — облачное наследие
+- [ ] Доработать GBNF грамматику + confidence через logprobs
+- [ ] Полноценный redline DOCX с track changes (версии + шаблоны)
+- [ ] Векторная система: поиск версий, шаблоны из версий
+- [ ] Подключить бэкенд к UI: открытие файла, дедлайны, шаблоны, bulk delete
+- [ ] Вычистить мёртвый код облачной эры
+
 ### Deferred
 
-- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode (v0.9)
-- [ ] Сборка EXE для Windows (v0.9)
-- [ ] Автообновление или уведомление о новых версиях (v0.9)
+- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode
+- [ ] Сборка EXE для Windows
+- [ ] Автообновление или уведомление о новых версиях
 
 ### Out of Scope
 
@@ -180,4 +191,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-25 after v0.8.1 milestone start — UI Polish*
+*Last updated: 2026-03-26 after v0.9 Backend Hardening milestone start*
