@@ -7,8 +7,8 @@
 
 ### Cleanup
 
-- [ ] **CLEAN-01**: Удалить validator.py и все вызовы L1-L5 валидации из controller.py и тестов
-- [ ] **CLEAN-02**: Удалить reporter.py (Excel) и все вызовы из controller.py, UI и тестов
+- [x] **CLEAN-01**: Удалить validator.py и все вызовы L1-L5 валидации из controller.py и тестов
+- [x] **CLEAN-02**: Удалить reporter.py (Excel) и все вызовы из controller.py, UI и тестов
 - [ ] **CLEAN-03**: Удалить deprecated `_create_client()`, `_try_model()` из ai_extractor.py
 - [ ] **CLEAN-04**: Удалить thinking mode setting из UI и config (ZAI-specific)
 - [ ] **CLEAN-05**: Вычистить мёртвый код облачной эры (unused imports, fallback chains)
@@ -68,8 +68,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | Phase 28 | Pending |
-| CLEAN-02 | Phase 28 | Pending |
+| CLEAN-01 | Phase 28 | Complete |
+| CLEAN-02 | Phase 28 | Complete |
 | CLEAN-03 | Phase 28 | Pending |
 | CLEAN-04 | Phase 28 | Pending |
 | CLEAN-05 | Phase 28 | Pending |

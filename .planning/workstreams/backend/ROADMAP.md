@@ -42,7 +42,7 @@ last_updated: "2026-03-26"
   5. llama-server регистрирует atexit-хук ровно один раз при запуске приложения
 **Plans**: 3 plans
 Plans:
-- [ ] 28-01-PLAN.md — Удалить validator.py и reporter.py из controller + тестов
+- [x] 28-01-PLAN.md — Удалить validator.py и reporter.py из controller + тестов
 - [ ] 28-02-PLAN.md — Удалить _create_client/_try_model, thinking mode, мёртвые imports
 - [ ] 28-03-PLAN.md — atexit fix в llama_server + truncation warning в ai_extractor
 
@@ -87,7 +87,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 28. Cleanup | 0/3 | Planned | - |
+| 28. Cleanup | 1/3 | In Progress|  |
 | 29. AI Pipeline | 0/? | Not started | - |
 | 30. Redline + Vectors | 0/? | Not started | - |
 | 31. UI Wire-up | 0/? | Not started | - |
