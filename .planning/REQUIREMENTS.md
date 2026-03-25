@@ -9,10 +9,10 @@
 
 ### Реестр (REG)
 
-- [ ] **REG-01**: Колонка «Уверенность» убрана из таблицы реестра
-- [ ] **REG-02**: Bulk toolbar без кнопки «Экспорт в Excel», шрифт кнопок = IBM Plex Sans
-- [ ] **REG-03**: Pagination footer полностью на русском (без «Page Size»)
-- [ ] **REG-04**: Боковая панель в Linear-style: секции с мини-заголовками, тег-бейдж для типа, сумма крупно, без КАПСА
+- [x] **REG-01**: Колонка «Уверенность» убрана из таблицы реестра
+- [x] **REG-02**: Bulk toolbar без кнопки «Экспорт в Excel», шрифт кнопок = IBM Plex Sans
+- [x] **REG-03**: Pagination footer полностью на русском (без «Page Size»)
+- [x] **REG-04**: Боковая панель в Linear-style: секции с мини-заголовками, тег-бейдж для типа, сумма крупно, без КАПСА
 - [ ] **REG-05**: Кнопка «Календарь» открывает таймлайн событий + мини-календарь + сводку за месяц
 
 ### Карточка документа (DOC)
@@ -71,35 +71,35 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REG-01 | — | Pending |
-| REG-02 | — | Pending |
-| REG-03 | — | Pending |
-| REG-04 | — | Pending |
-| REG-05 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
-| DOC-03 | — | Pending |
-| DOC-04 | — | Pending |
-| DOC-05 | — | Pending |
-| DOC-06 | — | Pending |
-| WS-01 | — | Pending |
-| TPL-01 | — | Pending |
-| SET-01 | — | Pending |
-| SET-02 | — | Pending |
-| SET-03 | — | Pending |
-| ONB-01 | — | Pending |
-| ONB-02 | — | Pending |
-| ONB-03 | — | Pending |
-| ONB-04 | — | Pending |
-| PROC-01 | — | Pending |
-| PROC-02 | — | Pending |
-| PROC-03 | — | Pending |
+| REG-01 | Phase 24 | Complete |
+| REG-02 | Phase 24 | Complete |
+| REG-03 | Phase 24 | Complete |
+| REG-04 | Phase 24 | Complete |
+| REG-05 | Phase 24 | Pending |
+| DOC-01 | Phase 25 | Pending |
+| DOC-02 | Phase 25 | Pending |
+| DOC-03 | Phase 25 | Pending |
+| DOC-04 | Phase 25 | Pending |
+| DOC-05 | Phase 25 | Pending |
+| DOC-06 | Phase 25 | Pending |
+| WS-01 | Phase 26 | Pending |
+| TPL-01 | Phase 26 | Pending |
+| SET-01 | Phase 26 | Pending |
+| SET-02 | Phase 26 | Pending |
+| SET-03 | Phase 26 | Pending |
+| ONB-01 | Phase 27 | Pending |
+| ONB-02 | Phase 27 | Pending |
+| ONB-03 | Phase 27 | Pending |
+| ONB-04 | Phase 27 | Pending |
+| PROC-01 | Phase 27 | Pending |
+| PROC-02 | Phase 27 | Pending |
+| PROC-03 | Phase 27 | Pending |
 
 **Coverage:**
 - v0.8.1 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 ⚠️
+- Mapped to phases: 23
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-25*
-*Last updated: 2026-03-25 after initial definition*
+*Last updated: 2026-03-25 after roadmap creation*

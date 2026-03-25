@@ -32,7 +32,7 @@ Phases 1-19 completed across five milestones (v0.4–v0.7.1). See MILESTONES.md 
 
 **Milestone Goal:** Полная переработка визуала всех экранов по утверждённым HTML-мокапам — от реестра до онбординга.
 
-- [ ] **Phase 24: Registry** — реестр без «Уверенности», Linear-style панель, русский footer, таймлайн-календарь
+- [x] **Phase 24: Registry** — реестр без «Уверенности», Linear-style панель, русский footer, таймлайн-календарь (completed 2026-03-25)
 - [ ] **Phase 25: Document Card** — двухколоночная раскладка с превью PDF/DOCX на всю высоту
 - [ ] **Phase 26: Dialogs & Pages** — диалог пространства, пустое состояние шаблонов, страница настроек
 - [ ] **Phase 27: Onboarding & Processing** — 3-шаговый wizard, гид-тур, живой реестр при обработке
@@ -114,8 +114,8 @@ Plans:
   5. Кнопка «Календарь» открывает таймлайн с лентой событий слева и мини-календарём справа с цветными точками
 **Plans**: 2 plans
 Plans:
-- [ ] 24-01-PLAN.md — Таблица: убрать Уверенность и Excel, русифицировать footer, Linear-style панель
-- [ ] 24-02-PLAN.md — Календарь: таймлайн событий + мини-календарь вместо FullCalendar
+- [x] 24-01-PLAN.md — Таблица: убрать Уверенность и Excel, русифицировать footer, Linear-style панель
+- [x] 24-02-PLAN.md — Календарь: таймлайн событий + мини-календарь вместо FullCalendar
 **UI hint**: yes
 
 ### Phase 25: Document Card
@@ -190,7 +190,7 @@ Plans:
 | 21. UI Fixes | v0.8 | 2/2 | Complete    | 2026-03-24 |
 | 22. Code Cleanup | v0.8 | 2/2 | Complete    | 2026-03-24 |
 | 23. Production Readiness | v0.8 | 2/2 | Complete    | 2026-03-24 |
-| 24. Registry | v0.8.1 | 0/2 | In Progress | - |
+| 24. Registry | v0.8.1 | 2/2 | Complete   | 2026-03-25 |
 | 25. Document Card | v0.8.1 | 0/? | Not started | - |
 | 26. Dialogs & Pages | v0.8.1 | 0/? | Not started | - |
 | 27. Onboarding & Processing | v0.8.1 | 0/? | Not started | - |
