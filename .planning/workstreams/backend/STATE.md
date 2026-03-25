@@ -3,11 +3,11 @@ workstream: backend
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: Backend Hardening
-status: Defining requirements
+status: Ready for planning
 last_updated: "2026-03-26"
 last_activity: 2026-03-26
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Defining requirements for v0.9 Backend Hardening
+**Current focus:** v0.9 Backend Hardening — Phase 28 (Cleanup) ready to plan
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 28 — Cleanup (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-03-26 — Milestone v0.9 started
+Status: Ready for planning
+Last activity: 2026-03-26 — ROADMAP.md created, 21/21 requirements mapped
+
+```
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0/4 phases complete
+```
 
 ## Accumulated Context
 
@@ -40,18 +44,26 @@ Last activity: 2026-03-26 — Milestone v0.9 started
 - [v0.9 2026-03-26]: Confidence считается через logprobs Ollama, не из модели
 - [v0.9 2026-03-26]: Единый redline-движок для версий и шаблонов (DOCX track changes)
 - [v0.9 2026-03-26]: Telegram и OCR — не в этой вехе
+- [v0.9 2026-03-26]: GBNF/logprobs несовместимы в b5606 — grammar передаётся через per-request body, не server flag
+- [v0.9 2026-03-26]: python-docx OxmlElement подход верный, нужна word-level алгоритмическая правка (~30 LOC)
+- [v0.9 2026-03-26]: MiniLM-L12-v2 достаточен для русских договоров, truncation исправляем 8000→3000
+
+### Critical Risks
+
+- **Phase 29**: Перед написанием кода — curl-тест logprobs против работающего llama-server b5606 (MEDIUM confidence, требует валидации)
+- **Phase 30**: Перед маркировкой фазы done — проверить Word 365, не только LibreOffice (XML compatibility MEDIUM confidence)
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-None at requirements stage.
+None.
 
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Defining requirements
+Stopped at: Roadmap created
 Resume file: None
-Next: Define REQUIREMENTS.md → create ROADMAP.md
+Next: `/gsd:plan-phase 28`

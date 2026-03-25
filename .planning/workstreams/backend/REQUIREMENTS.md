@@ -68,33 +68,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLEAN-01 | TBD | Pending |
-| CLEAN-02 | TBD | Pending |
-| CLEAN-03 | TBD | Pending |
-| CLEAN-04 | TBD | Pending |
-| CLEAN-05 | TBD | Pending |
-| AI-01 | TBD | Pending |
-| AI-02 | TBD | Pending |
-| AI-03 | TBD | Pending |
-| RED-01 | TBD | Pending |
-| RED-02 | TBD | Pending |
-| RED-03 | TBD | Pending |
-| VEC-01 | TBD | Pending |
-| VEC-02 | TBD | Pending |
-| VEC-03 | TBD | Pending |
-| VEC-04 | TBD | Pending |
-| WIRE-01 | TBD | Pending |
-| WIRE-02 | TBD | Pending |
-| WIRE-03 | TBD | Pending |
-| WIRE-04 | TBD | Pending |
-| STAB-01 | TBD | Pending |
-| STAB-02 | TBD | Pending |
+| CLEAN-01 | Phase 28 | Pending |
+| CLEAN-02 | Phase 28 | Pending |
+| CLEAN-03 | Phase 28 | Pending |
+| CLEAN-04 | Phase 28 | Pending |
+| CLEAN-05 | Phase 28 | Pending |
+| STAB-01 | Phase 28 | Pending |
+| STAB-02 | Phase 28 | Pending |
+| AI-01 | Phase 29 | Pending |
+| AI-02 | Phase 29 | Pending |
+| AI-03 | Phase 29 | Pending |
+| RED-01 | Phase 30 | Pending |
+| RED-02 | Phase 30 | Pending |
+| RED-03 | Phase 30 | Pending |
+| VEC-01 | Phase 30 | Pending |
+| VEC-02 | Phase 30 | Pending |
+| VEC-03 | Phase 30 | Pending |
+| VEC-04 | Phase 30 | Pending |
+| WIRE-01 | Phase 31 | Pending |
+| WIRE-02 | Phase 31 | Pending |
+| WIRE-03 | Phase 31 | Pending |
+| WIRE-04 | Phase 31 | Pending |
 
 **Coverage:**
 - v0.9 requirements: 21 total
-- Mapped to phases: 0 ⚠️
-- Unmapped: 21
+- Mapped to phases: 21
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-26*
-*Last updated: 2026-03-26 after initial definition*
+*Last updated: 2026-03-26 — traceability filled after ROADMAP.md creation*
