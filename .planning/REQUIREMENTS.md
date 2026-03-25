@@ -13,7 +13,7 @@
 - [x] **REG-02**: Bulk toolbar без кнопки «Экспорт в Excel», шрифт кнопок = IBM Plex Sans
 - [x] **REG-03**: Pagination footer полностью на русском (без «Page Size»)
 - [x] **REG-04**: Боковая панель в Linear-style: секции с мини-заголовками, тег-бейдж для типа, сумма крупно, без КАПСА
-- [ ] **REG-05**: Кнопка «Календарь» открывает таймлайн событий + мини-календарь + сводку за месяц
+- [x] **REG-05**: Кнопка «Календарь» открывает таймлайн событий + мини-календарь + сводку за месяц
 
 ### Карточка документа (DOC)
 
@@ -75,7 +75,7 @@
 | REG-02 | Phase 24 | Complete |
 | REG-03 | Phase 24 | Complete |
 | REG-04 | Phase 24 | Complete |
-| REG-05 | Phase 24 | Pending |
+| REG-05 | Phase 24 | Complete |
 | DOC-01 | Phase 25 | Pending |
 | DOC-02 | Phase 25 | Pending |
 | DOC-03 | Phase 25 | Pending |
