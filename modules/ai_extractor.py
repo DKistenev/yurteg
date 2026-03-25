@@ -205,7 +205,14 @@ def extract_metadata(
         RuntimeError: если все попытки исчерпаны
     """
     # Обрезать текст если слишком длинный (30K достаточно для 95% документов)
+    original_len = len(anonymized_text)
     text = anonymized_text[:30_000]
+    if original_len > 30_000:
+        logger.warning(
+            "Текст документа обрезан до 30 000 символов (оригинал: %d символов). "
+            "Часть документа не будет проанализирована.",
+            original_len,
+        )
 
     # Формируем список типов для промпта
     types_str = ", ".join(f'"{t}"' for t in config.document_types_hints)
