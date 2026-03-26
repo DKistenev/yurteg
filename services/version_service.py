@@ -8,12 +8,16 @@
 import io
 import logging
 import threading
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from modules.models import ContractMetadata
 
 import numpy as np
 
 from modules.database import Database
 from modules.models import DocumentVersion
+from services.redline_service import generate_redline_docx  # noqa: F401 — re-export
 
 logger = logging.getLogger(__name__)
 
@@ -227,83 +231,6 @@ def diff_versions(
         })
     return result
 
-
-def generate_redline_docx(text_old: str, text_new: str, title: str = "Редлайн") -> bytes:
-    """Генерирует .docx с track changes (w:ins/w:del) для пары текстов.
-
-    Использует difflib на уровне предложений.
-    Возвращает байты готового .docx файла.
-    """
-    import difflib
-    import io as _io
-    import re
-    from itertools import count as _count
-
-    from docx import Document
-    from docx.oxml import OxmlElement
-    from docx.oxml.ns import qn
-
-    _rev_counter = _count(1)
-
-    def _next_id() -> str:
-        return str(next(_rev_counter))
-
-    def _sentences(text: str) -> list[str]:
-        parts = re.split(r'(?<=[.!?])\s+', text.strip())
-        return [p for p in parts if p]
-
-    def _add_deleted_run(para, text: str) -> None:
-        del_el = OxmlElement('w:del')
-        del_el.set(qn('w:id'), _next_id())
-        del_el.set(qn('w:author'), 'ЮрТэг')
-        del_el.set(qn('w:date'), '2026-01-01T00:00:00Z')
-        run_el = OxmlElement('w:r')
-        del_text_el = OxmlElement('w:delText')
-        del_text_el.set(qn('xml:space'), 'preserve')
-        del_text_el.text = text
-        run_el.append(del_text_el)
-        del_el.append(run_el)
-        para._p.append(del_el)
-
-    def _add_inserted_run(para, text: str) -> None:
-        ins_el = OxmlElement('w:ins')
-        ins_el.set(qn('w:id'), _next_id())
-        ins_el.set(qn('w:author'), 'ЮрТэг')
-        ins_el.set(qn('w:date'), '2026-01-01T00:00:00Z')
-        run = para.add_run(text)
-        run._r.getparent().remove(run._r)
-        ins_el.append(run._r)
-        para._p.append(ins_el)
-
-    doc = Document()
-    doc.add_heading(title, level=1)
-
-    old_sents = _sentences(text_old)
-    new_sents = _sentences(text_new)
-
-    matcher = difflib.SequenceMatcher(None, old_sents, new_sents)
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == 'equal':
-            for s in old_sents[i1:i2]:
-                doc.add_paragraph(s)
-        elif tag == 'replace':
-            para = doc.add_paragraph()
-            for s in old_sents[i1:i2]:
-                _add_deleted_run(para, s + ' ')
-            for s in new_sents[j1:j2]:
-                _add_inserted_run(para, s + ' ')
-        elif tag == 'delete':
-            para = doc.add_paragraph()
-            for s in old_sents[i1:i2]:
-                _add_deleted_run(para, s + ' ')
-        elif tag == 'insert':
-            para = doc.add_paragraph()
-            for s in new_sents[j1:j2]:
-                _add_inserted_run(para, s + ' ')
-
-    buf = _io.BytesIO()
-    doc.save(buf)
-    return buf.getvalue()
 
 
 def get_version_group(db: Database, contract_id: int) -> list[DocumentVersion]:
