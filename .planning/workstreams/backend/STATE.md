@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 29-ai-pipeline-02-PLAN.md
-last_updated: "2026-03-26T19:11:02.930Z"
+status: Executing Phase 30
+stopped_at: Completed 30-02-PLAN.md
+last_updated: "2026-03-26T19:30:10Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 9
+  completed_plans: 7
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 29 — AI Pipeline
+**Current focus:** Phase 30 — Redline + Vectors
 
 ## Current Position
 
-Phase: 30
-Plan: Not started
+Phase: 30 (Redline + Vectors) — EXECUTING
+Plan: 2 of 3
 
 ## Accumulated Context
 
@@ -41,6 +41,8 @@ Plan: Not started
 - [v0.9 2026-03-26]: GBNF/logprobs несовместимы в b5606 — grammar передаётся через per-request body, не server flag
 - [v0.9 2026-03-26]: python-docx OxmlElement подход верный, нужна word-level алгоритмическая правка (~30 LOC)
 - [v0.9 2026-03-26]: MiniLM-L12-v2 достаточен для русских договоров, truncation исправляем 8000→3000
+- [30-02 2026-03-26]: mark_contract_as_template сохраняет full_text + embedding в template_embeddings
+- [30-02 2026-03-26]: TEMPLATE_MATCH_THRESHOLD поднят 0.60 → 0.70, compute_embedding без среза
 - [Phase 28-cleanup]: stress_test.py validator sections deferred — слишком большой scope, залогировано в deferred-items.md
 - [28-03 2026-03-26]: atexit.register перемещён внутрь if started: — вызывается ровно 1 раз при успехе
 - [28-03 2026-03-26]: logging.warning при обрезке >30K — юрист видит что часть документа не проанализирована
@@ -62,6 +64,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 29-ai-pipeline-02-PLAN.md
+Stopped at: Completed 30-02-PLAN.md
 Resume file: None
-Next: Phase 29 complete — все 3 плана выполнены (GBNF, logprobs, whitelist)
+Next: Phase 30 Plan 3 — финальный план фазы (redline или интеграция)
