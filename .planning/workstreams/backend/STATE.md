@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 30-03-PLAN.md
-last_updated: "2026-03-26T19:36:09.612Z"
+status: Executing Phase 31
+stopped_at: Completed 31-01-PLAN.md
+last_updated: "2026-03-26T20:00:00.000Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 11
+  completed_plans: 10
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** Phase 30 — Redline + Vectors
+**Current focus:** Phase 31 — UI Wire-up
 
 ## Current Position
 
-Phase: 31
-Plan: Not started
+Phase: 31 (UI Wire-up) — EXECUTING
+Plan: 2 of 2
 
 ## Accumulated Context
 
@@ -50,6 +50,7 @@ Plan: Not started
 - [28-03 2026-03-26]: atexit.register перемещён внутрь if started: — вызывается ровно 1 раз при успехе
 - [28-03 2026-03-26]: logging.warning при обрезке >30K — юрист видит что часть документа не проанализирована
 - [29-03 2026-03-26]: Placeholder «i» (кавычки-ёлочки) пережи фильтрацию _RE_CYRILLIC_ONLY — NDA/SLA/GPS сохраняются в cyrillic_only полях
+- [31-01 2026-03-26]: platform/subprocess/mark_contract_as_template импортируются lazy (внутри функций) — ruff F401 не блокирует
 
 ### Critical Risks
 
@@ -67,6 +68,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 30-03-PLAN.md
+Stopped at: Completed 31-01-PLAN.md
 Resume file: None
-Next: Phase 30 полностью завершена — все 3 плана выполнены (redline_service, vectors/templates, wiring)
+Next: Phase 31 план 01 выполнен — кнопки «Открыть файл» и «Сохранить как шаблон» в action bar
