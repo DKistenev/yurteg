@@ -11,15 +11,13 @@ import logging
 import re
 from typing import Optional
 
-import numpy as np
-
 from modules.database import Database
 from modules.models import Template
+from services.redline_service import generate_redline_docx
 from services.version_service import (
-    compute_embedding,
-    generate_redline_docx,
     TEMPLATE_MATCH_THRESHOLD,
     _cosine_sim,
+    compute_embedding,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,23 +50,47 @@ def mark_contract_as_template(
 ) -> Optional[int]:
     """Отмечает документ из реестра как шаблон-эталон.
 
-    Извлекает contract_type, filename, subject из contracts.
+    Извлекает contract_type, filename, subject, full_text из contracts.
+    Сохраняет embedding в template_embeddings для кэша.
     Returns: template id или None если contract не найден.
     """
     with db._lock:
         row = db.conn.execute(
-            "SELECT contract_type, filename, subject, original_path FROM contracts WHERE id=?",
+            "SELECT contract_type, filename, subject, original_path, full_text FROM contracts WHERE id=?",
             (contract_id,),
         ).fetchone()
     if row is None:
         logger.warning("contract_id=%d не найден", contract_id)
         return None
 
-    contract_type, filename, subject, original_path = row
+    contract_type, filename, subject, original_path, full_text = row
     name = template_name or f"Эталон: {filename}"
-    content = subject or filename  # используем subject как контент если нет полного текста
+    content = full_text or subject or filename  # per VEC-02: полный текст приоритетнее
 
-    return add_template(db, contract_type or "Прочее", name, content, original_path)
+    template_id = add_template(db, contract_type or "Прочее", name, content, original_path)
+
+    if template_id and content:
+        import io as _io
+
+        import numpy as _np
+
+        from services.version_service import EMBEDDING_MODEL
+
+        vector = compute_embedding(content)
+        buf = _io.BytesIO()
+        _np.save(buf, vector)
+        file_hash = ""  # нет file_hash у шаблона из реестра — пустая строка как sentinel
+        with db._lock:
+            db.conn.execute(
+                """INSERT OR REPLACE INTO template_embeddings
+                   (template_id, file_hash, vector, model_version)
+                   VALUES (?, ?, ?, ?)""",
+                (template_id, file_hash, buf.getvalue(), EMBEDDING_MODEL),
+            )
+            db.conn.commit()
+        logger.info("Embedding сохранён в template_embeddings для template_id=%d", template_id)
+
+    return template_id
 
 
 def list_templates(db: Database, contract_type: Optional[str] = None) -> list[Template]:
@@ -129,11 +151,18 @@ def match_template(
 
     Алгоритм:
     1. Если есть шаблон с точным соответствием contract_type — предпочесть их
-    2. Сравнить косинусное сходство эмбеддингов
-    3. Вернуть шаблон с sim >= TEMPLATE_MATCH_THRESHOLD или None
+    2. Загрузить кэшированные embeddings из template_embeddings (не пересчитывать)
+    3. Сравнить косинусное сходство эмбеддингов
+    4. Вернуть шаблон с sim >= TEMPLATE_MATCH_THRESHOLD или None
 
     Returns: Template или None (предложить ручной выбор в UI)
     """
+    import io as _io
+
+    import numpy as _np
+
+    from services.version_service import EMBEDDING_MODEL
+
     templates = list_templates(db, contract_type)  # сначала по типу
     if not templates:
         templates = list_templates(db)  # затем все
@@ -142,13 +171,26 @@ def match_template(
 
     doc_vector = compute_embedding(document_text)
 
+    # Загрузить кэшированные embeddings для всех шаблонов
+    cached_vectors: dict[int, _np.ndarray] = {}
+    with db._lock:
+        rows = db.conn.execute(
+            "SELECT template_id, vector, model_version FROM template_embeddings"
+        ).fetchall()
+    for cache_row in rows:
+        if cache_row[2] == EMBEDDING_MODEL:  # пропустить если модель изменилась
+            cached_vectors[cache_row[0]] = _np.load(_io.BytesIO(cache_row[1]))
+
     best_sim = 0.0
     best_template = None
 
     for tmpl in templates:
         if not tmpl.content_text:
             continue
-        tmpl_vector = compute_embedding(tmpl.content_text)
+        if tmpl.id in cached_vectors:
+            tmpl_vector = cached_vectors[tmpl.id]
+        else:
+            tmpl_vector = compute_embedding(tmpl.content_text)
         sim = _cosine_sim(doc_vector, tmpl_vector)
         if sim > best_sim:
             best_sim = sim
@@ -229,3 +271,44 @@ def review_against_template(
             })
 
     return result
+
+
+def get_redline_for_template(
+    db: Database,
+    contract_id: int,
+    template_id: int,
+) -> Optional[bytes]:
+    """Генерирует редлайн документа против шаблона-эталона.
+
+    Извлекает тексты из БД (templates.content_text, contracts.full_text).
+    Возвращает bytes .docx с word-level track changes или None если данные не найдены.
+    """
+    with db._lock:
+        tmpl_row = db.conn.execute(
+            "SELECT content_text, name FROM templates WHERE id=? AND is_active=1",
+            (template_id,),
+        ).fetchone()
+        contract_row = db.conn.execute(
+            "SELECT full_text, filename FROM contracts WHERE id=?",
+            (contract_id,),
+        ).fetchone()
+
+    if tmpl_row is None or contract_row is None:
+        logger.warning(
+            "get_redline_for_template: не найден template_id=%d или contract_id=%d",
+            template_id, contract_id,
+        )
+        return None
+
+    template_text, template_name = tmpl_row
+    contract_text, contract_filename = contract_row
+
+    if not template_text or not contract_text:
+        logger.warning(
+            "get_redline_for_template: пустой текст (template=%s, contract=%s)",
+            bool(template_text), bool(contract_text),
+        )
+        return None
+
+    title = f"Редлайн: {contract_filename} vs {template_name}"
+    return generate_redline_docx(template_text, contract_text, title)
