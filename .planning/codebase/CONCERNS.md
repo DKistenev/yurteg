@@ -22,19 +22,13 @@
 - Impact: Fallback to 0.5B model on production would drop quality from 97% to 68%. Not production-ready.
 - Fix approach: Keep 1.5B Q4_K_M as primary production model. 0.5B remains emergency fallback only. Further training would require larger dataset or different architecture.
 
-**UI visual layer incomplete:**
-- Issue: UI evaluated at 2.5/5. Large empty white spaces, insufficient visual structure, minimal color usage, no visual hierarchy.
-- Files: `app/styles.py`, `app/pages/registry.py`, `app/pages/templates.py`, `app/components/header.py`
-- Impact: Users find interface confusing and uninviting. Empty registry shows no guidance. Stats bar and footer minimal.
-- Fix approach: Apply 12 point visual refresh plan: warm background (#faf8f5), visible card styling (shadow-sm, border, rounded corners), accent buttons, rich empty state with 3 capability cards, header polish, typographic scaling.
+**~~UI visual layer incomplete~~ — RESOLVED (v0.7 + UI overhaul 55e4e27):**
+- Resolved: Split-view registry, bulk actions toolbar, skeleton loading, grouped metadata cards, confidence bar, CSS animations (yt-slide-in, yt-fade-stagger), design tokens, dark chrome header, hero splash, rich empty state. UI теперь полноценный продукт.
 
 ## Known Bugs
 
-**Duplicate status CSS:**
-- Symptoms: Status badge styling duplicated in Tailwind @apply and in main.py CSS. Inconsistent rendering.
-- Files: `app/main.py` (CSS inline), `app/static/design-system.css`
-- Trigger: Browser dev tools show status styles loaded twice
-- Workaround: None currently. Delete Tailwind-based styles from main.py, consolidate in design-system.css (single source of truth).
+**~~Duplicate status CSS~~ — RESOLVED (v0.7.1 debug):**
+- Resolved: Tailwind @apply убран из main.py, единый источник в design-system.css.
 
 **AG Grid null data rendering:**
 - Symptoms: When data contains null values in text fields, AG Grid renders "null" as string instead of empty cell.
@@ -42,17 +36,11 @@
 - Trigger: Contracts with missing counterparty, subject, or amount fields
 - Workaround: Post-process row data to replace null values with empty strings before grid render
 
-**Tour component crash on HTML toggle:**
-- Symptoms: Tour component crashes if HTML is loaded after JS event listeners attached.
-- Files: `app/components/onboarding/tour.py`
-- Trigger: First-time user viewing tour after HTML injection
-- Workaround: HTML and JS now separated in main.py (lines 91-96 vs 108-111). Prevents event listener race condition.
+**~~Tour component crash on HTML toggle~~ — RESOLVED (v0.7.1 debug):**
+- Resolved: HTML и JS разделены в main.py, race condition устранён.
 
-**SPA calendar navigation returns 404:**
-- Symptoms: Calendar date picker uses URL navigation which breaks sub_pages routing.
-- Files: `app/components/registry_table.py`, `app/static/calendar.js`
-- Trigger: Clicking date on calendar redirects to /calendar instead of staying on /
-- Workaround: FullCalendar CDN lazy-loaded on demand (not eager). Calendar.js uses manual tooltip instead of full calendar library. See registry.py calendar implementation.
+**~~SPA calendar navigation returns 404~~ — RESOLVED (v0.7.1 debug):**
+- Resolved: SPA навигация починена, FullCalendar lazy-loaded.
 
 ## Security Considerations
 
