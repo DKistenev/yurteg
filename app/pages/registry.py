@@ -39,7 +39,7 @@ from app.components.bulk_actions import (
 )
 from app.state import get_state
 from config import load_settings, save_setting
-from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status
+from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status, get_attention_required
 from services.payment_service import get_calendar_events
 
 logger = logging.getLogger(__name__)
@@ -480,23 +480,27 @@ def build() -> None:
         # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
         # CRITICAL: all labels created INSIDE with-block so NiceGUI places them in DOM
         # inside the flex container, not outside it (NiceGUI DOM creation order bug)
-        with ui.row().classes(STATS_BAR) as stats_row:
+        with ui.row().classes(STATS_BAR + " w-full") as stats_row:
             stats_row.props('role="region" aria-label="Статистика реестра"')
-            with ui.column().classes(STATS_ITEM):
+            with ui.column().classes(STATS_ITEM + " flex-1"):
                 total_num = ui.label("—").classes(STAT_NUMBER + " text-slate-900").props('aria-label="Всего документов"')
                 ui.label("документов").classes(STAT_LABEL + " text-slate-500")
             ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
-            with ui.column().classes(STATS_ITEM + " cursor-pointer").on("click", lambda: _switch_segment("expiring")):
+            with ui.column().classes(STATS_ITEM + " flex-1 cursor-pointer").on("click", lambda: _switch_segment("expiring")):
                 expiring_num = ui.label("—").classes(STAT_NUMBER + " text-amber-600").props('aria-label="Документов истекает"')
                 ui.label("истекают").classes(STAT_LABEL + " text-slate-500")
             ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
-            with ui.column().classes(STATS_ITEM + " cursor-pointer").on("click", lambda: _switch_segment("attention")):
+            with ui.column().classes(STATS_ITEM + " flex-1 cursor-pointer").on("click", lambda: _switch_segment("attention")):
                 attention_num = ui.label("—").classes(STAT_NUMBER + " text-red-600").props('aria-label="Требуют внимания"')
                 ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
 
         # ── Trust-building banner placeholder (Phase 16) ──────────────────────────
         trust_banner_container = ui.column().classes("w-full")
         trust_banner_container.set_visibility(False)
+
+        # ── Deadline widget placeholder (WIRE-03) ─────────────────────────────────
+        deadline_container = ui.column().classes("w-full")
+        deadline_container.set_visibility(False)
 
         # ── Page heading + controls row ──────────────────────────────────────────
         with ui.row().classes("w-full px-6 pt-5 pb-2 items-center gap-4"):
@@ -505,9 +509,9 @@ def build() -> None:
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
             with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg").props("id=calendar-toggle data-tour=calendar"):
-                list_btn = ui.button("≡ Список").props("flat no-caps").classes(TOGGLE_ACTIVE + " text-xs px-3 py-1")
+                list_btn = ui.button("Список", icon="view_list").props("flat no-caps").classes(TOGGLE_ACTIVE + " text-xs px-3 py-1")
                 list_btn.props('aria-label="Вид списком"')
-                cal_btn = ui.button("⊞ Календарь").props("flat no-caps").classes(TOGGLE_INACTIVE + " text-xs px-3 py-1")
+                cal_btn = ui.button("Календарь", icon="calendar_month").props("flat no-caps").classes(TOGGLE_INACTIVE + " text-xs px-3 py-1")
                 cal_btn.props('aria-label="Вид календарём"')
 
         # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
@@ -522,7 +526,7 @@ def build() -> None:
             with ui.row().classes("gap-1.5 bg-slate-100 p-1 rounded-lg"):
                 for key, label in [
                     ("all", "Все"),
-                    ("expiring", "Истекают ⚠"),
+                    ("expiring", "Истекают"),
                     ("attention", "Требуют внимания"),
                 ]:
                     btn = ui.button(
@@ -550,11 +554,11 @@ def build() -> None:
                 ui.element('div').classes("yt-skeleton-pulse rounded").style("height: 44px; margin-bottom: 2px;")
 
         # ── Bulk actions toolbar (UI Overhaul) ─────────────────────────────────────
-        bulk_container = ui.column().classes("w-full")
+        bulk_container = ui.column().classes("w-full px-4")
 
         # ── Split-view: grid + side panel (UI Overhaul) ───────────────────────────
         with ui.row().classes("w-full flex-1").style("min-height: 0;"):
-            grid_container = ui.column().classes("flex-1 max-w-none px-6 overflow-hidden")
+            grid_container = ui.column().classes("flex-1 max-w-none px-4 overflow-hidden")
             grid_container.set_visibility(False)
 
             # Split panel — hidden by default, slides in on row click
@@ -585,6 +589,82 @@ def build() -> None:
         total_num.set_text(str(counts["total"]))
         expiring_num.set_text(str(counts["expiring"]))
         attention_num.set_text(str(counts["attention"]))
+
+    async def _refresh_deadline_widget() -> None:
+        """Загружает и отображает виджет документов, требующих внимания (WIRE-03)."""
+        db = _client_manager.get_db(state.current_client)
+        alerts = await run.io_bound(get_attention_required, db, state.warning_days_threshold)
+        deadline_container.clear()
+        if not alerts:
+            deadline_container.set_visibility(False)
+            return
+        deadline_container.set_visibility(True)
+        with deadline_container:
+            with ui.element("div").style(
+                "background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;"
+                "margin:0 24px 8px 24px;padding:10px 14px;"
+            ):
+                _expanded: dict = {"v": False}
+                items_col = ui.column().classes("w-full gap-1 mt-2")
+                items_col.set_visibility(False)
+                expand_icon_ref: list = []
+
+                def _toggle_deadline(
+                    _exp: dict = _expanded,
+                    _col: object = items_col,
+                    _icons: list = expand_icon_ref,
+                ) -> None:
+                    _exp["v"] = not _exp["v"]
+                    _col.set_visibility(_exp["v"])
+                    if _icons:
+                        _icons[0].set_name("expand_less" if _exp["v"] else "expand_more")
+
+                with ui.row().classes("items-center gap-2 cursor-pointer w-full").on(
+                    "click", lambda: _toggle_deadline()
+                ):
+                    ui.html(
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"'
+                        ' stroke="#d97706" stroke-width="2">'
+                        '<circle cx="12" cy="12" r="10"/>'
+                        '<path d="M12 6v6l4 2"/></svg>'
+                    )
+                    ui.label(f"Требуют внимания: {len(alerts)}").style(
+                        "font-size:13px;font-weight:600;color:#92400e;"
+                    )
+                    _icon = ui.icon("expand_more").style(
+                        "color:#d97706;font-size:18px;margin-left:auto;"
+                    )
+                    expand_icon_ref.append(_icon)
+
+                with items_col:
+                    for alert in alerts:
+                        days = alert.days_until_expiry
+                        if days < 0:
+                            days_text = f"истёк {abs(days)} дн. назад"
+                            row_color = "#fef2f2"
+                            text_color = "#991b1b"
+                        else:
+                            days_text = f"через {days} дн."
+                            row_color = "#fffbeb"
+                            text_color = "#92400e"
+
+                        counterparty = alert.counterparty or "—"
+                        contract_type = alert.contract_type or "Документ"
+
+                        with ui.element("div").style(
+                            f"background:{row_color};border-radius:6px;padding:6px 10px;"
+                            "display:flex;align-items:center;gap:8px;cursor:pointer;"
+                        ).on(
+                            "click",
+                            lambda cid=alert.contract_id: ui.navigate.to(f"/document/{cid}"),
+                        ):
+                            ui.label(f"{contract_type} · {counterparty}").style(
+                                "font-size:12px;color:#334155;flex:1;"
+                                "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                            )
+                            ui.label(days_text).style(
+                                f"font-size:11px;font-weight:500;color:{text_color};white-space:nowrap;"
+                            )
 
     def _apply_segment_classes(active_key: str) -> None:
         """Update button classes based on active segment."""
@@ -777,10 +857,10 @@ def build() -> None:
         # 7. Render UI
         calendar_container.clear()
         with calendar_container:
-            with ui.row().classes("w-full gap-4 px-5 py-4"):
+            with ui.row().classes("w-full gap-4"):
 
-                # LEFT: Timeline feed
-                with ui.column().classes("flex-1"):
+                # LEFT: Timeline feed (55% width)
+                with ui.column().classes("min-w-0").style("flex: 3;"):
                     ui.label("Ближайшие события").style(
                         "font-size:15px; font-weight:600; color:#1e293b; margin-bottom:14px;"
                     )
@@ -808,7 +888,11 @@ def build() -> None:
                             with ui.column().classes("items-end gap-0 shrink-0"):
                                 d = _parse_date_safe(ev["date"])
                                 if d and d != today:
-                                    ui.label(d.strftime("%d %b")).classes("timeline-date")
+                                    _month_short_ru = [
+                                        "", "янв", "фев", "мар", "апр", "мая", "июн",
+                                        "июл", "авг", "сен", "окт", "ноя", "дек",
+                                    ]
+                                    ui.label(f"{d.day} {_month_short_ru[d.month]}").classes("timeline-date")
                                 if ev.get("amount"):
                                     try:
                                         amt = (
@@ -822,8 +906,13 @@ def build() -> None:
                             card.on("click", lambda c=cid: ui.navigate.to(f"/document/{c}"))
 
                     # Today group
+                    _month_full_ru = [
+                        "", "января", "февраля", "марта", "апреля", "мая", "июня",
+                        "июля", "августа", "сентября", "октября", "ноября", "декабря",
+                    ]
+
                     if groups["today"]:
-                        ui.label(f"Сегодня · {today.strftime('%d %B').lstrip('0')}").classes(
+                        ui.label(f"Сегодня · {today.day} {_month_full_ru[today.month]}").classes(
                             "timeline-group-title timeline-group-today"
                         ).style("margin-top:4px;")
                         for ev in groups["today"]:
@@ -858,8 +947,8 @@ def build() -> None:
                             "text-sm text-slate-400 py-8 text-center"
                         )
 
-                # RIGHT: Mini-calendar + summary (220px)
-                with ui.column().classes("shrink-0").style("width: 220px;"):
+                # RIGHT: Mini-calendar + summary (45% width)
+                with ui.column().classes("min-w-0").style("flex: 2;"):
                     _render_mini_calendar(today, events)
 
                     with ui.element("div").classes("cal-summary"):
@@ -1079,6 +1168,7 @@ def build() -> None:
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
         await _refresh_stats()
+        await _refresh_deadline_widget()
         ui.notify(f"Удалено {len(doc_ids)} документов", type="positive")
 
     async def _on_selection_changed(e) -> None:
@@ -1145,6 +1235,7 @@ def build() -> None:
 
     async def _init() -> None:
         await _refresh_stats()
+        await _refresh_deadline_widget()
         skeleton_container.set_visibility(False)
         grid_container.set_visibility(True)
         with grid_container:
