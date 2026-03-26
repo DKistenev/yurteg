@@ -86,8 +86,10 @@ Plans:
   2. Bulk delete удаляет выбранные документы из реестра и БД — после удаления они не появляются при обновлении страницы
   3. Виджет дедлайнов в реестре отображает документы, требующие внимания, — список формируется через get_attention_required()
   4. Кнопка «Сохранить как шаблон» в карточке документа вызывает mark_contract_as_template() и отображает подтверждение
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 2 plans
+Plans:
+- [ ] 31-01-PLAN.md — Кнопки «Открыть файл» + «Сохранить как шаблон» в карточке документа (WIRE-01, WIRE-04)
+- [ ] 31-02-PLAN.md — Виджет дедлайнов в реестре + верификация bulk delete (WIRE-02, WIRE-03)
 
 ---
 
@@ -98,7 +100,7 @@ Plans:
 | 28. Cleanup | 2/3 | Complete    | 2026-03-25 |
 | 29. AI Pipeline | 0/3 | Complete    | 2026-03-26 |
 | 30. Redline + Vectors | 0/3 | Complete    | 2026-03-26 |
-| 31. UI Wire-up | 0/? | Not started | - |
+| 31. UI Wire-up | 0/2 | Not started | - |
 
 ---
 
@@ -133,4 +135,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-03-26*
-*Last updated: 2026-03-26 — Phase 30 plans created (3 plans)*
+*Last updated: 2026-03-26 — Phase 31 plans created (2 plans)*
