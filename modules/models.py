@@ -120,6 +120,7 @@ class ProcessingResult:
     anonymized: Optional[AnonymizedText] = None
     metadata: Optional[ContractMetadata] = None
     validation: Optional[ValidationResult] = None
+    full_text: Optional[str] = None
     organized_path: Optional[Path] = None
     status: str = "pending"  # "pending" | "processing" | "done" | "error"
     error_message: Optional[str] = None

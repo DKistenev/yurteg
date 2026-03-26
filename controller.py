@@ -135,6 +135,7 @@ class Controller:
             try:
                 text = extract_text(file_info)
                 result.text = text
+                result.full_text = text.text if text else None
 
                 if text.extraction_method == "failed" or not text.text.strip():
                     result.status = "error"

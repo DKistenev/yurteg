@@ -371,6 +371,7 @@ class Database:
             m.payment_amount if m else None,
             m.payment_frequency if m else None,
             m.payment_direction if m else None,
+            result.full_text,
         )
 
         with self._lock:
@@ -382,8 +383,9 @@ class Database:
                  amount, special_conditions, parties, confidence,
                  validation_status, validation_warnings, validation_score,
                  organized_path, model_used,
-                 payment_terms, payment_amount, payment_frequency, payment_direction)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 payment_terms, payment_amount, payment_frequency, payment_direction,
+                 full_text)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_hash) DO UPDATE SET
                   original_path = excluded.original_path,
                   filename = excluded.filename,
@@ -408,6 +410,7 @@ class Database:
                   payment_amount = excluded.payment_amount,
                   payment_frequency = excluded.payment_frequency,
                   payment_direction = excluded.payment_direction,
+                  full_text = excluded.full_text,
                   processed_at = CURRENT_TIMESTAMP
                 """,
                 data,
