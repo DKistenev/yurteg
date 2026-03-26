@@ -4,12 +4,18 @@
 метаданные в JSON. Поддерживает два провайдера:
 - ZAI (GLM-4.7) — основной, платный
 - OpenRouter — запасной, бесплатные модели
+
+Двухзапросный flow для Ollama (Phase 29-02):
+- Первый запрос: с grammar= (GBNF) → гарантированный JSON по схеме
+- Второй запрос: без grammar, с logprobs=True → реальный confidence
+- Второй запрос делается только при подозрительных null-полях (экономия)
 """
 import json
 import logging
 import re
 import time
 from dataclasses import asdict
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from dateutil import parser as dateutil_parser
@@ -24,6 +30,72 @@ if TYPE_CHECKING:
     from providers.base import LLMProvider
 
 logger = logging.getLogger(__name__)
+
+
+# --- Logprobs / Confidence ---
+
+_KEY_FIELDS = ("contract_type", "counterparty", "amount")
+_LOGPROB_THRESHOLD = -2.0  # порог из CONTEXT.md: ниже этого → низкая уверенность
+
+
+def _load_grammar() -> str | None:
+    """Загружает GBNF грамматику из data/contract.gbnf."""
+    grammar_path = Path(__file__).parent.parent / "data" / "contract.gbnf"
+    try:
+        return grammar_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        logger.warning("Не удалось загрузить GBNF грамматику: %s", exc)
+        return None
+
+
+def _has_suspicious_nulls(metadata: ContractMetadata) -> bool:
+    """True если хотя бы одно ключевое поле пустое — требуется logprobs-проверка."""
+    return any(
+        getattr(metadata, field) is None
+        for field in _KEY_FIELDS
+    )
+
+
+def _compute_confidence_from_logprobs(
+    provider: "LLMProvider",
+    messages: list[dict],
+) -> float:
+    """Вычисляет confidence через logprobs второго запроса.
+
+    Вызывается только для OllamaProvider при наличии метода get_logprobs().
+
+    Returns:
+        float 0.0..1.0 — нормализованный confidence из logprobs.
+        0.0 если get_logprobs недоступен у провайдера или запрос не удался.
+    """
+    if not hasattr(provider, "get_logprobs"):
+        return 0.0
+
+    try:
+        lp = provider.get_logprobs(messages, list(_KEY_FIELDS))  # type: ignore[union-attr]
+    except Exception as exc:
+        logger.warning("logprobs запрос не удался: %s", exc)
+        return 0.0
+
+    if not isinstance(lp, dict) or not lp:
+        return 0.0
+
+    mean_lp = lp.get("_mean", 0.0)
+    min_lp = lp.get("_min", 0.0)
+
+    # Защита от нечисловых значений (напр. при моках в тестах)
+    if not isinstance(mean_lp, (int, float)) or not isinstance(min_lp, (int, float)):
+        return 0.0
+
+    # Линейная нормализация: диапазон [-4, 0] → [0.0, 1.0]
+    # -2.0 (порог) → 0.5; 0.0 → 1.0; -4.0 и ниже → 0.0
+    normalized = max(0.0, min(1.0, (mean_lp + 4.0) / 4.0))
+
+    logger.debug(
+        "logprobs confidence: min=%.3f mean=%.3f → confidence=%.3f",
+        min_lp, mean_lp, normalized,
+    )
+    return normalized
 
 # --- Промпты ---
 
@@ -229,9 +301,17 @@ def extract_metadata(
 
     # Этап 1: Основная модель
     if provider is not None:
+        # Для Ollama — передать GBNF грамматику в первый запрос
+        grammar_content: str | None = None
+        if config.active_provider == "ollama":
+            grammar_content = _load_grammar()
+
         # Маршрутизация через провайдер (OllamaProvider, ZAIProvider, etc.)
         try:
-            raw_text = _try_provider(provider, messages, config.ai_max_retries)
+            raw_text = _try_provider(
+                provider, messages, config.ai_max_retries,
+                **({"grammar": grammar_content} if grammar_content else {}),
+            )
             json_data = _parse_json_response(raw_text)
             result: ContractMetadata | Exception = _json_to_metadata(json_data)
         except Exception as e:
@@ -244,6 +324,22 @@ def extract_metadata(
         if config.active_provider == "ollama":
             sanitized = sanitize_metadata(asdict(result))
             result = _json_to_metadata(sanitized)
+
+        # Для Ollama — вычислить confidence через logprobs если есть подозрительные nulls
+        if (
+            isinstance(result, ContractMetadata)
+            and config.active_provider == "ollama"
+            and _has_suspicious_nulls(result)
+        ):
+            confidence = _compute_confidence_from_logprobs(provider, messages)
+            result.confidence = confidence
+            # Порог: нормализованный _LOGPROB_THRESHOLD=-2.0 → 0.5
+            if confidence < 0.5:
+                logger.info(
+                    "Документ помечен для проверки: logprobs confidence=%.3f",
+                    confidence,
+                )
+
         # Проверка: если все ключевые поля пустые — пробуем упрощённый промпт
         if not result.contract_type and not result.counterparty and not result.subject:
             logger.info("Все ключевые поля пустые, пробую упрощённый промпт...")
@@ -290,6 +386,7 @@ def _try_provider(
     provider: "LLMProvider",
     messages: list[dict],
     max_retries: int,
+    **kwargs: object,
 ) -> str:
     """Вызывает provider.complete() с retry-логикой. Возвращает сырой текст.
 
@@ -297,6 +394,7 @@ def _try_provider(
         provider: реализация LLMProvider (OllamaProvider, ZAIProvider, etc.)
         messages: список сообщений в формате OpenAI
         max_retries: максимальное число попыток
+        **kwargs: дополнительные параметры для provider.complete() (например grammar=)
 
     Returns:
         Сырой текстовый ответ от провайдера.
@@ -312,7 +410,7 @@ def _try_provider(
                 "AI-запрос через провайдер %s: попытка %d/%d",
                 provider.name, attempt + 1, max_retries,
             )
-            raw_text = provider.complete(messages)
+            raw_text = provider.complete(messages, **kwargs)
             if not raw_text:
                 raise ValueError("Пустой ответ от провайдера")
             logger.debug("Ответ провайдера %s (первые 500 символов): %s", provider.name, raw_text[:500])
