@@ -8,7 +8,7 @@ from typing import Callable
 
 from nicegui import ui
 
-from app.styles import BULK_TOOLBAR, BULK_BTN, BULK_BTN_DANGER, BULK_COUNT
+from app.styles import BULK_TOOLBAR
 from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS
 
 logger = logging.getLogger(__name__)
@@ -24,21 +24,34 @@ def render_bulk_toolbar(
     """Render the bulk actions toolbar above the table."""
     toolbar = ui.row().classes(BULK_TOOLBAR + " yt-toolbar-enter")
     with toolbar:
-        ui.label(f"Выбрано: {len(selected_ids)}").classes(BULK_COUNT)
+        ui.html(
+            f'<span style="font-size:14px;font-weight:600;color:#334155;">'
+            f'Выбрано: <span style="color:#4f46e5;">{len(selected_ids)}</span></span>'
+        )
 
-        ui.button("Изменить статус", on_click=on_status_change).props(
-            "flat dense no-caps"
-        ).classes(BULK_BTN)
+        # Plain HTML buttons — bypass Quasar styling completely
+        ui.html(
+            '<button class="yt-bulk-btn" style="color:#4f46e5;" '
+            'onclick="this.dispatchEvent(new Event(\'yt-status\', {bubbles:true}))">'
+            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">edit</span>'
+            "Изменить статус</button>"
+        ).on("yt-status", on_status_change)
 
         ui.element("div").classes("flex-1")
 
-        ui.button("Снять выбор", on_click=on_clear).props(
-            "flat dense no-caps"
-        ).classes("text-xs text-slate-400 cursor-pointer")
+        ui.html(
+            '<button class="yt-bulk-btn-text" style="color:#64748b;" '
+            'onclick="this.dispatchEvent(new Event(\'yt-clear\', {bubbles:true}))">'
+            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">deselect</span>'
+            "Снять выбор</button>"
+        ).on("yt-clear", on_clear)
 
-        ui.button("Удалить", on_click=on_delete).props(
-            "flat dense no-caps"
-        ).classes(BULK_BTN_DANGER)
+        ui.html(
+            '<button class="yt-bulk-btn yt-bulk-btn-danger" style="color:#dc2626;" '
+            'onclick="this.dispatchEvent(new Event(\'yt-del\', {bubbles:true}))">'
+            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">delete</span>'
+            "Удалить</button>"
+        ).on("yt-del", on_delete)
 
     return toolbar
 
