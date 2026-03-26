@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
 status: Executing Phase 29
-stopped_at: Completed 29-ai-pipeline-01-PLAN.md
-last_updated: "2026-03-26T00:00:00.000Z"
+stopped_at: Completed 29-ai-pipeline-03-PLAN.md
+last_updated: "2026-03-26T19:00:00.000Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 ## Current Position
 
 Phase: 29 (AI Pipeline) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3 (COMPLETE)
 
 ## Accumulated Context
 
@@ -44,6 +44,7 @@ Plan: 2 of 3
 - [Phase 28-cleanup]: stress_test.py validator sections deferred — слишком большой scope, залогировано в deferred-items.md
 - [28-03 2026-03-26]: atexit.register перемещён внутрь if started: — вызывается ровно 1 раз при успехе
 - [28-03 2026-03-26]: logging.warning при обрезке >30K — юрист видит что часть документа не проанализирована
+- [29-03 2026-03-26]: Placeholder «i» (кавычки-ёлочки) пережи фильтрацию _RE_CYRILLIC_ONLY — NDA/SLA/GPS сохраняются в cyrillic_only полях
 
 ### Critical Risks
 
@@ -61,6 +62,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 29-ai-pipeline-01-PLAN.md
+Stopped at: Completed 29-ai-pipeline-03-PLAN.md
 Resume file: None
-Next: Plan 29-02 — logprobs confidence calculation
+Next: Phase 29 complete — все 3 плана выполнены (GBNF, logprobs, whitelist)
