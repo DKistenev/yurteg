@@ -601,8 +601,10 @@ def build() -> None:
         deadline_container.set_visibility(True)
         with deadline_container:
             with ui.element("div").style(
-                "background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;"
-                "margin:0 24px 8px 24px;padding:10px 14px;"
+                "background:white;border:1px solid #e2e8f0;border-radius:12px;"
+                "border-left:3px solid #d97706;"
+                "margin:0 24px 8px 24px;padding:12px 16px;"
+                "box-shadow:0 1px 2px rgba(0,0,0,0.04);"
             ):
                 _expanded: dict = {"v": False}
                 items_col = ui.column().classes("w-full gap-1 mt-2")
@@ -857,10 +859,10 @@ def build() -> None:
         # 7. Render UI
         calendar_container.clear()
         with calendar_container:
-            with ui.row().classes("w-full gap-4"):
+            with ui.row().classes("w-full gap-4 px-6"):
 
-                # LEFT: Timeline feed (55% width)
-                with ui.column().classes("min-w-0").style("flex: 3;"):
+                # LEFT: Timeline feed (~55% width)
+                with ui.column().classes("min-w-0").style("flex: 5;"):
                     ui.label("Ближайшие события").style(
                         "font-size:15px; font-weight:600; color:#1e293b; margin-bottom:14px;"
                     )
@@ -947,8 +949,8 @@ def build() -> None:
                             "text-sm text-slate-400 py-8 text-center"
                         )
 
-                # RIGHT: Mini-calendar + summary (45% width)
-                with ui.column().classes("min-w-0").style("flex: 2;"):
+                # RIGHT: Mini-calendar + summary (~45% width)
+                with ui.column().classes("min-w-0").style("flex: 4;"):
                     _render_mini_calendar(today, events)
 
                     with ui.element("div").classes("cal-summary"):

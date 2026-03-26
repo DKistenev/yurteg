@@ -367,31 +367,38 @@ p, li, label { line-height: 1.5; }
 .timeline-card {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 8px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 0.15s;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 .timeline-card:hover {
-  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
 }
-.timeline-card-end { border-left: 3px solid #dc2626; }
-.timeline-card-pay { border-left: 3px solid #2563eb; }
-.timeline-card-expiring { border-left: 3px solid #d97706; }
+/* Remove old border-left approach — use pill badges instead */
+.timeline-card-end { }
+.timeline-card-pay { }
+.timeline-card-expiring { }
 
 .timeline-type {
   font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
+  font-weight: 600;
   letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  display: inline-block;
 }
-.timeline-type-end { color: #dc2626; }
-.timeline-type-pay { color: #2563eb; }
-.timeline-type-expiring { color: #d97706; }
+.timeline-type-end { background: #fee2e2; color: #dc2626; }
+.timeline-type-pay { background: #dbeafe; color: #2563eb; }
+.timeline-type-expiring { background: #fef3c7; color: #d97706; }
 
 .timeline-name {
   font-size: 13px;
@@ -414,11 +421,11 @@ p, li, label { line-height: 1.5; }
   color: #94a3b8;
 }
 .timeline-group-title {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   margin-top: 16px;
 }
 .timeline-group-today { color: #4f46e5; }
@@ -430,8 +437,9 @@ p, li, label { line-height: 1.5; }
 .mini-cal {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 .mini-cal-header {
   display: flex;
@@ -440,7 +448,7 @@ p, li, label { line-height: 1.5; }
   margin-bottom: 8px;
 }
 .mini-cal-month {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #1e293b;
 }
@@ -464,16 +472,17 @@ p, li, label { line-height: 1.5; }
 .mini-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
+  gap: 2px;
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
 }
 .mini-cal-day-header {
   color: #94a3b8;
-  padding: 2px;
+  padding: 4px 2px;
+  font-size: 11px;
 }
 .mini-cal-day {
-  padding: 4px;
+  padding: 6px 4px;
   position: relative;
   color: #1e293b;
 }
@@ -499,9 +508,10 @@ p, li, label { line-height: 1.5; }
 .cal-summary {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: 12px;
+  padding: 16px;
   margin-top: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 .cal-sum-title {
   font-size: 12px;
@@ -529,6 +539,22 @@ p, li, label { line-height: 1.5; }
 .cal-sum-count {
   font-weight: 600;
   color: #1e293b;
+}
+
+/* ── Document preview toolbar ─────────────────────────────────────────────── */
+.doc-preview-toolbar {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.doc-preview-filename {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
 }
 
 /* Hide AG Grid page size selector (REG-03) */
