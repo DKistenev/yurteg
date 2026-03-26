@@ -624,12 +624,7 @@ def build() -> None:
                 with ui.row().classes("items-center gap-2 cursor-pointer w-full").on(
                     "click", lambda: _toggle_deadline()
                 ):
-                    ui.html(
-                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"'
-                        ' stroke="#d97706" stroke-width="2">'
-                        '<circle cx="12" cy="12" r="10"/>'
-                        '<path d="M12 6v6l4 2"/></svg>'
-                    )
+                    ui.icon("schedule").style("font-size:18px;color:#d97706;")
                     ui.label(f"Требуют внимания: {len(alerts)}").style(
                         "font-size:13px;font-weight:600;color:#92400e;"
                     )
@@ -639,33 +634,36 @@ def build() -> None:
                     expand_icon_ref.append(_icon)
 
                 with items_col:
-                    for alert in alerts:
+                    for i, alert in enumerate(alerts):
                         days = alert.days_until_expiry
                         if days < 0:
                             days_text = f"истёк {abs(days)} дн. назад"
-                            row_color = "#fef2f2"
-                            text_color = "#991b1b"
+                            badge_bg = "#fee2e2"
+                            badge_color = "#b91c1c"
                         else:
                             days_text = f"через {days} дн."
-                            row_color = "#fffbeb"
-                            text_color = "#92400e"
+                            badge_bg = "#fef3c7"
+                            badge_color = "#a16207"
 
-                        counterparty = alert.counterparty or "—"
+                        counterparty = alert.counterparty or "\u2014"
                         contract_type = alert.contract_type or "Документ"
+                        border_bottom = "border-bottom:1px solid #f1f5f9;" if i < len(alerts) - 1 else ""
 
                         with ui.element("div").style(
-                            f"background:{row_color};border-radius:6px;padding:6px 10px;"
+                            f"padding:8px 12px;{border_bottom}"
                             "display:flex;align-items:center;gap:8px;cursor:pointer;"
                         ).on(
                             "click",
                             lambda cid=alert.contract_id: ui.navigate.to(f"/document/{cid}"),
                         ):
-                            ui.label(f"{contract_type} · {counterparty}").style(
+                            ui.label(f"{contract_type} \u00b7 {counterparty}").style(
                                 "font-size:12px;color:#334155;flex:1;"
                                 "overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                             )
-                            ui.label(days_text).style(
-                                f"font-size:11px;font-weight:500;color:{text_color};white-space:nowrap;"
+                            ui.html(
+                                f'<span style="font-size:11px;font-weight:600;color:{badge_color};'
+                                f'background:{badge_bg};padding:2px 8px;border-radius:99px;'
+                                f'white-space:nowrap;">{days_text}</span>'
                             )
 
     def _apply_segment_classes(active_key: str) -> None:
