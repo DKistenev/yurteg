@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
-status: planning
-stopped_at: Completed 28-cleanup-03-PLAN.md
-last_updated: "2026-03-25T23:32:52.451Z"
-last_activity: 2026-03-25
+status: Executing Phase 29
+stopped_at: Completed 29-ai-pipeline-01-PLAN.md
+last_updated: "2026-03-26T00:00:00.000Z"
+last_activity: 2026-03-26
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
 ---
 
 # Project State
@@ -20,18 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-26)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения»
-**Current focus:** v0.9 Backend Hardening — Phase 28 (Cleanup) ready to plan
+**Current focus:** Phase 29 — AI Pipeline
 
 ## Current Position
 
-Phase: 29
-Plan: Not started
-Status: Ready for planning
-Last activity: 2026-03-25
-
-```
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0/4 phases complete
-```
+Phase: 29 (AI Pipeline) — EXECUTING
+Plan: 2 of 3
 
 ## Accumulated Context
 
@@ -67,6 +61,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 28-cleanup-03-PLAN.md
+Stopped at: Completed 29-ai-pipeline-01-PLAN.md
 Resume file: None
-Next: Phase 28 complete — ready for Phase 29 (GBNF/logprobs)
+Next: Plan 29-02 — logprobs confidence calculation
