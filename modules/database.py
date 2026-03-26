@@ -238,6 +238,30 @@ def _migrate_v7_payment_columns(conn: sqlite3.Connection) -> None:
     _mark_migration_applied(conn, 7)
 
 
+def _migrate_v8_template_embeddings(conn: sqlite3.Connection) -> None:
+    """v8: Создать таблицу template_embeddings для кэша эмбеддингов шаблонов."""
+    if _is_migration_applied(conn, 8):
+        return
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS template_embeddings (
+                template_id   INTEGER NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+                file_hash     TEXT NOT NULL,
+                vector        BLOB NOT NULL,
+                model_version TEXT NOT NULL,
+                created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (template_id)
+            )
+        """)
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tmpl_emb_hash ON template_embeddings(file_hash)"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 8)
+
+
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     """Проверяет существование таблицы в БД."""
     row = conn.execute(
@@ -267,6 +291,7 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     _migrate_v5_payments(conn)
     _migrate_v6_templates(conn)
     _migrate_v7_payment_columns(conn)
+    _migrate_v8_template_embeddings(conn)
 
 
 class Database:
