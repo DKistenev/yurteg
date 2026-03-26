@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 VERSION_LINK_THRESHOLD = 0.85    # sim >= 0.85 → версия того же договора
-TEMPLATE_MATCH_THRESHOLD = 0.70  # sim >= 0.70 → подходящий шаблон (per VEC-03)
+TEMPLATE_MATCH_THRESHOLD = 0.92  # sim >= 0.92 → тот же шаблон с другими реквизитами
 
 _model = None
 _model_lock = threading.Lock()
