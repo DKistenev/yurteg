@@ -262,6 +262,18 @@ def _migrate_v8_template_embeddings(conn: sqlite3.Connection) -> None:
     _mark_migration_applied(conn, 8)
 
 
+def _migrate_v9_full_text(conn: sqlite3.Connection) -> None:
+    """v9: Добавить full_text в contracts для хранения полного текста документа."""
+    if _is_migration_applied(conn, 9):
+        return
+    try:
+        conn.execute("ALTER TABLE contracts ADD COLUMN full_text TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 9)
+
+
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     """Проверяет существование таблицы в БД."""
     row = conn.execute(
@@ -292,6 +304,7 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     _migrate_v6_templates(conn)
     _migrate_v7_payment_columns(conn)
     _migrate_v8_template_embeddings(conn)
+    _migrate_v9_full_text(conn)
 
 
 class Database:
