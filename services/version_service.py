@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 VERSION_LINK_THRESHOLD = 0.85    # sim >= 0.85 → версия того же договора
-TEMPLATE_MATCH_THRESHOLD = 0.60  # sim >= 0.60 → подходящий шаблон
+TEMPLATE_MATCH_THRESHOLD = 0.70  # sim >= 0.70 → подходящий шаблон (per VEC-03)
 
 _model = None
 _model_lock = threading.Lock()
@@ -43,9 +43,9 @@ def get_embedding_model():
 
 
 def compute_embedding(text: str) -> np.ndarray:
-    """Вычисляет 384-мерный вектор для текста. Использует первые 8000 символов (~512 токенов)."""
+    """Вычисляет 384-мерный вектор для текста. Передаёт полный текст — модель усечёт до max_seq_length."""
     model = get_embedding_model()
-    return model.encode(text[:8000], normalize_embeddings=True)
+    return model.encode(text, normalize_embeddings=True)
 
 
 def _store_embedding(conn, contract_id: int, vector: np.ndarray) -> None:
