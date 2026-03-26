@@ -5,6 +5,7 @@ Per D-02: Header: ← Назад слева, contract_type по центру, �
 Per D-03: Prev/next переключают doc_id в URL.
 """
 import logging
+from datetime import date as _date
 
 from nicegui import run, ui
 
@@ -12,7 +13,7 @@ from app.state import get_state
 from config import load_settings, save_setting
 from app.styles import (
     TEXT_LABEL_UPPER,
-    BREADCRUMB_LINK, BREADCRUMB_SEP, BREADCRUMB_CURRENT,
+    BREADCRUMB_LINK, BREADCRUMB_CURRENT,
     SECTION_DIVIDER_HEADER, AI_REVIEW_BLOCK, AI_REVIEW_BORDER_STYLE,
     VERSION_DOT, VERSION_LINE,
     ACTION_BAR, ACTION_BTN,
@@ -32,6 +33,22 @@ from services.version_service import get_version_group, diff_versions
 
 logger = logging.getLogger(__name__)
 _client_manager = ClientManager()
+
+_MONTHS_RU = [
+    "", "января", "февраля", "марта", "апреля", "мая", "июня",
+    "июля", "августа", "сентября", "октября", "ноября", "декабря",
+]
+
+
+def _format_date_ru(val: str | None) -> str:
+    """Format ISO date (2025-09-01) to '1 сентября 2025'. Returns '—' on failure."""
+    if not val or val == "—":
+        return "—"
+    try:
+        d = _date.fromisoformat(str(val))
+        return f"{d.day} {_MONTHS_RU[d.month]} {d.year}"
+    except (ValueError, IndexError):
+        return str(val)
 
 
 def _render_metadata(contract: dict) -> None:
@@ -59,8 +76,8 @@ def _render_metadata(contract: dict) -> None:
         ("Предмет договора", contract.get("subject") or "—"),
     ]
     group2_fields = [
-        ("Дата начала", contract.get("date_start") or "—"),
-        ("Дата окончания", contract.get("date_end") or "—"),
+        ("Дата начала", _format_date_ru(contract.get("date_start"))),
+        ("Дата окончания", _format_date_ru(contract.get("date_end"))),
         ("Сумма", contract.get("amount") or "—"),
     ]
 
@@ -196,7 +213,7 @@ async def build(doc_id: str = "") -> None:
             ui.link(
                 "Реестр", "/"
             ).classes(BREADCRUMB_LINK + " no-underline")
-            ui.label("→").classes(BREADCRUMB_SEP)
+            ui.icon("chevron_right").classes("text-slate-300").style("font-size:18px;")
             ui.label(
                 contract.get("contract_type") or "Документ"
             ).classes(BREADCRUMB_CURRENT)
@@ -209,25 +226,77 @@ async def build(doc_id: str = "") -> None:
 
             with ui.row().classes("gap-1 ml-auto"):
                 prev_btn = ui.button(
-                    "◀",
+                    icon="chevron_left",
                     on_click=lambda pid=prev_id: ui.navigate.to(f"/document/{pid}")
-                ).props('flat dense aria-label="Предыдущий документ"').classes("text-slate-400")
+                ).props('flat dense round aria-label="Предыдущий документ"').classes("text-slate-400")
                 prev_btn.set_enabled(prev_id is not None)
 
                 next_btn = ui.button(
-                    "▶",
+                    icon="chevron_right",
                     on_click=lambda nid=next_id: ui.navigate.to(f"/document/{nid}")
-                ).props('flat dense aria-label="Следующий документ"').classes("text-slate-400")
+                ).props('flat dense round aria-label="Следующий документ"').classes("text-slate-400")
                 next_btn.set_enabled(next_id is not None)
 
         # ── Action bar (below breadcrumbs) ─────────────────────────────────────
         with ui.row().classes(ACTION_BAR + " w-full rounded-lg mb-4"):
-            ui.button("← Назад", on_click=lambda: ui.navigate.to("/")).props(
+            ui.button("Назад", icon="arrow_back", on_click=lambda: ui.navigate.to("/")).props(
                 "flat dense no-caps"
             ).classes(ACTION_BTN)
-            ui.button("Скачать PDF", on_click=lambda: ui.download(
+            ui.button("Скачать PDF", icon="download", on_click=lambda: ui.download(
                 f"/download/{doc_id}"
             )).props("flat dense no-caps").classes(ACTION_BTN)
+
+            async def _open_file() -> None:
+                import platform
+                import subprocess
+                from pathlib import Path as _Path
+                path_str = contract.get("original_path", "")
+                if not path_str:
+                    ui.notify("Путь к файлу не найден", type="negative")
+                    return
+                p = _Path(path_str)
+                if not p.exists():
+                    ui.notify("Файл не найден на диске", type="negative")
+                    return
+                system = platform.system()
+                try:
+                    if system == "Darwin":
+                        subprocess.Popen(["open", str(p)])
+                    elif system == "Windows":
+                        import os
+                        os.startfile(str(p))
+                    else:
+                        subprocess.Popen(["xdg-open", str(p)])
+                except Exception:
+                    logger.exception("Не удалось открыть файл")
+                    ui.notify("Не удалось открыть файл", type="negative")
+
+            ui.button("Открыть файл", icon="open_in_new", on_click=_open_file).props(
+                "flat dense no-caps"
+            ).classes(ACTION_BTN)
+
+            async def _save_as_template() -> None:
+                from services.review_service import mark_contract_as_template as _mark_tmpl
+                save_btn.disable()
+                try:
+                    db = _client_manager.get_db(state.current_client)
+                    template_id = await run.io_bound(
+                        _mark_tmpl, db, int(doc_id)
+                    )
+                    if template_id is None:
+                        ui.notify("Не удалось сохранить шаблон — документ не найден", type="negative")
+                    else:
+                        ui.notify("Документ сохранён как шаблон", type="positive")
+                except Exception:
+                    logger.exception("Ошибка при сохранении шаблона")
+                    ui.notify("Ошибка при сохранении шаблона", type="negative")
+                finally:
+                    save_btn.enable()
+
+            save_btn = ui.button("Сохранить как шаблон", icon="bookmark_add", on_click=_save_as_template).props(
+                "flat dense no-caps"
+            ).classes(ACTION_BTN)
+
             async def _reprocess():
                 """Re-run pipeline for this single document (UIFIX-03)."""
                 from pathlib import Path as _Path
@@ -235,7 +304,8 @@ async def build(doc_id: str = "") -> None:
                 if not original_path.exists():
                     ui.notify("Файл не найден — переобработка невозможна", type="negative")
                     return
-                import tempfile, os
+                import os
+                import tempfile
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = _Path(tmpdir)
                     link = tmp_path / original_path.name
@@ -267,7 +337,7 @@ async def build(doc_id: str = "") -> None:
                         ui.notify("Документ переобработан", type="positive")
                     ui.navigate.to(f"/document/{doc_id}")
 
-            ui.button("Переобработать", on_click=_reprocess).props("flat dense no-caps").classes(ACTION_BTN)
+            ui.button("Переобработать", icon="refresh", on_click=_reprocess).props("flat dense no-caps").classes(ACTION_BTN)
             ui.element("div").classes("flex-1")  # spacer
 
         # ── Two-column layout ─────────────────────────────────────────────────
@@ -294,7 +364,7 @@ async def build(doc_id: str = "") -> None:
                     status_select_container = ui.row().classes("items-center gap-2")
 
                 with status_select_container:
-                    change_btn = ui.button(
+                    ui.button(
                         "Изменить",
                         on_click=lambda: status_row_el.set_visibility(True)
                     ).props("flat dense no-caps").classes("text-indigo-600 text-xs")
@@ -371,7 +441,8 @@ async def build(doc_id: str = "") -> None:
                         "w-full bg-slate-50 border border-slate-200 rounded-lg p-3 items-center gap-3"
                     )
                     with tip_container:
-                        ui.label("💡 Добавьте пометку или проверьте договор по шаблону").classes(
+                        ui.icon("lightbulb").style("font-size:18px; color:#d97706;")
+                        ui.label("Добавьте пометку или проверьте договор по шаблону").classes(
                             "text-sm text-slate-600 flex-1"
                         )
 
@@ -433,7 +504,7 @@ async def build(doc_id: str = "") -> None:
                                 f'<span style="display:inline-block;width:8px;height:8px;'
                                 f'border-radius:50%;background:{_dot_color}"></span>'
                             )
-                            ui.label(f"\u0423\u0432\u0435\u0440\u0435\u043d\u043d\u043e\u0441\u0442\u044c AI: {_pct}%").classes(
+                            ui.label(f"Точность распознавания: {_pct}%").classes(
                                 f"text-xs font-medium {_conf_color}"
                             )
                         # Progress bar
@@ -524,7 +595,9 @@ async def build(doc_id: str = "") -> None:
                 versions = await run.io_bound(get_version_group, _db2, int(doc_id))
 
                 if not versions:
-                    ui.label("Версии не найдены").classes("text-slate-400 text-sm py-2")
+                    with ui.row().classes("items-center gap-2 py-2"):
+                        ui.icon("history").style("font-size:16px; color:#cbd5e1;")
+                        ui.label("Версии появятся после повторной обработки").classes("text-slate-400 text-xs")
                 else:
                     versions_container = ui.column().classes("w-full gap-0")
                     with versions_container:
