@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
-status: Executing Phase 31
-stopped_at: Completed 31-01-PLAN.md
-last_updated: "2026-03-26T20:00:00.000Z"
+status: Phase 31 Complete
+stopped_at: Completed 31-02-PLAN.md
+last_updated: "2026-03-26T20:15:00.000Z"
 last_activity: 2026-03-26
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,8 +24,8 @@ See: .planning/PROJECT.md (updated 2026-03-26)
 
 ## Current Position
 
-Phase: 31 (UI Wire-up) — EXECUTING
-Plan: 2 of 2
+Phase: 31 (UI Wire-up) — COMPLETE
+Plan: 2 of 2 (все планы выполнены)
 
 ## Accumulated Context
 
@@ -51,6 +51,8 @@ Plan: 2 of 2
 - [28-03 2026-03-26]: logging.warning при обрезке >30K — юрист видит что часть документа не проанализирована
 - [29-03 2026-03-26]: Placeholder «i» (кавычки-ёлочки) пережи фильтрацию _RE_CYRILLIC_ONLY — NDA/SLA/GPS сохраняются в cyrillic_only полях
 - [31-01 2026-03-26]: platform/subprocess/mark_contract_as_template импортируются lazy (внутри функций) — ruff F401 не блокирует
+- [31-02 2026-03-26]: expand_icon в deadline widget захватывается через list-trick (expand_icon_ref) для корректной closure
+- [31-02 2026-03-26]: Заголовок виджета — ui.row с .on("click") напрямую, без JS-прокладки
 
 ### Critical Risks
 
@@ -68,6 +70,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 31-01-PLAN.md
+Stopped at: Completed 31-02-PLAN.md
 Resume file: None
-Next: Phase 31 план 01 выполнен — кнопки «Открыть файл» и «Сохранить как шаблон» в action bar
+Next: Phase 31 полностью завершена — все WIRE-01..04 реализованы. Milestone v0.9 backend workstream завершён.
