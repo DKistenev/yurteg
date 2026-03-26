@@ -71,7 +71,11 @@ Plans:
   3. Сравнение с шаблоном и сравнение версий используют один redline-движок — один файл скачивается в обоих случаях
   4. После пометки документа как шаблона автоподбор шаблона находит его при следующей обработке похожего документа
   5. Миграция v8 применяется автоматически при запуске — таблица template_embeddings создана
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 30-01-PLAN.md — Единый redline_service.py (word-level) + миграция v8 (template_embeddings)
+- [ ] 30-02-PLAN.md — Векторный слой: mark_contract_as_template с full_text, кэш embeddings, порог 0.70
+- [ ] 30-03-PLAN.md — Переключить version_service + review_service на redline_service; get_redline_for_template
 
 ### Phase 31: UI Wire-up
 **Goal**: Все реализованные backend-функции доступны из UI — открытие файла, удаление из реестра, дедлайны, сохранение шаблона
@@ -93,7 +97,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 28. Cleanup | 2/3 | Complete    | 2026-03-25 |
 | 29. AI Pipeline | 0/3 | Complete    | 2026-03-26 |
-| 30. Redline + Vectors | 0/? | Not started | - |
+| 30. Redline + Vectors | 0/3 | Not started | - |
 | 31. UI Wire-up | 0/? | Not started | - |
 
 ---
@@ -129,4 +133,4 @@ Plans:
 ---
 
 *Roadmap created: 2026-03-26*
-*Last updated: 2026-03-26 — Phase 29 plans created (3 plans)*
+*Last updated: 2026-03-26 — Phase 30 plans created (3 plans)*
