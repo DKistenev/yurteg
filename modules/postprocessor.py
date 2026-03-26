@@ -60,6 +60,39 @@ _RE_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Пустые/нулевые строки
 _NULL_STRINGS = frozenset({"none", "null", "", "н/д", "н.д.", "отсутствует", "нет данных"})
 
+# Аббревиатуры, которые НЕ удаляются из cyrillic_only полей
+# Источник: CONTEXT.md Phase 29 — юридически важные сокращения
+ABBREVIATION_WHITELIST: tuple[str, ...] = (
+    "NDA", "SLA", "GPS",
+    "ИНН", "МРОТ", "НДС", "ООО", "ИП", "ЗАО", "ОАО",
+)
+
+
+def _protect_abbreviations(value: str) -> tuple[str, dict[str, str]]:
+    """Заменяет аббревиатуры из whitelist на placeholder-ы перед regex.
+
+    Placeholder использует только символы из _RE_CYRILLIC_ONLY allowlist
+    (цифры + «»), чтобы пережить фильтрацию без искажений.
+
+    Returns:
+        (protected_value, {placeholder: original_abbr})
+    """
+    placeholders: dict[str, str] = {}
+    for i, abbr in enumerate(ABBREVIATION_WHITELIST):
+        pattern = re.compile(r"(?<![A-Za-zА-Яа-яЁё])" + re.escape(abbr) + r"(?![A-Za-zА-Яа-яЁё])")
+        placeholder = f"«{i}»"
+        if pattern.search(value):
+            value = pattern.sub(placeholder, value)
+            placeholders[placeholder] = abbr
+    return value, placeholders
+
+
+def _restore_abbreviations(value: str, placeholders: dict[str, str]) -> str:
+    """Восстанавливает аббревиатуры из placeholder-ов."""
+    for placeholder, abbr in placeholders.items():
+        value = value.replace(placeholder, abbr)
+    return value
+
 
 # ── Санитайзер ────────────────────────────────────────────────────────────────
 
@@ -77,7 +110,14 @@ def _sanitize_string(value: str, profile: str, field: str) -> Optional[str]:
         return None
 
     if profile == "cyrillic_only":
-        cleaned = _RE_CYRILLIC_ONLY.sub("", value).strip()
+        # Защищаем аббревиатуры из whitelist перед regex
+        protected, placeholders = _protect_abbreviations(value)
+        cleaned = _RE_CYRILLIC_ONLY.sub("", protected).strip()
+        # Восстанавливаем аббревиатуры
+        if placeholders:
+            cleaned = _restore_abbreviations(cleaned, placeholders)
+            # Убираем двойные пробелы после удаления не-whitelist латиницы
+            cleaned = re.sub(r" {2,}", " ", cleaned).strip()
         return cleaned if cleaned else None
 
     if profile == "cyrillic_latin":
