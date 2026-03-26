@@ -22,7 +22,7 @@ last_updated: "2026-03-26"
 ## Phases
 
 - [x] **Phase 28: Cleanup** — Удалить validator, reporter, мёртвый код; кодовая база чистая и стабильная (completed 2026-03-25)
-- [ ] **Phase 29: AI Pipeline** — Доработать GBNF, реализовать confidence через logprobs, починить постпроцессор
+- [x] **Phase 29: AI Pipeline** — Доработать GBNF, реализовать confidence через logprobs, починить постпроцессор (completed 2026-03-26)
 - [ ] **Phase 30: Redline + Vectors** — Word-level redline DOCX, векторное кэширование шаблонов, миграция v8
 - [ ] **Phase 31: UI Wire-up** — Открытие файла, bulk delete, дедлайны, кнопка «Сохранить как шаблон»
 
@@ -92,7 +92,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 28. Cleanup | 2/3 | Complete    | 2026-03-25 |
-| 29. AI Pipeline | 0/3 | Planned | - |
+| 29. AI Pipeline | 0/3 | Complete    | 2026-03-26 |
 | 30. Redline + Vectors | 0/? | Not started | - |
 | 31. UI Wire-up | 0/? | Not started | - |
 
