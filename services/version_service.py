@@ -94,58 +94,82 @@ def find_version_match(
     db: Database,
     contract_id: int,
     text: str,
-    contract_type: Optional[str],
-    counterparty: Optional[str],
+    contract_number: Optional[str] = None,
+    parties: Optional[list[str]] = None,
+    # Legacy params — kept for backward compatibility, not used in new algorithm
+    contract_type: Optional[str] = None,
+    counterparty: Optional[str] = None,
 ) -> Optional[int]:
     """Ищет существующий документ, который является предыдущей версией этого.
 
-    Алгоритм:
-    1. Сохранить/получить эмбеддинг нового документа
-    2. Найти кандидатов по contract_type + counterparty (O(1))
-    3. Сравнить косинусное сходство с кандидатами
-    4. Вернуть contract_group_id первого кандидата с sim >= VERSION_LINK_THRESHOLD
+    Алгоритм (двухпутевой):
+    Путь 1: Номер договора совпал → версия (100% точность)
+    Путь 2: Стороны совпали + embedding >= 0.85 → версия (ловит смену номера)
+
+    Пути работают независимо (ИЛИ). Это позволяет поймать версию
+    даже если контрагент сменил номер договора при правке.
 
     Returns: contract_group_id существующей группы или None (новый документ)
     """
     new_vector = ensure_embedding(db, contract_id, text)
+    parties_set = set(parties) if parties else set()
 
-    # Найти кандидатов — только документы с тем же типом и контрагентом
+    # Загрузить всех кандидатов (с версиями) один раз
     with db._lock:
-        query = """
-            SELECT c.id, dv.contract_group_id
+        candidates = db.conn.execute(
+            """
+            SELECT c.id, dv.contract_group_id, c.contract_number, c.parties
             FROM contracts c
             JOIN document_versions dv ON dv.contract_id = c.id
-            WHERE c.id != :contract_id
-              AND (:contract_type IS NULL OR c.contract_type = :contract_type)
-              AND (:counterparty IS NULL OR c.counterparty = :counterparty)
-              AND c.status = 'done'
-        """
-        candidates = db.conn.execute(query, {
-            "contract_id": contract_id,
-            "contract_type": contract_type,
-            "counterparty": counterparty,
-        }).fetchall()
+            WHERE c.id != ? AND c.status = 'done'
+            """,
+            (contract_id,),
+        ).fetchall()
 
     if not candidates:
         return None
 
+    import json
+
     best_sim = 0.0
     best_group_id = None
+    number_match_group = None
 
     for row in candidates:
-        cand_id, group_id = row[0], row[1]
-        with db._lock:
-            cand_vector = _load_embedding(db.conn, cand_id)
-        if cand_vector is None:
-            continue
-        sim = _cosine_sim(new_vector, cand_vector)
-        if sim > best_sim:
-            best_sim = sim
-            best_group_id = group_id
+        cand_id, group_id, cand_number, cand_parties_json = row
 
+        # Путь 1: номер совпал
+        if contract_number and cand_number and contract_number == cand_number:
+            logger.info(
+                "Версия по номеру: contract_id=%d → group_id=%d (номер=%s)",
+                contract_id, group_id, contract_number,
+            )
+            number_match_group = group_id
+
+        # Путь 2: стороны совпали → проверить embedding
+        if parties_set:
+            try:
+                cand_parties = set(json.loads(cand_parties_json)) if cand_parties_json else set()
+            except (json.JSONDecodeError, TypeError):
+                cand_parties = set()
+
+            if cand_parties and parties_set == cand_parties:
+                with db._lock:
+                    cand_vector = _load_embedding(db.conn, cand_id)
+                if cand_vector is not None:
+                    sim = _cosine_sim(new_vector, cand_vector)
+                    if sim > best_sim:
+                        best_sim = sim
+                        best_group_id = group_id
+
+    # Путь 1 приоритетнее (точный)
+    if number_match_group is not None:
+        return number_match_group
+
+    # Путь 2: стороны + embedding
     if best_sim >= VERSION_LINK_THRESHOLD:
         logger.info(
-            "Найдена версия: contract_id=%d → group_id=%d (sim=%.3f)",
+            "Версия по сторонам+embed: contract_id=%d → group_id=%d (sim=%.3f)",
             contract_id, best_group_id, best_sim,
         )
         return best_group_id

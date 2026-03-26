@@ -1,7 +1,7 @@
 """Bulk actions toolbar for registry.
 
 Shows when one or more documents are selected via checkboxes.
-Supports: Change Status, Delete.
+Supports: Delete.
 """
 import logging
 from typing import Callable
@@ -9,7 +9,6 @@ from typing import Callable
 from nicegui import ui
 
 from app.styles import BULK_TOOLBAR
-from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +27,6 @@ def render_bulk_toolbar(
             f'<span style="font-size:14px;font-weight:600;color:#334155;">'
             f'Выбрано: <span style="color:#4f46e5;">{len(selected_ids)}</span></span>'
         )
-
-        # Plain HTML buttons — bypass Quasar styling completely
-        ui.html(
-            '<button class="yt-bulk-btn" style="color:#4f46e5;" '
-            'onclick="this.dispatchEvent(new Event(\'yt-status\', {bubbles:true}))">'
-            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">edit</span>'
-            "Изменить статус</button>"
-        ).on("yt-status", on_status_change)
 
         ui.element("div").classes("flex-1")
 
@@ -56,25 +47,26 @@ def render_bulk_toolbar(
     return toolbar
 
 
-def show_bulk_status_dialog(selected_ids: list[int], on_apply: Callable) -> None:
-    """Show dialog to change status for multiple documents."""
+def show_bulk_status_dialog(selected_ids: list[int], on_confirm: Callable) -> None:
+    """Show dialog to change status for selected documents."""
+    from services.lifecycle_service import STATUS_LABELS
+
     with ui.dialog() as dialog, ui.card().classes("p-6 min-w-[360px]"):
-        ui.label("Изменить статус").classes("text-base font-semibold text-slate-900 mb-3")
-        ui.label(f"Для {len(selected_ids)} документов").classes("text-sm text-slate-500 mb-4")
-        status_select = ui.select(
-            options={k: v[1] for k, v in STATUS_LABELS.items() if k in MANUAL_STATUSES},
-            label="Новый статус",
-        ).classes("w-full mb-4")
+        ui.label("Изменить статус").classes("text-base font-semibold text-slate-900 mb-2")
+        ui.label(
+            f"Для {len(selected_ids)} документов"
+        ).classes("text-sm text-slate-500 mb-4")
 
-        with ui.row().classes("justify-end gap-2"):
-            ui.button("Отмена", on_click=dialog.close).props("flat no-caps").classes("text-slate-500")
+        for key, (icon, label, color) in STATUS_LABELS.items():
+            async def _apply(s=key):
+                await on_confirm(selected_ids, s)
+                dialog.close()
 
-            async def _apply():
-                if status_select.value:
-                    await on_apply(selected_ids, status_select.value)
-                    dialog.close()
+            ui.button(
+                f"{icon} {label}", on_click=_apply
+            ).props("flat no-caps").classes("w-full justify-start").style(f"color: {color}")
 
-            ui.button("Применить", on_click=_apply).props("no-caps color=indigo")
+        ui.button("Отмена", on_click=dialog.close).props("flat no-caps").classes("text-slate-500 mt-2")
     dialog.open()
 
 

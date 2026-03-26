@@ -247,8 +247,8 @@ class Controller:
                         if cid:
                             group_id = find_version_match(
                                 db, cid, result.text.text,
-                                result.metadata.contract_type,
-                                result.metadata.counterparty,
+                                contract_number=getattr(result.metadata, "contract_number", None),
+                                parties=result.metadata.parties or [],
                             )
                             link_versions(db, cid, group_id, link_method="auto_embedding")
                     except Exception as _ve:
