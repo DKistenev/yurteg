@@ -48,7 +48,7 @@ Plan: 3 of 3 (COMPLETE)
 
 ### Critical Risks
 
-- **Phase 29**: Перед написанием кода — curl-тест logprobs против работающего llama-server b5606 (MEDIUM confidence, требует валидации)
+- ~~**Phase 29**: Перед написанием кода — curl-тест logprobs против работающего llama-server b5606~~ RESOLVED: оба теста прошли, реализация завершена
 - **Phase 30**: Перед маркировкой фазы done — проверить Word 365, не только LibreOffice (XML compatibility MEDIUM confidence)
 
 ### Pending Todos
@@ -62,6 +62,6 @@ None.
 ## Session Continuity
 
 Last activity: 2026-03-26
-Stopped at: Completed 29-ai-pipeline-03-PLAN.md
+Stopped at: Completed 29-ai-pipeline-02-PLAN.md
 Resume file: None
 Next: Phase 29 complete — все 3 плана выполнены (GBNF, logprobs, whitelist)
