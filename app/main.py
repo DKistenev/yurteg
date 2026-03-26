@@ -99,11 +99,18 @@ ui.add_head_html("""
 @font-face {
   font-family: 'IBM Plex Sans';
   font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/static/fonts/IBMPlexSans-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
   font-weight: 700;
   font-display: swap;
   src: url('/static/fonts/IBMPlexSans-Bold.woff2') format('woff2');
 }
-body { font-family: 'IBM Plex Sans', sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; color: var(--yt-color-text-primary); }
+body { font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; line-height: 1.5; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; color: var(--yt-color-text-primary); }
 </style>
 """, shared=True)
 
