@@ -9,10 +9,6 @@ Wave 0: тест-скелеты созданы до реализации (RED с
 Assertions дополняются после 02-01 (lifecycle_service).
 """
 import pytest
-import sqlite3
-import tempfile
-import os
-from pathlib import Path
 
 
 @pytest.fixture
@@ -87,13 +83,13 @@ def test_manual_status_override(temp_db):
     assert row[0] == "expired"
 
     # Устанавливаем ручной статус
-    set_manual_status(db, cid, "extended")
+    set_manual_status(db, cid, "negotiation")
 
     row = conn.execute(
         f"SELECT {get_computed_status_sql(30)} AS cs FROM contracts WHERE id=:id",
         {"warning_days": 30, "id": cid}
     ).fetchone()
-    assert row[0] == "extended", f"manual_status должен перекрыть auto, получен {row[0]}"
+    assert row[0] == "negotiation", f"manual_status должен перекрыть auto, получен {row[0]}"
 
 
 def test_attention_panel(temp_db):
