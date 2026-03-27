@@ -1,5 +1,24 @@
 # Milestones
 
+## v0.9 Backend Hardening (Shipped: 2026-03-27)
+
+**Phases completed:** 4 phases, 11 plans, 9 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- Task 1 — atexit.register() out of retry loop (`services/llama_server.py`)
+- One-liner:
+- One-liner:
+- Protect/restore механизм для NDA/SLA/GPS в cyrillic_only постпроцессоре через placeholder замену и word-boundary regex
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- Amber collapsible deadline widget в registry.py с данными из lifecycle_service.get_attention_required(), обновляющийся после bulk delete
+
+---
+
 ## v0.8 Hardening & Cleanup (Shipped: 2026-03-25)
 
 **Phases completed:** 4 phases, 7 plans, 315 tests green

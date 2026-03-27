@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v0.9
 milestone_name: milestone
-status: Milestone complete
+status: v0.9 milestone complete
 stopped_at: Completed 31-02-PLAN.md
-last_updated: "2026-03-26T19:48:37.011Z"
-last_activity: 2026-03-26
+last_updated: "2026-03-27T15:44:50.495Z"
+last_activity: 2026-03-27
 progress:
   total_phases: 4
   completed_phases: 4
@@ -67,9 +67,15 @@ None.
 
 None.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 260326-vvk | UI Polish: document card mockup layout, calendar Apple cards, font-weight 500, UPPERCASE cleanup | 2026-03-26 | pending | Verified | [260326-vvk](./quick/260326-vvk-ui-polish-document-card-mockup-layout-ca/) |
+
 ## Session Continuity
 
-Last activity: 2026-03-26
+Last activity: 2026-03-27
 Stopped at: Completed 31-02-PLAN.md
 Resume file: None
 Next: Phase 31 полностью завершена — все WIRE-01..04 реализованы. Milestone v0.9 backend workstream завершён.

@@ -8,25 +8,36 @@
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current State (после v0.8)
+## Current State (после v0.9)
 
-**Shipped:** v0.8 Hardening & Cleanup (2026-03-25)
+**Shipped:** v0.9 Backend Hardening (2026-03-27)
+- Мёртвый код удалён: validator.py, reporter.py, deprecated AI functions
+- Confidence через logprobs llama-server (двухзапросный flow)
+- Word-level redline DOCX с track changes (w:ins/w:del)
+- Кэш embeddings шаблонов (миграции v8, v9)
+- UI: открытие файла, шаблоны, дедлайны, bulk delete
+- 252 теста зелёные, 0 failures
+
+<details>
+<summary>v0.8 Hardening & Cleanup (2026-03-25)</summary>
+
 - UPSERT вместо INSERT OR REPLACE — данные юриста не теряются
 - FK enforcement, migration v7, деанонимизация subject
 - Все кнопки UI работают (split panel, download, reprocess, settings)
 - Streamlit удалён (2247 строк), legacy-код вычищен
 - 315 тестов зелёные, офлайн-ресурсы бандлятся, зависимости пиннуты
+</details>
 
 **Next:** v0.8.1 UI Polish — полная переработка визуала по утверждённым мокапам
 
 ## Codebase
 
 **LOC:** ~2 800 LOC app/ (NiceGUI UI) + ~9 500 LOC modules/services/tests = ~12 300 LOC Python
-**Tests:** 268 passed
+**Tests:** 252 passed
 **Tech stack:** Python 3.10+, NiceGUI (native desktop), SQLite, openai SDK, pdfplumber, natasha, sentence-transformers, rapidfuzz, huggingface_hub
-**AI:** QWEN 1.5B локальная (по умолчанию), ZAI GLM-4.7 (облако), OpenRouter (fallback)
-**Inference:** llama-server (llama.cpp) с GBNF грамматикой, автоскачивание модели с HuggingFace
-**Доставка:** Планируется DMG для macOS, EXE для Windows (v0.8)
+**AI:** QWEN 1.5B локальная (по умолчанию), ZAI GLM-4.7 (облако, архивный), OpenRouter (fallback, архивный)
+**Inference:** llama-server (llama.cpp) с GBNF грамматикой per-request, logprobs confidence
+**Доставка:** Планируется DMG для macOS, EXE для Windows
 
 ## Requirements
 
@@ -78,6 +89,16 @@
 - ✓ Color-coded template карточки с type icons и hover lift — v0.7
 - ✓ Settings: structured sections, sidebar active state — v0.7
 - ✓ Skeleton loading, card stagger, page fade, footer — v0.7
+- ✓ Удаление validator.py и reporter.py (мёртвый облачный код) — v0.9
+- ✓ Confidence через logprobs llama-server (двухзапросный flow) — v0.9
+- ✓ GBNF грамматика v2: contract_number, строгие даты, без confidence — v0.9
+- ✓ Whitelist аббревиатур NDA/SLA/GPS/ИНН в cyrillic_only — v0.9
+- ✓ Word-level redline DOCX с track changes (w:ins/w:del) — v0.9
+- ✓ Кэш embeddings шаблонов (миграции v8, v9) — v0.9
+- ✓ Открытие файла из карточки документа — v0.9
+- ✓ Сохранение как шаблон из карточки — v0.9
+- ✓ Виджет дедлайнов в реестре — v0.9
+- ✓ Bulk delete с обновлением дедлайнов — v0.9
 
 ## Current Milestones
 
@@ -93,17 +114,6 @@
 - [ ] Диалог пространства: карточки-пояснения + выбор цвета + превью
 - [ ] Онбординг: пошаговый wizard 3 шага + гид-тур с подсветкой
 - [ ] Обработка: живой реестр + лента файлов в реальном времени
-
-### v0.9 Backend Hardening (workstream: backend)
-
-**Goal:** Привести бэкенд в рабочее состояние — снести устаревшую валидацию, доработать GBNF, убрать Excel, реализовать полноценный redline и векторную систему, оптимизировать под локальную модель.
-
-- [ ] Снести валидацию L1-L5 и Excel reporter — облачное наследие
-- [ ] Доработать GBNF грамматику + confidence через logprobs
-- [ ] Полноценный redline DOCX с track changes (версии + шаблоны)
-- [ ] Векторная система: поиск версий, шаблоны из версий
-- [ ] Подключить бэкенд к UI: открытие файла, дедлайны, шаблоны, bulk delete
-- [ ] Вычистить мёртвый код облачной эры
 
 ### Deferred
 
@@ -135,8 +145,9 @@
 | 3 | **UI-редизайн** | ✅ Завершена (v0.6) — NiceGUI, реестр-центричная архитектура, Impeccable polish |
 | 4 | **Визуальный продукт** | ✅ Завершена (v0.7) — tokens.css, dark chrome, hero splash, visual density |
 | 5 | **Hardening & Cleanup** | ✅ Завершена (v0.8) — баги, чистка, 315 тестов |
-| 6 | **UI Polish** | Полная переработка визуала по мокапам (v0.8.1) |
-| 7 | DMG/EXE сборка | Доставка конечным пользователям (v0.9) |
+| 6 | **Backend Hardening** | ✅ Завершена (v0.9) — cleanup, AI pipeline, redline, vectors, UI wire-up |
+| 7 | **UI Polish** | Полная переработка визуала по мокапам (v0.8.1) |
+| 8 | DMG/EXE сборка | Доставка конечным пользователям (v1.0) |
 
 ## Constraints
 
@@ -191,4 +202,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-26 after v0.9 Backend Hardening milestone start*
+*Last updated: 2026-03-27 after v0.9 Backend Hardening milestone complete*
