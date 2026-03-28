@@ -119,9 +119,12 @@ def _render_summary_cards(settings: dict, switch_fn, card_refs: dict) -> None:
                         ).style("font-size:11px")
 
 
-def _section_header(icon: str, title: str, description: str) -> None:
+def _section_header(icon: str, title: str, description: str, *, section_id: str = "") -> None:
     """Render a section header with icon, title, and description."""
-    with ui.row().classes("items-center gap-3 mb-4"):
+    row = ui.row().classes("items-center gap-3 mb-4")
+    if section_id:
+        row.props(f'id="settings-section-{section_id}"')
+    with row:
         ui.icon(icon).style("font-size:22px; color:var(--yt-color-accent);")
         with ui.column().classes("gap-0"):
             ui.label(title).classes(TEXT_HEADING)
@@ -143,7 +146,7 @@ def build() -> None:
         # ═══════════════════════════════════════════════════════════════
         # Секция 1: ИИ-помощник
         # ═══════════════════════════════════════════════════════════════
-        _section_header("smart_toy", "Модель ИИ", "Извлечение метаданных из документов")
+        _section_header("smart_toy", "Модель ИИ", "Извлечение метаданных из документов", section_id="ai")
 
         with ui.column().classes("w-full gap-0 mt-2"):
             # Provider
@@ -207,7 +210,7 @@ def build() -> None:
         # ═══════════════════════════════════════════════════════════════
         # Секция 2: Обработка
         # ═══════════════════════════════════════════════════════════════
-        _section_header("tune", "Обработка", "Параметры извлечения метаданных")
+        _section_header("tune", "Обработка", "Параметры извлечения метаданных", section_id="processing")
 
         with ui.column().classes("w-full gap-0 mt-2"):
             # Anonymization
@@ -256,7 +259,7 @@ def build() -> None:
         # ═══════════════════════════════════════════════════════════════
         # Секция 3: Уведомления
         # ═══════════════════════════════════════════════════════════════
-        _section_header("notifications_none", "Уведомления", "Напоминания о сроках через Telegram")
+        _section_header("notifications_none", "Уведомления", "Напоминания о сроках через Telegram", section_id="notifications")
 
         with ui.column().classes("w-full gap-0 mt-2"):
             # Warning threshold
@@ -332,9 +335,20 @@ def build() -> None:
                     control_fn=_telegram_bind_control,
                 )
 
-    # Summary cards at top (dummy _switch for card clicks — scrolls to section)
+    # Section name -> DOM id mapping
+    _SECTION_IDS = {
+        "ИИ": "settings-section-ai",
+        "Обработка": "settings-section-processing",
+        "Уведомления": "settings-section-notifications",
+    }
+
+    # Summary cards at top — click scrolls to corresponding section
     def _switch(section: str) -> None:
-        pass  # In vertical layout, cards are decorative — all sections visible
+        dom_id = _SECTION_IDS.get(section)
+        if dom_id:
+            ui.run_javascript(
+                f'document.getElementById("{dom_id}")?.scrollIntoView({{behavior:"smooth",block:"start"}})'
+            )
 
     with summary_container:
         _render_summary_cards(settings, _switch, summary_card_refs)
