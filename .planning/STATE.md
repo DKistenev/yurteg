@@ -3,7 +3,7 @@
 Phase: Not started (defining requirements)
 Plan: —
 Status: Defining requirements
-Last activity: 2026-03-28 — Milestone v1.0 Hackathon-Ready Frontend started
+Last activity: 2026-03-28 — Milestone v1.0 Hackathon-Ready started (backend + frontend)
 
 ## Accumulated Context
 

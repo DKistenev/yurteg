@@ -100,20 +100,29 @@
 - ✓ Виджет дедлайнов в реестре — v0.9
 - ✓ Bulk delete с обновлением дедлайнов — v0.9
 
-## Current Milestone: v1.0 Hackathon-Ready Frontend
+## Current Milestone: v1.0 Hackathon-Ready
 
-**Goal:** Довести каждый экран до демо-качества для живой демонстрации на хакатоне — починить баги из фронтенд-аудита, доделать UI Polish, добавить error resilience.
+**Goal:** Устранить все баги из двойного аудита и довести каждый экран до демо-качества — приложение должно быть стабильным для живой демонстрации на хакатоне.
 
-**Target features:**
+### Backend (CalmBridge — config.py, modules/, services/, providers/)
+- [ ] Cross-scope фиксы: APP_VERSION, STATUS_LABELS с css_class, database → dict-only
+- [ ] Thread safety: locks на все read-методы database.py, атомарные операции version_service
+- [ ] Data integrity: contract_number миграция v10, атомарная запись settings, деанонимизация всех полей
+- [ ] Error handling: bare excepts → конкретные, timeout на HTTP, fail-loud GBNF, redline реальная дата
+- [ ] Config hardening: __post_init__() валидация, active_model fix, API key validation
+- [ ] Provider cleanup: timeout, resource cleanup, get_logprobs контракт в base class
+- [ ] Test coverage: 15 gaps — thread safety, миграции v2-v9, payment edges, ai_extractor helpers
+
+### Frontend (VioletRiver — app/)
 - [ ] P0 аудит-фиксы: шрифты 404 (add_static_files), AG Grid deprecated API, двойные вызовы
 - [ ] P1 аудит-фиксы: settings dead code, hardcoded colors → tokens, bulk actions a11y, hover preview keyboard
 - [ ] Cross-scope: единый STATUS_LABELS (после коммита CalmBridge), APP_VERSION в footer, убрать dict cast
 - [ ] Error resilience: loading states и error boundaries — graceful degradation при падении бэкенда
-- [ ] Реестр + split panel: доведение, поиск с иконкой, календарь (фильтр прошедших, навигация месяцев)
+- [ ] Реестр + split panel: доведение, поиск с иконкой, календарь
 - [ ] Карточка документа: превью PDF/DOCX, визуальная плотность, feedback при сохранении заметок
-- [ ] Шаблоны + Настройки: доведение карточек, summary cards scroll-to-section, visual consistency
+- [ ] Шаблоны + Настройки: доведение карточек, visual consistency
 - [ ] Онбординг: wizard и гид-тур — проверить и починить
-- [ ] Финальный визуальный проход: spacing, typography, animations — консистентность на всех экранах
+- [ ] Финальный визуальный проход: spacing, typography, animations — консистентность
 
 ### Deferred
 
@@ -202,4 +211,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 — Milestone v1.0 Hackathon-Ready Frontend started*
+*Last updated: 2026-03-28 — Milestone v1.0 Hackathon-Ready started (backend + frontend)*
