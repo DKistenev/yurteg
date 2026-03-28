@@ -25,7 +25,7 @@ Phases 28–31: v0.9 Backend Hardening
 **Milestone Goal:** Устранить все баги из аудита и довести каждый экран до демо-качества — приложение должно быть стабильным для живой демонстрации на хакатоне.
 
 - [ ] **Phase 32: P0 Critical Fixes** — Шрифты, AG Grid API, двойные вызовы — без этого приложение выглядит сломанным
-- [ ] **Phase 33: Code Quality & Error Resilience** — P1 фиксы: inline colors → tokens, a11y, дублированный код, loading/error states
+- [x] **Phase 33: Code Quality & Error Resilience** — P1 фиксы: inline colors → tokens, a11y, дублированный код, loading/error states
 - [ ] **Phase 34: Registry & Document Card** — Поиск, календарь, превью файлов, feedback при сохранении
 - [ ] **Phase 35: Templates, Settings & Onboarding** — Visual consistency вспомогательных экранов, wizard end-to-end
 - [ ] **Phase 36: Cross-Scope Integration** — Подключение STATUS_LABELS, APP_VERSION, убрать dict cast (ждёт CalmBridge)
@@ -62,7 +62,7 @@ Plans:
   3. При падении обработки документов пользователь видит error toast, приложение не зависает
   4. При недоступности llama-server пользователь видит понятное сообщение с рекомендацией
   5. _MONTHS_RU / _format_date_ru существуют в одном месте, без дублей в разных файлах
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
 
 ### Phase 34: Registry & Document Card
@@ -75,7 +75,7 @@ Plans:
   3. Вкладка «На этой неделе» показывает только будущие события, не прошедшие
   4. Карточка документа показывает превью PDF/DOCX справа в двухколоночном layout
   5. При потере фокуса на поле заметки появляется toast «Сохранено»
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
 
 ### Phase 35: Templates, Settings & Onboarding
@@ -86,7 +86,7 @@ Plans:
   1. Страница шаблонов: empty state отображается корректно, карточки консистентны с дизайн-системой
   2. Настройки: клик по summary card прокручивает к соответствующей секции
   3. Onboarding wizard и гид-тур проходятся от начала до конца без ошибок
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
 
 ### Phase 36: Cross-Scope Integration
@@ -97,7 +97,7 @@ Plans:
   1. Footer показывает актуальный номер версии из config.py (не хардкод «v0.7.1»)
   2. split_panel использует STATUS_LABELS из lifecycle_service, нет дублированного _STATUS_STYLE
   3. registry.py не делает dict(doc) cast — данные из database.py уже dict
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
 
 ### Phase 37: Final Visual Pass
@@ -107,7 +107,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Spacing, typography и анимации консистентны на всех 4 основных экранах (реестр, карточка, шаблоны, настройки)
   2. Нет видимых «сырых» элементов или несоответствий дизайн-системе при прохождении demo flow
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
 
 ### Phase 38: Cross-Scope + Config Hardening
@@ -120,7 +120,7 @@ Plans:
   3. `db.get_contract_by_id(id)` возвращает dict, не sqlite3.Row
   4. `Config(llama_server_port=-1)` поднимает ValueError
   5. `active_model` возвращает корректное имя модели для текущего provider
-**Plans**: TBD
+**Plans**: 2 plans
 
 ### Phase 39: Provider Cleanup
 **Goal**: LLM провайдеры не зависают, имеют явный контракт, валидируют ключи
@@ -131,7 +131,7 @@ Plans:
   2. ZAIProvider("") raises ValueError, не молча принимает пустой ключ
   3. `LLMProvider.get_logprobs()` определён в base class с default `return {}`
   4. `provider.close()` метод существует на всех провайдерах
-**Plans**: TBD
+**Plans**: 2 plans
 
 ### Phase 40: Data Integrity
 **Goal**: contract_number в БД, полная деанонимизация, truncation tracking
@@ -142,7 +142,7 @@ Plans:
   2. Деанонимизация применяется ко всем строковым полям ContractMetadata (не только 4)
   3. Redline DOCX содержит актуальную дату, не "2026-01-01"
   4. Telegram sync: отсутствие ключа в item не крашит обработку
-**Plans**: TBD
+**Plans**: 2 plans
 
 ### Phase 41: Thread Safety
 **Goal**: 5 параллельных потоков работают без OperationalError и deadlock
@@ -153,7 +153,7 @@ Plans:
   2. `get_all_results()`, `get_stats()`, `is_processed()` обёрнуты в `with self._lock:`
   3. `version_service.ensure_embedding()` атомарен (check-and-store под одним lock)
   4. `save_setting()` атомарен (tempfile → os.replace под Lock)
-**Plans**: TBD
+**Plans**: 2 plans
 
 ### Phase 42: Error Handling
 **Goal**: Нет bare excepts, все публичные функции валидируют входы
@@ -165,7 +165,7 @@ Plans:
   3. GBNF grammar file missing → FileNotFoundError (не silent None)
   4. `_split_sentences(None)` возвращает [], не AttributeError
   5. `import json` нет внутри функций (module-level only)
-**Plans**: TBD
+**Plans**: 2 plans
 
 ### Phase 43: Test Coverage
 **Goal**: 15 test gaps закрыты, все новые фиксы покрыты тестами
@@ -177,19 +177,19 @@ Plans:
   3. Payment edge cases: start>end, amount=0, amount<0, max_iter — все проверены
   4. `conftest.py` содержит autouse fixture для reset `version_service._model`
   5. `pytest` проходит зелёным с новыми тестами
-**Plans**: TBD
+**Plans**: 2 plans
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 32. P0 Critical Fixes | v1.0-FE | 0/1 | Planned | - |
-| 33. Code Quality & Error Resilience | v1.0-FE | 0/TBD | Not started | - |
+| 33. Code Quality & Error Resilience | v1.0-FE | 1/1 | Complete | 2026-03-28 |
 | 34. Registry & Document Card | v1.0-FE | 0/TBD | Not started | - |
 | 35. Templates, Settings & Onboarding | v1.0-FE | 0/TBD | Not started | - |
 | 36. Cross-Scope Integration | v1.0-FE | 0/TBD | Not started | - |
 | 37. Final Visual Pass | v1.0-FE | 0/TBD | Not started | - |
-| 38. Cross-Scope + Config Hardening | v1.0-BE | 0/TBD | Not started | - |
+| 38. Cross-Scope + Config Hardening | v1.0-BE | 0/2 | Planned | - |
 | 39. Provider Cleanup | v1.0-BE | 0/TBD | Not started | - |
 | 40. Data Integrity | v1.0-BE | 0/TBD | Not started | - |
 | 41. Thread Safety | v1.0-BE | 0/TBD | Not started | - |

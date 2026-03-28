@@ -4,10 +4,10 @@
 - [ ] **AUDIT-01**: Шрифты IBM Plex Sans загружаются (add_static_files в main.py)
 - [ ] **AUDIT-02**: AG Grid API обновлён до v32.2+ (checkboxSelection/headerCheckboxSelection → gridOptions)
 - [ ] **AUDIT-03**: Двойные вызовы _refresh_deadline_widget удалены (registry.py:1204-1205, 1138)
-- [ ] **AUDIT-04**: Settings summary cards работают (scroll-to-section) или убрать cursor-pointer
-- [ ] **AUDIT-05**: Inline hardcoded colors заменены на CSS custom properties (--yt-*)
-- [ ] **AUDIT-06**: Bulk actions кнопки доступны с клавиатуры (ui.button вместо ui.html)
-- [ ] **AUDIT-07**: _MONTHS_RU и _format_date_ru вынесены в shared utils (удалить дубли из 3 файлов)
+- [x] **AUDIT-04**: Settings summary cards работают (scroll-to-section) или убрать cursor-pointer
+- [x] **AUDIT-05**: Inline hardcoded colors заменены на CSS custom properties (--yt-*)
+- [x] **AUDIT-06**: Bulk actions кнопки доступны с клавиатуры (ui.button вместо ui.html)
+- [x] **AUDIT-07**: _MONTHS_RU и _format_date_ru вынесены в shared utils (удалить дубли из 3 файлов)
 
 ## Cross-Scope Integration
 - [ ] **XSCOPE-01**: split_panel импортирует STATUS_LABELS из lifecycle_service (убрать _STATUS_STYLE дубль)
@@ -15,8 +15,8 @@
 - [ ] **XSCOPE-03**: Защитный dict(doc) cast убран из registry.py (после унификации database.py)
 
 ## Error Resilience
-- [ ] **ERRES-01**: Обработка документов — loading state и error toast при падении бэкенда
-- [ ] **ERRES-02**: Graceful fallback при недоступности llama-server (toast + рекомендация)
+- [x] **ERRES-01**: Обработка документов — loading state и error toast при падении бэкенда
+- [x] **ERRES-02**: Graceful fallback при недоступности llama-server (toast + рекомендация)
 
 ## Registry Polish
 - [ ] **REG-01**: Поиск с иконкой и кнопкой очистки (prepend-icon=search, clearable)
@@ -46,12 +46,12 @@
 | AUDIT-01 | Phase 32 | Pending |
 | AUDIT-02 | Phase 32 | Pending |
 | AUDIT-03 | Phase 32 | Pending |
-| AUDIT-04 | Phase 33 | Pending |
-| AUDIT-05 | Phase 33 | Pending |
-| AUDIT-06 | Phase 33 | Pending |
-| AUDIT-07 | Phase 33 | Pending |
-| ERRES-01 | Phase 33 | Pending |
-| ERRES-02 | Phase 33 | Pending |
+| AUDIT-04 | Phase 33 | Complete |
+| AUDIT-05 | Phase 33 | Complete |
+| AUDIT-06 | Phase 33 | Complete |
+| AUDIT-07 | Phase 33 | Complete |
+| ERRES-01 | Phase 33 | Complete |
+| ERRES-02 | Phase 33 | Complete |
 | REG-01 | Phase 34 | Pending |
 | REG-02 | Phase 34 | Pending |
 | REG-03 | Phase 34 | Pending |
