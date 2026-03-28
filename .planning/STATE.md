@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hackathon-Ready
 status: executing
-stopped_at: Completed 33-01-PLAN.md
-last_updated: "2026-03-28T18:45:00Z"
-last_activity: 2026-03-28 — Phase 33 Plan 01 completed (Code Quality & Error Resilience)
+stopped_at: Completed 34-01-PLAN.md
+last_updated: "2026-03-28T18:58:00Z"
+last_activity: 2026-03-28 — Phase 34 Plan 01 completed (Registry & Document Card)
 progress:
-  percent: 8
+  percent: 17
 ---
 
 # Project State
@@ -21,12 +21,12 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 
 ## Current Position
 
-Phase: 34 of 43 (Frontend: Registry & Document Card) / 38 of 43 (Backend: Cross-Scope + Config Hardening)
+Phase: 35 of 43 (Frontend: Templates, Settings & Onboarding) / 38 of 43 (Backend: Cross-Scope + Config Hardening)
 Plan: —
-Status: Phase 33 complete, ready for Phase 34
-Last activity: 2026-03-28 — Phase 33 completed (6/6 tasks, 6 requirements)
+Status: Phase 34 complete, ready for Phase 35
+Last activity: 2026-03-28 — Phase 34 completed (5/5 tasks, 5 requirements)
 
-Progress: [#░░░░░░░░░] 8% (1/12 phases)
+Progress: [##░░░░░░░░] 17% (2/12 phases)
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [#░░░░░░░░░] 8% (1/12 phases)
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 33. Code Quality | 1/1 | ~15 min | ~15 min |
+| 34. Registry & Document Card | 1/1 | ~2 min | ~2 min |
 
 *Updated after each plan completion*
 
@@ -52,6 +53,7 @@ Progress: [#░░░░░░░░░] 8% (1/12 phases)
 - Cross-scope 5 bugs ждут CalmBridge: APP_VERSION, STATUS_LABELS, dict cast
 - Phase 36 (Frontend Cross-Scope) заблокирована до CalmBridge коммитов в Phase 38
 - Hackathon demo risks: llama-server startup, PDF timeouts, version_service crash
+- DOC-01 (PDF preview) already implemented by prior executor — verified and skipped in Phase 34
 - Zones: VioletRiver = app/, CalmBridge = config.py + services/ + modules/
 - CONF-06 и TSAFE-07 — один и тот же fix (atomic settings write): реализуется в Phase 38, Phase 41 только добавляет Lock
 - DINT-01 строго последовательно: models.py → migration v10 → save_result SQL (три места!)
@@ -70,6 +72,6 @@ Progress: [#░░░░░░░░░] 8% (1/12 phases)
 
 ## Session Continuity
 
-Last session: 2026-03-28T18:45:00Z
-Stopped at: Completed 33-01-PLAN.md (Code Quality & Error Resilience)
-Resume file: .planning/phases/33-code-quality-error-resilience/33-01-SUMMARY.md
+Last session: 2026-03-28T18:58:00Z
+Stopped at: Completed 34-01-PLAN.md (Registry & Document Card)
+Resume file: .planning/phases/34-registry-document-card/34-01-SUMMARY.md

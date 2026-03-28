@@ -26,7 +26,7 @@ Phases 28–31: v0.9 Backend Hardening
 
 - [ ] **Phase 32: P0 Critical Fixes** — Шрифты, AG Grid API, двойные вызовы — без этого приложение выглядит сломанным
 - [x] **Phase 33: Code Quality & Error Resilience** — P1 фиксы: inline colors → tokens, a11y, дублированный код, loading/error states
-- [ ] **Phase 34: Registry & Document Card** — Поиск, календарь, превью файлов, feedback при сохранении
+- [x] **Phase 34: Registry & Document Card** — Поиск, календарь, превью файлов, feedback при сохранении
 - [ ] **Phase 35: Templates, Settings & Onboarding** — Visual consistency вспомогательных экранов, wizard end-to-end
 - [ ] **Phase 36: Cross-Scope Integration** — Подключение STATUS_LABELS, APP_VERSION, убрать dict cast (ждёт CalmBridge)
 - [ ] **Phase 37: Final Visual Pass** — Spacing, typography, animations — консистентность по всем экранам перед хакатоном
@@ -185,7 +185,7 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 32. P0 Critical Fixes | v1.0-FE | 0/1 | Planned | - |
 | 33. Code Quality & Error Resilience | v1.0-FE | 1/1 | Complete | 2026-03-28 |
-| 34. Registry & Document Card | v1.0-FE | 0/TBD | Not started | - |
+| 34. Registry & Document Card | v1.0-FE | 1/1 | Complete | 2026-03-28 |
 | 35. Templates, Settings & Onboarding | v1.0-FE | 0/TBD | Not started | - |
 | 36. Cross-Scope Integration | v1.0-FE | 0/TBD | Not started | - |
 | 37. Final Visual Pass | v1.0-FE | 0/TBD | Not started | - |

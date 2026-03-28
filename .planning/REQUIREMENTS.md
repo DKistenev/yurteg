@@ -19,13 +19,13 @@
 - [x] **ERRES-02**: Graceful fallback при недоступности llama-server (toast + рекомендация)
 
 ## Registry Polish
-- [ ] **REG-01**: Поиск с иконкой и кнопкой очистки (prepend-icon=search, clearable)
-- [ ] **REG-02**: Календарь не показывает прошедшие события в «На этой неделе»
-- [ ] **REG-03**: Мини-календарь с навигацией по месяцам (кнопки < >)
+- [x] **REG-01**: Поиск с иконкой и кнопкой очистки (prepend-icon=search, clearable)
+- [x] **REG-02**: Календарь не показывает прошедшие события в «На этой неделе»
+- [x] **REG-03**: Мини-календарь с навигацией по месяцам (кнопки < >)
 
 ## Document Card Polish
-- [ ] **DOC-01**: Карточка документа с PDF/DOCX превью справа (двухколоночный layout)
-- [ ] **DOC-02**: Feedback при сохранении заметки (toast «Сохранено» при blur)
+- [x] **DOC-01**: Карточка документа с PDF/DOCX превью справа (двухколоночный layout)
+- [x] **DOC-02**: Feedback при сохранении заметки (toast «Сохранено» при blur)
 
 ## Templates & Settings Polish
 - [ ] **TMPL-01**: Шаблоны — visual consistency, empty state доведение
@@ -52,11 +52,11 @@
 | AUDIT-07 | Phase 33 | Complete |
 | ERRES-01 | Phase 33 | Complete |
 | ERRES-02 | Phase 33 | Complete |
-| REG-01 | Phase 34 | Pending |
-| REG-02 | Phase 34 | Pending |
-| REG-03 | Phase 34 | Pending |
-| DOC-01 | Phase 34 | Pending |
-| DOC-02 | Phase 34 | Pending |
+| REG-01 | Phase 34 | Complete |
+| REG-02 | Phase 34 | Complete |
+| REG-03 | Phase 34 | Complete |
+| DOC-01 | Phase 34 | Complete |
+| DOC-02 | Phase 34 | Complete |
 | TMPL-01 | Phase 35 | Pending |
 | SETT-01 | Phase 35 | Pending |
 | ONBR-01 | Phase 35 | Pending |
