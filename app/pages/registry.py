@@ -702,7 +702,7 @@ def build() -> None:
             ui.label(count).classes("cal-sum-count")
 
     def _render_mini_calendar(today_date, events: list) -> None:
-        """Render mini calendar with colored dots for events (REG-05)."""
+        """Render mini calendar with month navigation and colored dots (REG-05, REG-03)."""
         import calendar as cal_module
         from datetime import date as date_cls
 
@@ -715,47 +715,94 @@ def build() -> None:
             except Exception:
                 continue
 
-        year, month = today_date.year, today_date.month
         month_names_ru = [
             "", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
             "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
         ]
 
-        with ui.element("div").classes("mini-cal"):
-            with ui.element("div").classes("mini-cal-header"):
-                ui.label(f"{month_names_ru[month]} {year}").classes("mini-cal-month")
+        cal_state = {"year": today_date.year, "month": today_date.month}
+        cal_container = ui.element("div").classes("mini-cal")
 
-            with ui.element("div").classes("mini-cal-grid"):
-                # Day headers (Monday first)
-                for day_name in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]:
-                    with ui.element("div").classes("mini-cal-day-header"):
-                        ui.html(day_name)
+        def _draw_calendar() -> None:
+            """Draw calendar grid for current cal_state month."""
+            cal_container.clear()
+            year = cal_state["year"]
+            month = cal_state["month"]
 
-                # Calendar days
-                cal = cal_module.Calendar(firstweekday=0)
-                for d in cal.itermonthdates(year, month):
-                    is_other = d.month != month
-                    is_today = d == today_date
-                    cls = "mini-cal-day"
-                    if is_other:
-                        cls += " mini-cal-day-other"
-                    if is_today:
-                        cls += " mini-cal-day-today"
+            with cal_container:
+                with ui.element("div").classes("mini-cal-header"):
+                    ui.label(f"{month_names_ru[month]} {year}").classes("mini-cal-month")
+                    with ui.element("div").classes("mini-cal-nav"):
+                        prev_btn = ui.element("button").classes("mini-cal-btn")
+                        with prev_btn:
+                            ui.html("\u2039")
+                        prev_btn.on("click", lambda: _nav_month(-1))
 
-                    with ui.element("div").classes(cls):
-                        ui.html(str(d.day))
-                        types_on_day = date_events.get(d, [])
-                        dot_types = list(set(types_on_day))
-                        for i, t in enumerate(dot_types[:2]):  # Max 2 dots per day
-                            dot_cls = {
-                                "end": "mini-cal-dot-end",
-                                "pay": "mini-cal-dot-pay",
-                                "expiring": "mini-cal-dot-expiring",
-                            }.get(t, "")
-                            offset = 40 + i * 20
-                            ui.element("div").classes(f"mini-cal-dot {dot_cls}").style(
-                                f"left:{offset}%; transform:translateX(-50%);"
-                            )
+                        next_btn = ui.element("button").classes("mini-cal-btn")
+                        with next_btn:
+                            ui.html("\u203a")
+                        next_btn.on("click", lambda: _nav_month(1))
+
+                with ui.element("div").classes("mini-cal-grid"):
+                    # Day headers (Monday first)
+                    for day_name in ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]:
+                        with ui.element("div").classes("mini-cal-day-header"):
+                            ui.html(day_name)
+
+                    # Calendar days
+                    cal = cal_module.Calendar(firstweekday=0)
+                    for d in cal.itermonthdates(year, month):
+                        is_other = d.month != month
+                        is_today = d == today_date
+                        cls = "mini-cal-day"
+                        if is_other:
+                            cls += " mini-cal-day-other"
+                        if is_today:
+                            cls += " mini-cal-day-today"
+
+                        with ui.element("div").classes(cls):
+                            ui.html(str(d.day))
+                            types_on_day = date_events.get(d, [])
+                            dot_types = list(set(types_on_day))
+                            for i, t in enumerate(dot_types[:2]):  # Max 2 dots per day
+                                dot_cls = {
+                                    "end": "mini-cal-dot-end",
+                                    "pay": "mini-cal-dot-pay",
+                                    "expiring": "mini-cal-dot-expiring",
+                                }.get(t, "")
+                                offset = 40 + i * 20
+                                ui.element("div").classes(f"mini-cal-dot {dot_cls}").style(
+                                    f"left:{offset}%; transform:translateX(-50%);"
+                                )
+
+                # "Сегодня" reset link (only show when not on current month)
+                if year != today_date.year or month != today_date.month:
+                    today_link = ui.label("Сегодня \u21a9").style(
+                        "font-size:12px;color:#4f46e5;cursor:pointer;"
+                        "margin-top:6px;text-align:center;width:100%;"
+                    )
+                    today_link.on("click", lambda: _nav_today())
+
+        def _nav_month(delta: int) -> None:
+            """Navigate month by delta (-1 or +1), wrapping year."""
+            m = cal_state["month"] + delta
+            if m < 1:
+                cal_state["year"] -= 1
+                cal_state["month"] = 12
+            elif m > 12:
+                cal_state["year"] += 1
+                cal_state["month"] = 1
+            else:
+                cal_state["month"] = m
+            _draw_calendar()
+
+        def _nav_today() -> None:
+            """Reset to today's month."""
+            cal_state["year"] = today_date.year
+            cal_state["month"] = today_date.month
+            _draw_calendar()
+
+        _draw_calendar()
 
     async def _show_calendar() -> None:
         """Render timeline view with event cards and mini-calendar (REG-05)."""
