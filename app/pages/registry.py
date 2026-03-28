@@ -1257,7 +1257,6 @@ def build() -> None:
             db = _client_manager.get_db(state.current_client)
             doc = await run.io_bound(db.get_contract_by_id, doc_id)
             if doc:
-                doc = dict(doc) if not isinstance(doc, dict) else doc
                 doc["computed_status"] = data.get("computed_status", "unknown")
                 render_split_panel(
                     panel_container, doc,

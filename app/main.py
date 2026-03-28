@@ -193,7 +193,8 @@ def root() -> None:
     with ui.element('footer').classes(
         "w-full py-3 px-8 flex justify-center items-center border-t border-slate-200 bg-white shrink-0"
     ):
-        ui.label("ЮрТэг v0.7.1").classes("text-xs text-slate-400")
+        from config import APP_VERSION
+        ui.label(f"ЮрТэг v{APP_VERSION}").classes("text-xs text-slate-400")
 
 
 # ── Redline download route (Phase 9, D-18) ────────────────────────────────────

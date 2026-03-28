@@ -16,19 +16,9 @@ from app.styles import (
     PANEL_FIELD_VALUE,
 )
 from app.utils import format_date_ru
+from services.lifecycle_service import STATUS_LABELS
 
 logger = logging.getLogger(__name__)
-
-_STATUS_STYLE = {
-    "active": ("bg-green-100 text-green-700", "Действует"),
-    "expiring": ("bg-amber-100 text-amber-700", "Истекает"),
-    "expired": ("bg-red-100 text-red-700", "Истёк"),
-    "terminated": ("bg-slate-200 text-slate-600", "Расторгнут"),
-    "extended": ("bg-blue-100 text-blue-700", "Продлён"),
-    "negotiation": ("bg-purple-100 text-purple-700", "Переговоры"),
-    "suspended": ("bg-orange-100 text-orange-700", "Приостановлен"),
-    "unknown": ("bg-slate-100 text-slate-500", "Неизвестно"),
-}
 
 
 def _format_amount(amount) -> str:
@@ -93,7 +83,9 @@ def render_split_panel(
             _field_linear("Предмет", doc.get("subject", "—"))
             # Статус badge
             status = doc.get("computed_status", "unknown")
-            badge_cls, badge_label = _STATUS_STYLE.get(status, _STATUS_STYLE["unknown"])
+            _icon, badge_label, _color, badge_cls = STATUS_LABELS.get(
+                status, STATUS_LABELS["unknown"]
+            )
             ui.label(badge_label).classes(
                 f"mt-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full {badge_cls}"
             )
