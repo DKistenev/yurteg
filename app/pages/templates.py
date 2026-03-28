@@ -69,7 +69,7 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
     with container:
         if not templates:
             # Rich empty state (TMPL-03)
-            with ui.column().classes("w-full items-center justify-center py-10"):
+            with ui.column().classes("w-full items-center py-6"):
                 ui.label("Шаблоны не добавлены").classes(TMPL_EMPTY_TITLE)
                 ui.label(
                     "Загрузите образец договора — система сравнит новые документы с эталоном и покажет отклонения"
@@ -99,14 +99,14 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                                 f"border-radius:12px 0 0 12px;flex-shrink:0"
                             ):
                                 pass
-                            with ui.column().classes("p-6 gap-1.5 flex-1"):
+                            with ui.column().classes("p-5 gap-1.5 flex-1 min-w-0"):
                                 with ui.row().classes("items-center gap-3 mb-1"):
                                     # Icon in colored rounded square
                                     ui.html(
                                         f'<div style="width:32px;height:32px;border-radius:8px;'
                                         f'background:{colors["badge_bg"]};display:flex;'
                                         f'align-items:center;justify-content:center;'
-                                        f'font-size:1rem;flex-shrink:0">{colors["icon"]}</div>'
+                                        f'flex-shrink:0;font-size:16px;line-height:1">{colors["icon"]}</div>'
                                     )
                                     with ui.column().classes("gap-0"):
                                         ui.label("Договор аренды офиса").classes(
@@ -138,9 +138,9 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                         f'<div style="width:20px;height:20px;border-radius:6px;'
                         f'background:{colors["badge_bg"]};display:flex;'
                         f'align-items:center;justify-content:center;'
-                        f'font-size:0.7rem;flex-shrink:0">{colors["icon"]}</div>'
+                        f'flex-shrink:0;font-size:11px;line-height:1">{colors["icon"]}</div>'
                     )
-                    ui.label(doc_type.upper()).classes(
+                    ui.label(doc_type).classes(
                         "text-xs font-semibold text-slate-400 uppercase tracking-wide"
                     )
                 with ui.grid(columns=2).classes("w-full gap-4"):
@@ -166,15 +166,15 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
             ):
                 pass
             # Card content
-            with ui.column().classes("p-5 gap-1.5 flex-1"):
+            with ui.column().classes("p-5 gap-1.5 flex-1 min-w-0"):
                 # Header row: icon square + title/subtitle
                 with ui.row().classes("items-center gap-3 mb-1"):
-                    # Icon in colored rounded square
+                    # Icon in colored rounded square (emoji, not material-icons)
                     ui.html(
                         f'<div style="width:32px;height:32px;border-radius:8px;'
                         f'background:{colors["badge_bg"]};display:flex;'
                         f'align-items:center;justify-content:center;'
-                        f'font-size:1rem;flex-shrink:0">{colors["icon"]}</div>'
+                        f'flex-shrink:0;font-size:16px;line-height:1">{colors["icon"]}</div>'
                     )
                     with ui.column().classes("gap-0 min-w-0"):
                         ui.label(tmpl.name).classes(
@@ -234,7 +234,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None)
                     await run.io_bound(
                         review_service.update_template, db, tmpl.id, new_name, new_type
                     )
-                except Exception as e:
+                except Exception:
                     logger.exception("Ошибка при работе с шаблонами: сохранение изменений")
                     ui.notify("Не удалось сохранить изменения. Попробуйте ещё раз.", type="negative")
                     return
@@ -324,7 +324,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
                 # Blocking I/O — run.io_bound
                 try:
                     extracted = await run.io_bound(extractor.extract_text, fi)
-                except Exception as e:
+                except Exception:
                     logger.exception("Ошибка при работе с шаблонами: чтение файла")
                     ui.notify("Не удалось прочитать файл. Проверьте формат документа.", type="negative")
                     return
@@ -342,7 +342,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
                         extracted.text,
                         str(file_path),
                     )
-                except Exception as e:
+                except Exception:
                     logger.exception("Ошибка при работе с шаблонами: сохранение шаблона")
                     ui.notify("Не удалось сохранить шаблон. Попробуйте ещё раз.", type="negative")
                     return
@@ -373,8 +373,9 @@ def build() -> None:
                 "w-full bg-slate-50 border border-slate-200 rounded-lg p-3 items-center gap-3 mb-4"
             )
             with tip_container:
+                ui.icon("lightbulb").style("font-size:18px; color:#d97706;")
                 ui.label(
-                    "💡 Загрузите образец договора — система будет сравнивать новые документы с эталоном"
+                    "Загрузите образец договора — система будет сравнивать новые документы с эталоном"
                 ).classes("text-sm text-slate-600 flex-1")
 
                 def _dismiss_templates_tip():
