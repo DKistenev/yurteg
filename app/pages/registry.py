@@ -497,7 +497,7 @@ def build() -> None:
         with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row").props("data-tour=filters") as search_row:
             search_input = (
                 ui.input(placeholder="Поиск по реестру...")
-                .props("outlined dense")
+                .props("outlined dense clearable").props('prepend-inner-icon=search')
                 .classes("flex-1 max-w-lg")
             )
 
