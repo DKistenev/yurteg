@@ -24,25 +24,23 @@ def render_bulk_toolbar(
     toolbar = ui.row().classes(BULK_TOOLBAR + " yt-toolbar-enter")
     with toolbar:
         ui.html(
-            f'<span style="font-size:14px;font-weight:600;color:#334155;">'
-            f'Выбрано: <span style="color:#4f46e5;">{len(selected_ids)}</span></span>'
+            f'<span style="font-size:14px;font-weight:600;color:var(--yt-p-slate-700);">'
+            f'Выбрано: <span style="color:var(--yt-color-accent);">{len(selected_ids)}</span></span>'
         )
 
         ui.element("div").classes("flex-1")
 
-        ui.html(
-            '<button class="yt-bulk-btn-text" style="color:#64748b;" '
-            'onclick="this.dispatchEvent(new Event(\'yt-clear\', {bubbles:true}))">'
-            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">deselect</span>'
-            "Снять выбор</button>"
-        ).on("yt-clear", on_clear)
+        ui.button(
+            "Снять выбор", icon="deselect", on_click=on_clear,
+        ).props('flat dense no-caps aria-label="Снять выбор"').classes(
+            "text-xs text-slate-500 hover:text-slate-700"
+        )
 
-        ui.html(
-            '<button class="yt-bulk-btn yt-bulk-btn-danger" style="color:#dc2626;" '
-            'onclick="this.dispatchEvent(new Event(\'yt-del\', {bubbles:true}))">'
-            '<span class="material-icons" style="font-size:15px;vertical-align:middle;margin-right:4px;">delete</span>'
-            "Удалить</button>"
-        ).on("yt-del", on_delete)
+        ui.button(
+            "Удалить", icon="delete", on_click=on_delete,
+        ).props('flat dense no-caps aria-label="Удалить выбранные"').classes(
+            "text-xs text-red-600 hover:text-red-700"
+        )
 
     return toolbar
 
