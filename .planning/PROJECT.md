@@ -100,20 +100,20 @@
 - ✓ Виджет дедлайнов в реестре — v0.9
 - ✓ Bulk delete с обновлением дедлайнов — v0.9
 
-## Current Milestones
+## Current Milestone: v1.0 Hackathon-Ready Frontend
 
-### v0.8.1 UI Polish (workstream: hardening-cleanup)
+**Goal:** Довести каждый экран до демо-качества для живой демонстрации на хакатоне — починить баги из фронтенд-аудита, доделать UI Polish, добавить error resilience.
 
-**Goal:** Полная переработка визуала всех экранов по утверждённым HTML-мокапам — от реестра до онбординга.
-
-- [ ] Реестр: убрать «Уверенность» и Excel, Linear-style панель, русский подвал
-- [ ] Карточка документа: метаданные слева + PDF/DOCX превью справа на всю высоту
-- [ ] Календарь: таймлайн событий + мини-календарь + сводка
-- [ ] Шаблоны: hero + чипы-пресеты + примеры при пустом состоянии
-- [ ] Настройки: единая страница + карточки модели + кольцо точности
-- [ ] Диалог пространства: карточки-пояснения + выбор цвета + превью
-- [ ] Онбординг: пошаговый wizard 3 шага + гид-тур с подсветкой
-- [ ] Обработка: живой реестр + лента файлов в реальном времени
+**Target features:**
+- [ ] P0 аудит-фиксы: шрифты 404 (add_static_files), AG Grid deprecated API, двойные вызовы
+- [ ] P1 аудит-фиксы: settings dead code, hardcoded colors → tokens, bulk actions a11y, hover preview keyboard
+- [ ] Cross-scope: единый STATUS_LABELS (после коммита CalmBridge), APP_VERSION в footer, убрать dict cast
+- [ ] Error resilience: loading states и error boundaries — graceful degradation при падении бэкенда
+- [ ] Реестр + split panel: доведение, поиск с иконкой, календарь (фильтр прошедших, навигация месяцев)
+- [ ] Карточка документа: превью PDF/DOCX, визуальная плотность, feedback при сохранении заметок
+- [ ] Шаблоны + Настройки: доведение карточек, summary cards scroll-to-section, visual consistency
+- [ ] Онбординг: wizard и гид-тур — проверить и починить
+- [ ] Финальный визуальный проход: spacing, typography, animations — консистентность на всех экранах
 
 ### Deferred
 
@@ -146,8 +146,8 @@
 | 4 | **Визуальный продукт** | ✅ Завершена (v0.7) — tokens.css, dark chrome, hero splash, visual density |
 | 5 | **Hardening & Cleanup** | ✅ Завершена (v0.8) — баги, чистка, 315 тестов |
 | 6 | **Backend Hardening** | ✅ Завершена (v0.9) — cleanup, AI pipeline, redline, vectors, UI wire-up |
-| 7 | **UI Polish** | Полная переработка визуала по мокапам (v0.8.1) |
-| 8 | DMG/EXE сборка | Доставка конечным пользователям (v1.0) |
+| 7 | **Hackathon-Ready** | Аудит-фиксы + UI Polish + error resilience (v1.0) |
+| 8 | DMG/EXE сборка | Доставка конечным пользователям (v1.1) |
 
 ## Constraints
 
@@ -202,4 +202,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-27 after v0.9 Backend Hardening milestone complete*
+*Last updated: 2026-03-28 — Milestone v1.0 Hackathon-Ready Frontend started*
