@@ -29,10 +29,15 @@ def get_computed_status_sql(warning_days: int) -> str:
     manual_status имеет приоритет над автоматическим статусом.
     warning_days — количество дней для порога 'expiring'.
 
+    Raises:
+        ValueError: если warning_days <= 0.
+
     Использование:
         sql = f"SELECT *, {get_computed_status_sql(30)} AS computed_status FROM contracts"
         conn.execute(sql, {"warning_days": warning_days})
     """
+    if not isinstance(warning_days, int) or warning_days <= 0:
+        raise ValueError(f"warning_days должен быть положительным int, получено: {warning_days}")
     return """
         CASE
             WHEN manual_status IS NOT NULL THEN manual_status

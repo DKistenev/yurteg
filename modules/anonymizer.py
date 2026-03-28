@@ -298,7 +298,7 @@ _LATIN_NAME_CONTEXT = re.compile(
     re.IGNORECASE,
 )
 _LATIN_NAME = re.compile(
-    r'([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})',
+    r'([A-Z][a-z]+(?:-[A-Z][a-z]+)?(?:\s+[A-Z][a-z]+(?:-[A-Z][a-z]+)?){1,3})',
 )
 
 

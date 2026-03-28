@@ -38,14 +38,12 @@ _KEY_FIELDS = ("contract_type", "counterparty", "amount")
 _LOGPROB_THRESHOLD = -2.0  # порог из CONTEXT.md: ниже этого → низкая уверенность
 
 
-def _load_grammar() -> str | None:
-    """Загружает GBNF грамматику из data/contract.gbnf."""
+def _load_grammar() -> str:
+    """Загружает GBNF грамматику из data/contract.gbnf. Raises FileNotFoundError."""
     grammar_path = Path(__file__).parent.parent / "data" / "contract.gbnf"
-    try:
-        return grammar_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        logger.warning("Не удалось загрузить GBNF грамматику: %s", exc)
-        return None
+    if not grammar_path.exists():
+        raise FileNotFoundError(f"GBNF грамматика не найдена: {grammar_path}")
+    return grammar_path.read_text(encoding="utf-8")
 
 
 def _has_suspicious_nulls(metadata: ContractMetadata) -> bool:

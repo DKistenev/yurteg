@@ -56,8 +56,9 @@ class ClientManager:
             slug = "client"
         path = self._data_dir / f"client_{slug}.db"
         # Avoid path collisions
+        existing_paths = {str(p) for p in self._clients.values()}
         counter = 1
-        while path.exists() and str(path) not in [str(p) for p in self._clients.values()]:
+        while path.exists() and str(path) not in existing_paths:
             path = self._data_dir / f"client_{slug}_{counter}.db"
             counter += 1
         self._clients[name] = path
@@ -82,6 +83,8 @@ class ClientManager:
         'ООО Рога и Копыта' matches 'Рога и Копыта ООО'.
         Returns client name or None if no match above threshold.
         """
+        if not counterparty:
+            return None
         try:
             from rapidfuzz import process, fuzz
         except ImportError:

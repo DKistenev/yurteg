@@ -101,9 +101,6 @@ def _process_paragraph(
     matcher = difflib.SequenceMatcher(None, tokens_old, tokens_new, autojunk=False)
     opcodes = matcher.get_opcodes()
 
-    # Проверяем — есть ли вообще изменения
-    has_changes = any(tag != "equal" for tag, *_ in opcodes)
-
     para = doc.add_paragraph()
     para_p = para._p
 
@@ -123,8 +120,6 @@ def _process_paragraph(
             _add_del_run(para_p, old_text, str(next(id_gen)))
             _add_ins_run(para_p, new_text, str(next(id_gen)))
 
-    # Если нет изменений — параграф уже содержит plain runs, всё ок
-    _ = has_changes  # используется неявно через добавление runs
 
 
 def generate_redline_docx(
@@ -138,11 +133,16 @@ def generate_redline_docx(
     Args:
         text_old: Исходный текст.
         text_new: Новый текст.
+
+    Raises:
+        ValueError: если text_old или text_new пустые.
         title: Заголовок документа.
 
     Returns:
         bytes готового .docx файла.
     """
+    if not text_old or not text_new:
+        raise ValueError("text_old и text_new должны быть непустыми")
     doc = Document()
     doc.add_heading(title, level=1)
 
@@ -160,6 +160,6 @@ def generate_redline_docx(
     for p_old, p_new in zip(paragraphs_old_padded, paragraphs_new_padded):
         _process_paragraph(doc, p_old, p_new, id_gen)
 
-    buf = io.BytesIO()
-    doc.save(buf)
-    return buf.getvalue()
+    with io.BytesIO() as buf:
+        doc.save(buf)
+        return buf.getvalue()

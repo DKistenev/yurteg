@@ -32,7 +32,7 @@ DIRECTION_COLOR = {
 
 def _parse_date(s: Optional[str]) -> Optional[date]:
     """Парсит ISO 8601 строку в date. Возвращает None при ошибке."""
-    if not s:
+    if not s or len(s) < 10:
         return None
     try:
         return datetime.strptime(s[:10], "%Y-%m-%d").date()
@@ -55,6 +55,15 @@ def unroll_payments(
     Returns: список dict с ключами: date (date), amount (float),
              direction (str), is_periodic (bool), frequency (str|None)
     """
+    if amount is not None and amount < 0:
+        raise ValueError(f"Сумма платежа не может быть отрицательной: {amount}")
+    if start > end:
+        raise ValueError(f"Дата начала ({start}) позже даты окончания ({end})")
+
+    valid_frequencies = {None, "once", "monthly", "quarterly", "yearly"}
+    if frequency not in valid_frequencies:
+        raise ValueError(f"Неизвестная частота платежа: {frequency!r}")
+
     delta = FREQUENCY_DELTA.get(frequency or "")
     is_periodic = delta is not None
 

@@ -211,6 +211,8 @@ def match_template(
 
 def _split_sentences(text: str) -> list[str]:
     """Разбивает текст на предложения."""
+    if not text:
+        return []
     parts = re.split(r'(?<=[.!?])\s+', text.strip())
     return [p.strip() for p in parts if p.strip()]
 
