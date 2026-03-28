@@ -1186,7 +1186,21 @@ def build() -> None:
         """Callback triggered by header upload button (D-06, D-07, D-08, D-11)."""
         # Re-grab upload_btn ref (may not be set at module init time)
         ui_refs["upload_btn"] = _header_refs.get("upload_btn")
-        await start_pipeline(source_dir, state, ui_refs)
+        try:
+            await start_pipeline(source_dir, state, ui_refs)
+        except Exception:
+            logger.exception("Pipeline failed for %s", source_dir)
+            ui.notify(
+                "Ошибка при обработке документов. Попробуйте снова или проверьте настройки.",
+                type="negative",
+                timeout=8000,
+            )
+            # Restore UI state so the app doesn't hang
+            state.processing = False
+            upload_btn = ui_refs.get("upload_btn")
+            if upload_btn:
+                upload_btn.set_enabled(True)
+            return
         # Mark first processing done for trust-building prompt (Phase 16)
         settings = load_settings()
         if not settings.get("first_processing_done"):
