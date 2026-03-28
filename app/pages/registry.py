@@ -495,10 +495,12 @@ def build() -> None:
 
         # ── Search + Filter bar row (REGI-06) — search-row class for guided tour targeting (D-14 onboarding) ──
         with ui.row().classes("w-full px-6 pb-4 items-center gap-4 search-row").props("data-tour=filters") as search_row:
-            search_input = (
-                ui.input(placeholder="Поиск по реестру...")
-                .props("outlined dense clearable").props('prepend-inner-icon=search')
-                .classes("flex-1 max-w-lg")
+            search_input = ui.input(placeholder="Поиск по реестру...").props(
+                "outlined dense clearable"
+            ).classes("flex-1 max-w-lg")
+            search_input.add_slot(
+                "prepend",
+                '<q-icon name="search" />'
             )
 
             # REGI-06: Filter bar с filled active state
