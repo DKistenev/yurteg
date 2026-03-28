@@ -2,7 +2,7 @@
 import logging
 import os
 
-from openai import OpenAI
+from openai import APIConnectionError, AuthenticationError, OpenAI
 
 from config import Config
 from providers.base import LLMProvider
@@ -20,26 +20,25 @@ class ZAIProvider(LLMProvider):
         api_key = (
             os.environ.get("ZAI_API_KEY", "")
             or os.environ.get("ZHIPU_API_KEY", "")
-            or ""
         )
+        if not api_key:
+            raise ValueError("ZAI_API_KEY или ZHIPU_API_KEY не задан в переменных окружения")
         self._client = OpenAI(
             base_url=config.ai_base_url,
             api_key=api_key,
+            timeout=60.0,
         )
 
     def complete(self, messages: list[dict], **kwargs) -> str:
-        """Вызов ZAI API. Добавляет extra_body thinking:disabled если включено в конфиге."""
-        extra = {}
-        if self._config.ai_disable_thinking:
-            extra["extra_body"] = {"thinking": {"type": "disabled"}}
-
+        """Вызов ZAI API."""
         response = self._client.chat.completions.create(
             model=self._config.active_model,
             temperature=self._config.ai_temperature,
             max_tokens=self._config.ai_max_tokens,
             messages=messages,
-            **extra,
         )
+        if not response.choices:
+            raise RuntimeError("ZAI вернул пустой choices")
         content = response.choices[0].message.content
         if not content:
             raise RuntimeError("ZAI вернул пустой ответ")
@@ -50,5 +49,12 @@ class ZAIProvider(LLMProvider):
         try:
             self._client.models.list()
             return True
-        except Exception:
+        except AuthenticationError:
+            logger.warning("ZAI API-ключ невалиден")
+            return False
+        except APIConnectionError:
+            logger.warning("ZAI сервис недоступен")
+            return False
+        except Exception as exc:
+            logger.warning("ZAI verify_key failed: %s", exc)
             return False

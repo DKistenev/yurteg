@@ -30,6 +30,7 @@ class OllamaProvider(LLMProvider):
         self._client = OpenAI(
             base_url=base_url,
             api_key="not-needed",  # llama-server не требует ключ
+            timeout=120.0,  # холодный старт llama-server может занять время
         )
 
     def complete(self, messages: list[dict], **kwargs) -> str:
@@ -54,6 +55,8 @@ class OllamaProvider(LLMProvider):
             messages=messages,
             extra_body=extra_body if extra_body else None,
         )
+        if not response.choices:
+            raise RuntimeError("llama-server вернул пустой choices")
         content = response.choices[0].message.content
         if not content:
             raise RuntimeError("llama-server вернул пустой ответ")
@@ -140,5 +143,6 @@ class OllamaProvider(LLMProvider):
         try:
             self._client.models.list()
             return True
-        except Exception:
+        except Exception as exc:
+            logger.warning("llama-server verify_key failed: %s", exc)
             return False

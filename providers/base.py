@@ -35,3 +35,17 @@ class LLMProvider(ABC):
     def verify_key(self) -> bool:
         """Проверяет валидность API-ключа. Возвращает True/False, не поднимает исключений."""
         ...
+
+    def get_logprobs(
+        self,
+        messages: list[dict],
+        fields_to_check: list[str],
+    ) -> dict[str, float]:
+        """Возвращает logprobs для оценки уверенности. По умолчанию — пустой dict."""
+        return {}
+
+    def close(self) -> None:
+        """Закрывает HTTP-соединения провайдера."""
+        client = getattr(self, "_client", None)
+        if client is not None and hasattr(client, "close"):
+            client.close()

@@ -19,10 +19,11 @@ def _merge_system_into_user(messages: list[dict]) -> list[dict]:
     system_parts: list[str] = []
     other: list[dict] = []
     for msg in messages:
-        if msg["role"] == "system":
-            system_parts.append(msg["content"])
+        m = dict(msg)  # defensive copy
+        if m["role"] == "system":
+            system_parts.append(m["content"])
         else:
-            other.append(msg)
+            other.append(m)
 
     if not system_parts or not other:
         return messages
@@ -50,9 +51,12 @@ class OpenRouterProvider(LLMProvider):
     def __init__(self, config: Config) -> None:
         self._config = config
         api_key = os.environ.get("OPENROUTER_API_KEY", "")
+        if not api_key:
+            raise ValueError("OPENROUTER_API_KEY не задан в переменных окружения")
         self._client = OpenAI(
             base_url=config.ai_fallback_base_url,
             api_key=api_key,
+            timeout=60.0,
             default_headers={
                 "HTTP-Referer": "https://github.com/yurteg",
                 "X-Title": "YurTeg",
@@ -68,6 +72,8 @@ class OpenRouterProvider(LLMProvider):
             max_tokens=self._config.ai_max_tokens,
             messages=merged,
         )
+        if not response.choices:
+            raise RuntimeError("OpenRouter вернул пустой choices")
         content = response.choices[0].message.content
         if not content:
             raise RuntimeError("OpenRouter вернул пустой ответ")
@@ -78,5 +84,6 @@ class OpenRouterProvider(LLMProvider):
         try:
             self._client.models.list()
             return True
-        except Exception:
+        except Exception as exc:
+            logger.warning("OpenRouter verify_key failed: %s", exc)
             return False
