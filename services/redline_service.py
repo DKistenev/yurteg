@@ -16,7 +16,12 @@ from docx.oxml.ns import qn
 __all__ = ["generate_redline_docx"]
 
 _AUTHOR = "ЮрТэг"
-_DATE = "2026-01-01T00:00:00Z"
+
+
+def _current_date() -> str:
+    """Возвращает текущую UTC дату в ISO формате для track changes."""
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _tokenize(text: str) -> list[str]:
@@ -38,7 +43,7 @@ def _add_del_run(para_p: "OxmlElement", text: str, rev_id: str) -> None:  # type
     del_el = OxmlElement("w:del")
     del_el.set(qn("w:id"), rev_id)
     del_el.set(qn("w:author"), _AUTHOR)
-    del_el.set(qn("w:date"), _DATE)
+    del_el.set(qn("w:date"), _current_date())
 
     run_el = OxmlElement("w:r")
     rpr = _make_rpr()
@@ -58,7 +63,7 @@ def _add_ins_run(para_p: "OxmlElement", text: str, rev_id: str) -> None:  # type
     ins_el = OxmlElement("w:ins")
     ins_el.set(qn("w:id"), rev_id)
     ins_el.set(qn("w:author"), _AUTHOR)
-    ins_el.set(qn("w:date"), _DATE)
+    ins_el.set(qn("w:date"), _current_date())
 
     run_el = OxmlElement("w:r")
     rpr = _make_rpr()

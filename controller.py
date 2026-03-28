@@ -200,29 +200,25 @@ class Controller:
                     result, anonymized, metadata = future.result()
                     result.metadata = metadata
                     result.model_used = self.config.active_model
+                    if result.text and len(anonymized.text) > 30_000:
+                        result.text.was_truncated = True
 
-                    # Деанонимизация контрагента, сторон, предмета и особых условий
+                    # Деанонимизация всех строковых полей метаданных
                     if anonymized.replacements:
-                        if metadata.counterparty:
-                            metadata.counterparty = _deanonymize(
-                                metadata.counterparty, anonymized.replacements
-                            )
-                        if metadata.parties:
-                            metadata.parties = [
-                                _deanonymize(p, anonymized.replacements)
-                                for p in metadata.parties
-                            ]
-                        else:
-                            metadata.parties = []
-                        if metadata.subject:
-                            metadata.subject = _deanonymize(
-                                metadata.subject, anonymized.replacements
-                            )
-                        if metadata.special_conditions:
-                            metadata.special_conditions = [
-                                _deanonymize(sc, anonymized.replacements)
-                                for sc in metadata.special_conditions
-                            ]
+                        for field_name in (
+                            "contract_type", "counterparty", "subject",
+                            "amount", "contract_number", "payment_terms",
+                        ):
+                            val = getattr(metadata, field_name, None)
+                            if val:
+                                setattr(metadata, field_name, _deanonymize(val, anonymized.replacements))
+                        for list_field in ("parties", "special_conditions"):
+                            items = getattr(metadata, list_field, None)
+                            if items:
+                                setattr(metadata, list_field, [
+                                    _deanonymize(item, anonymized.replacements)
+                                    for item in items
+                                ])
 
                     # Организация файла
                     organized_path = organize_file(result, output_dir, grouping)

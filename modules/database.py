@@ -274,6 +274,18 @@ def _migrate_v9_full_text(conn: sqlite3.Connection) -> None:
     _mark_migration_applied(conn, 9)
 
 
+def _migrate_v10_contract_number(conn: sqlite3.Connection) -> None:
+    """v10: Добавить contract_number в contracts."""
+    if _is_migration_applied(conn, 10):
+        return
+    try:
+        conn.execute("ALTER TABLE contracts ADD COLUMN contract_number TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 10)
+
+
 def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     """Проверяет существование таблицы в БД."""
     row = conn.execute(
@@ -305,6 +317,7 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     _migrate_v7_payment_columns(conn)
     _migrate_v8_template_embeddings(conn)
     _migrate_v9_full_text(conn)
+    _migrate_v10_contract_number(conn)
 
 
 class Database:
@@ -372,6 +385,7 @@ class Database:
             m.payment_frequency if m else None,
             m.payment_direction if m else None,
             result.full_text,
+            m.contract_number if m else None,
         )
 
         with self._lock:
@@ -384,8 +398,8 @@ class Database:
                  validation_status, validation_warnings, validation_score,
                  organized_path, model_used,
                  payment_terms, payment_amount, payment_frequency, payment_direction,
-                 full_text)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 full_text, contract_number)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_hash) DO UPDATE SET
                   original_path = excluded.original_path,
                   filename = excluded.filename,
@@ -411,6 +425,7 @@ class Database:
                   payment_frequency = excluded.payment_frequency,
                   payment_direction = excluded.payment_direction,
                   full_text = excluded.full_text,
+                  contract_number = excluded.contract_number,
                   processed_at = CURRENT_TIMESTAMP
                 """,
                 data,

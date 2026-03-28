@@ -22,6 +22,7 @@ class ExtractedText:
     page_count: int
     is_scanned: bool  # True если текст почти пустой (сканированный PDF)
     extraction_method: str  # "pdfplumber" | "python-docx" | "ocr" | "failed"
+    was_truncated: bool = False  # True если текст обрезан для AI (>30K символов)
 
 
 @dataclass
@@ -44,6 +45,7 @@ class ContractMetadata:
     amount: Optional[str] = None
     special_conditions: list[str] = field(default_factory=list)
     parties: list[str] = field(default_factory=list)
+    contract_number: Optional[str] = None
     confidence: float = 0.0
     is_template: bool = False
 

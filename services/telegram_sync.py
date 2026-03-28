@@ -76,12 +76,15 @@ class TelegramSync:
         dest_dir.mkdir(parents=True, exist_ok=True)
         paths: list[Path] = []
         for item in files_data:
+            if "id" not in item or "filename" not in item:
+                logger.warning("Пропущен элемент очереди без id/filename: %s", item)
+                continue
             try:
                 fr = self._client.get(f"{self.base}/api/files/{item['id']}")
                 fr.raise_for_status()
                 dest = dest_dir / item["filename"]
                 dest.write_bytes(fr.content)
-                # Подтвердить получение (DELETE удаляет из очереди)
+                # Подтвердить получение только после успешной записи
                 self._client.delete(f"{self.base}/api/queue/{item['id']}")
                 paths.append(dest)
                 logger.info("Скачан файл из Telegram: %s", item["filename"])
