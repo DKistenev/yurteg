@@ -4,7 +4,6 @@ Stateless: все функции принимают db как параметр, 
 Не импортирует streamlit — вызывается из main.py и будущего Telegram-бота.
 """
 import logging
-from typing import Optional
 
 from modules.database import Database
 from modules.models import DeadlineAlert
@@ -12,18 +11,15 @@ from modules.models import DeadlineAlert
 logger = logging.getLogger(__name__)
 
 # Допустимые ручные статусы
-MANUAL_STATUSES = frozenset({"terminated", "extended", "negotiation", "suspended"})
+MANUAL_STATUSES = frozenset({"negotiation"})
 
 # Метки для отображения в UI
 STATUS_LABELS = {
-    "active":      ("\u2714", "\u0414\u0435\u0439\u0441\u0442\u0432\u0443\u0435\u0442",         "#22c55e"),
-    "expiring":    ("\u26a0", "\u0421\u043a\u043e\u0440\u043e \u0438\u0441\u0442\u0435\u043a\u0430\u0435\u0442",    "#f59e0b"),
-    "expired":     ("\u2717", "\u0418\u0441\u0442\u0451\u043a",             "#ef4444"),
-    "unknown":     ("?", "\u041d\u0435\u0442 \u0434\u0430\u0442\u044b",           "#9ca3af"),
-    "terminated":  ("\u2716", "\u0420\u0430\u0441\u0442\u043e\u0440\u0433\u043d\u0443\u0442",        "#6b7280"),
-    "extended":    ("\u21bb", "\u041f\u0440\u043e\u0434\u043b\u0451\u043d",           "#3b82f6"),
-    "negotiation": ("~", "\u041d\u0430 \u0441\u043e\u0433\u043b\u0430\u0441\u043e\u0432\u0430\u043d\u0438\u0438",  "#8b5cf6"),
-    "suspended":   ("\u23f8", "\u041f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d",    "#f97316"),
+    "active":      ("\u2714", "Действует",      "#22c55e", "bg-green-100 text-green-800"),
+    "expiring":    ("\u26a0", "Заканчивается",  "#f59e0b", "bg-amber-100 text-amber-800"),
+    "expired":     ("\u2717", "Закончился",     "#ef4444", "bg-red-100 text-red-800"),
+    "unknown":     ("?",      "Нет даты",       "#9ca3af", "bg-gray-100 text-gray-600"),
+    "negotiation": ("~",      "На согласовании","#8b5cf6", "bg-violet-100 text-violet-800"),
 }
 
 

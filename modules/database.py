@@ -451,7 +451,8 @@ class Database:
         return row[0] if row else None
 
     def get_all_results(self) -> list[dict]:
-        """Возвращает все записи для генерации отчёта."""
+        """Возвращает все записи как list[dict] с десериализованными JSON-полями.
+        Никогда не возвращает sqlite3.Row — safe для прямого использования в UI."""
         cursor = self.conn.execute(
             "SELECT * FROM contracts ORDER BY processed_at"
         )

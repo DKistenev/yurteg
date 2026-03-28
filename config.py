@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+APP_VERSION = "1.0.0-beta"
+
 
 @dataclass
 class Config:
@@ -22,7 +24,6 @@ class Config:
     ai_max_retries: int = 2
     ai_temperature: float = 0
     ai_max_tokens: int = 2000
-    ai_disable_thinking: bool = True  # отключить thinking mode у GLM (5-7x ускорение)
     active_provider: str = "ollama"        # "zai" | "openrouter" | "ollama"
     fallback_provider: str = "zai"         # автофallback при недоступности active_provider
 
