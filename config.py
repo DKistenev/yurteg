@@ -1,8 +1,13 @@
 """Централизованная конфигурация приложения."""
 import json
+import logging
+import os
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
+
+logger = logging.getLogger(__name__)
 
 APP_VERSION = "1.0.0-beta"
 
@@ -37,7 +42,7 @@ class Config:
     # Валидация
     confidence_high: float = 0.8
     confidence_low: float = 0.5
-    validation_mode: str = "off"  # "off" | "selective" | "full"
+    validation_mode: Literal["off", "selective", "full"] = "off"
 
     # Справочник типов документов (подсказки для AI, не ограничения)
     document_types_hints: list[str] = field(default_factory=lambda: [
@@ -138,13 +143,46 @@ class Config:
 
     # Telegram-интеграция
     telegram_server_url: str = ""  # URL сервера бота (e.g., "https://yurteg-bot.railway.app")
-    telegram_chat_id: int = 0      # привязанный Telegram chat_id (0 = не привязан)
+    telegram_chat_id: Optional[int] = None  # привязанный Telegram chat_id (None = не привязан)
 
     # Имя выходной папки
     output_folder_name: str = "ЮрТэг_Результат"
 
+    def __post_init__(self) -> None:
+        """Graceful validation — исправляет невалидные значения, не падает."""
+        _valid_providers = {"zai", "openrouter", "ollama"}
+        if self.active_provider not in _valid_providers:
+            logger.warning("Неизвестный провайдер %r, использую ollama", self.active_provider)
+            self.active_provider = "ollama"
+
+        if self.fallback_provider not in _valid_providers:
+            logger.warning("Неизвестный fallback провайдер %r, использую zai", self.fallback_provider)
+            self.fallback_provider = "zai"
+
+        if not (0 < self.llama_server_port <= 65535):
+            logger.warning("Неверный порт %d, использую 8080", self.llama_server_port)
+            self.llama_server_port = 8080
+
+        if self.validation_mode not in {"off", "selective", "full"}:
+            logger.warning("Неверный validation_mode %r, использую off", self.validation_mode)
+            self.validation_mode = "off"
+
+        if self.max_workers < 1:
+            logger.warning("max_workers < 1, использую 1")
+            self.max_workers = 1
+
+        if self.confidence_high <= self.confidence_low:
+            raise ValueError(
+                f"confidence_high ({self.confidence_high}) должен быть > confidence_low ({self.confidence_low})"
+            )
+
     @property
     def active_model(self) -> str:
+        """Возвращает имя модели для текущего active_provider."""
+        if self.active_provider == "ollama":
+            return "local"
+        if self.active_provider == "openrouter":
+            return self.model_fallback
         return "glm-4.7"
 
 
@@ -153,6 +191,7 @@ class Config:
 # ---------------------------------------------------------------------------
 
 _SETTINGS_FILE = Path.home() / ".yurteg" / "settings.json"
+_settings_lock = threading.Lock()
 
 
 def load_settings() -> dict:
@@ -160,14 +199,21 @@ def load_settings() -> dict:
     try:
         if _SETTINGS_FILE.exists():
             return json.loads(_SETTINGS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        pass
+    except json.JSONDecodeError as e:
+        logger.warning("settings.json повреждён: %s — используются дефолты", e)
+    except OSError as e:
+        logger.warning("Не удалось прочитать settings.json: %s — используются дефолты", e)
     return {}
 
 
 def save_setting(key: str, value) -> None:
-    """Сохраняет один ключ в ~/.yurteg/settings.json (merge, не перезапись)."""
-    s = load_settings()
-    s[key] = value
-    _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    _SETTINGS_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+    """Сохраняет один ключ в ~/.yurteg/settings.json (merge, thread-safe)."""
+    with _settings_lock:
+        s = load_settings()
+        s[key] = value
+        _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _SETTINGS_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
+        try:
+            os.chmod(_SETTINGS_FILE, 0o600)
+        except OSError:
+            pass  # Windows не поддерживает POSIX chmod
