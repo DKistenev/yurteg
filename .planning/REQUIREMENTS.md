@@ -43,27 +43,27 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| AUDIT-01 | — | Pending |
-| AUDIT-02 | — | Pending |
-| AUDIT-03 | — | Pending |
-| AUDIT-04 | — | Pending |
-| AUDIT-05 | — | Pending |
-| AUDIT-06 | — | Pending |
-| AUDIT-07 | — | Pending |
-| XSCOPE-01 | — | Pending |
-| XSCOPE-02 | — | Pending |
-| XSCOPE-03 | — | Pending |
-| ERRES-01 | — | Pending |
-| ERRES-02 | — | Pending |
-| REG-01 | — | Pending |
-| REG-02 | — | Pending |
-| REG-03 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
-| TMPL-01 | — | Pending |
-| SETT-01 | — | Pending |
-| ONBR-01 | — | Pending |
-| VIS-01 | — | Pending |
+| AUDIT-01 | Phase 32 | Pending |
+| AUDIT-02 | Phase 32 | Pending |
+| AUDIT-03 | Phase 32 | Pending |
+| AUDIT-04 | Phase 33 | Pending |
+| AUDIT-05 | Phase 33 | Pending |
+| AUDIT-06 | Phase 33 | Pending |
+| AUDIT-07 | Phase 33 | Pending |
+| ERRES-01 | Phase 33 | Pending |
+| ERRES-02 | Phase 33 | Pending |
+| REG-01 | Phase 34 | Pending |
+| REG-02 | Phase 34 | Pending |
+| REG-03 | Phase 34 | Pending |
+| DOC-01 | Phase 34 | Pending |
+| DOC-02 | Phase 34 | Pending |
+| TMPL-01 | Phase 35 | Pending |
+| SETT-01 | Phase 35 | Pending |
+| ONBR-01 | Phase 35 | Pending |
+| XSCOPE-01 | Phase 36 | Pending |
+| XSCOPE-02 | Phase 36 | Pending |
+| XSCOPE-03 | Phase 36 | Pending |
+| VIS-01 | Phase 37 | Pending |
 
 ## Future Requirements
 - Responsive design (breakpoints, mobile) — deferred, desktop-only app
