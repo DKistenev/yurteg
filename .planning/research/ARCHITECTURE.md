@@ -1,361 +1,409 @@
 # Architecture Research
 
-**Domain:** Visual design system overhaul — NiceGUI desktop app theming (v0.7)
-**Researched:** 2026-03-22
-**Confidence:** HIGH
+**Domain:** Backend bug-fixing in Python document processing app (NiceGUI + SQLite + LLM pipeline)
+**Researched:** 2026-03-28
+**Confidence:** HIGH — all findings from direct code inspection, no external sources needed
 
 ## Standard Architecture
 
 ### System Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        THEME LAYER                                  │
-│                                                                     │
-│  app/static/tokens.css          app/static/design-system.css        │
-│  (:root { --color-* ... })      (animations, AG Grid, FullCalendar) │
-│           │                                  │                      │
-│           └──────────────────┬───────────────┘                      │
-│                              │ loaded via ui.add_head_html           │
-├──────────────────────────────▼──────────────────────────────────────┤
-│                        COMPONENT LAYER                               │
-│                                                                     │
-│  app/styles.py         app/components/header.py                     │
-│  (Python token refs)   app/components/registry_table.py             │
-│  TEXT_HEADING etc.     app/pages/registry.py                        │
-│                        app/pages/settings.py                        │
-│                        app/pages/templates.py                       │
-│                        app/pages/document.py                        │
-│                        app/components/onboarding/splash.py          │
-├─────────────────────────────────────────────────────────────────────┤
-│                        QUASAR LAYER                                  │
-│                                                                     │
-│  ui.colors(primary='#...') in root() → sets --q-primary on body     │
-│  body.body--light class (Quasar managed, applied automatically)     │
-│  Tailwind JIT (NiceGUI built-in) for utility classes                │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        UI Layer (app/)                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐ │
+│  │ registry │  │ document │  │ settings │  │    templates     │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────────┬─────────┘ │
+└───────┼─────────────┼─────────────┼───────────────────┼──────────┘
+        │             │             │                   │
+┌───────▼─────────────▼─────────────▼───────────────────▼──────────┐
+│                    Service Layer (services/)                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐  ┌──────────┐  │
+│  │   lifecycle  │  │   version    │  │ payment  │  │  review  │  │
+│  │   _service   │  │   _service   │  │ _service │  │ _service │  │
+│  └──────┬───────┘  └──────┬───────┘  └────┬─────┘  └────┬─────┘  │
+└─────────┼─────────────────┼───────────────┼──────────────┼────────┘
+          │                 │               │              │
+┌─────────▼─────────────────▼───────────────▼──────────────▼────────┐
+│                 Orchestration (controller.py)                       │
+│  ┌────────────────────────────────────────────────────────────┐    │
+│  │  Pipeline: scan → extract → anonymize → AI → org → save   │    │
+│  │  ThreadPoolExecutor (max_workers=5) for AI stage only      │    │
+│  └────────────────────────────────────────────────────────────┘    │
+└──────────────────────────┬─────────────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────────────┐
+│                   Module Layer (modules/)                            │
+│  scanner → extractor → anonymizer → ai_extractor → postprocessor   │
+│                           ↓                                          │
+│                     database.py   ←→   organizer.py                 │
+└──────────────────────────┬─────────────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────────────┐
+│               Provider Layer (providers/)                            │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────┐                  │
+│  │  ollama  │    │   zai    │    │  openrouter  │                  │
+│  │(primary) │    │(fallback)│    │  (fallback2) │                  │
+│  └──────────┘    └──────────┘    └──────────────┘                  │
+└────────────────────────────────────────────────────────────────────┘
+                           │
+┌──────────────────────────▼─────────────────────────────────────────┐
+│              Data Layer (SQLite, ~/.yurteg/)                         │
+│  ┌──────────────────────┐   ┌─────────────────────────────────┐    │
+│  │ yurteg.db (per-run)  │   │ settings.json (~/.yurteg/)      │    │
+│  │ contracts            │   │ persistent user prefs           │    │
+│  │ document_versions    │   └─────────────────────────────────┘    │
+│  │ payments             │                                           │
+│  │ templates            │                                           │
+│  │ embeddings           │                                           │
+│  │ template_embeddings  │                                           │
+│  │ schema_migrations    │                                           │
+│  └──────────────────────┘                                           │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Current State |
-|-----------|----------------|---------------|
-| `app/static/tokens.css` | CSS custom properties — single source of truth for all colors, type scale, spacing, radii, shadows | Does not exist — values are hardcoded in Tailwind classes and HEX dict |
-| `app/static/design-system.css` | Animations, AG Grid overrides, FullCalendar theme, Quasar component tweaks | Exists, animation-heavy, hardcoded hex values throughout |
-| `app/styles.py` | Python-side token constants for Tailwind class strings used by pages and components | Exists — HEX dict + Tailwind class strings, all hardcoded |
-| `app/main.py` | Loads CSS files into page head, calls ui.colors(), configures dark=False | Exists — inline font CSS, badge CSS, loads design-system.css |
-| `app/pages/*.py` | Page layout and content rendering | Exist — Tailwind classes hardcoded inline throughout |
-| `app/components/header.py` | Persistent top nav across all sub-pages | Exists — hardcoded slate/indigo Tailwind classes |
-| `app/components/registry_table.py` | AG Grid registry table, column defs, JS cell renderers | Exists — inline hex in JS cell renderers |
+| Component | Responsibility | Current Bug State |
+|-----------|----------------|-------------------|
+| `config.py` | Config dataclass + settings.json persistence | Missing `__post_init__` validation; `active_model` property always returns "glm-4.7" regardless of `active_provider`; no `APP_VERSION`; `save_setting` has read-modify-write race |
+| `modules/database.py` | SQLite CRUD, migrations, thread safety | `_lock` used on writes and some reads, but `get_all_results()`, `get_stats()`, `is_processed()` skip the lock; no `contract_number` column (needed by version_service) |
+| `modules/models.py` | Shared dataclasses for all pipeline stages | `ContractMetadata` has no `contract_number` field — version_service queries it, controller passes it, but the field doesn't exist in the model |
+| `controller.py` | Pipeline orchestration, ThreadPoolExecutor | Deanonymizes only 4 fields (counterparty, parties, subject, special_conditions); contract_type, amount, contract_number, payment_terms are skipped |
+| `services/lifecycle_service.py` | Status computation, deadline alerts | `get_attention_required()` calls `db.conn.execute()` directly without acquiring `db._lock`; `STATUS_LABELS` lacks `css_class` key needed by UI |
+| `services/version_service.py` | Embedding-based version matching | Queries `c.contract_number` column that doesn't exist yet (needs migration v10); this is the primary cause of version-linking failures |
+| `providers/base.py` | LLMProvider ABC | No `get_logprobs()` in the abstract interface — only `OllamaProvider` has it; zai and openrouter silently lack the method |
+| `providers/ollama.py` | llama-server via OpenAI SDK | No timeout on HTTP requests — a hung llama-server blocks the thread indefinitely in ThreadPoolExecutor |
+| `providers/zai.py`, `providers/openrouter.py` | Cloud LLM providers | Same timeout issue; no `get_logprobs()` implementation |
+| `services/payment_service.py` | Payment record saving | Unhandled edge cases: zero amount, invalid frequency values |
 
 ## Recommended Project Structure
 
+Existing structure is correct and must not change. All fixes are in-place modifications within existing files. The only additive change is migration v10 in `database.py`.
+
 ```
-app/
-├── static/
-│   ├── tokens.css          # NEW — CSS custom properties (:root { --* })
-│   ├── design-system.css   # MODIFY — replace hardcoded hex with var(--)
-│   └── calendar.js         # unchanged
-├── styles.py               # MODIFY — add semantic aliases, keep HEX for AG Grid JS
-├── main.py                 # MODIFY — load tokens.css first, call ui.colors()
-├── pages/
-│   ├── registry.py         # MODIFY — hero stats bar, filter zone, visual density
-│   ├── document.py         # MODIFY — breadcrumbs, structured blocks, visual hierarchy
-│   ├── settings.py         # MODIFY — section headers, dividers, visual structure
-│   └── templates.py        # MODIFY — card shadows, color badges, visual weight
-└── components/
-    ├── header.py           # MODIFY — visual weight, logo mark, accent CTA
-    ├── registry_table.py   # MODIFY — table density, column visual treatment
-    └── onboarding/
-        └── splash.py       # MODIFY — hero section, full-screen, large typography
+yurteg/
+├── config.py                    # ADD __post_init__ validation; FIX active_model; ADD APP_VERSION; FIX save_setting atomicity
+├── modules/
+│   ├── models.py                # ADD contract_number field to ContractMetadata
+│   └── database.py              # ADD migration v10; ADD contract_number to save_result SQL; ADD _lock to 3 read methods
+├── services/
+│   ├── lifecycle_service.py     # ADD css_class to STATUS_LABELS; ADD db._lock in get_attention_required
+│   ├── version_service.py       # No code change needed after migration v10 lands
+│   └── payment_service.py       # FIX zero-amount and invalid-frequency edge cases
+├── providers/
+│   ├── base.py                  # ADD get_logprobs() abstract method (with default empty-dict impl)
+│   ├── ollama.py                # ADD timeout= to OpenAI client constructor
+│   ├── zai.py                   # ADD timeout= to OpenAI client constructor
+│   └── openrouter.py            # ADD timeout= to OpenAI client constructor
+└── controller.py                # FIX deanonymize: add contract_type, amount, contract_number, payment_terms
 ```
 
 ### Structure Rationale
 
-- **tokens.css separate from design-system.css:** Tokens are the palette (values). design-system.css is the behavior layer (animations, transitions, hover states). Mixing them makes future palette updates require reading through behavior rules to find values to change.
-- **tokens.css loaded first:** CSS custom properties must be defined before any element renders. Load order in `main.py` is: `tokens.css` first, then `design-system.css`, then Tailwind `@layer components` (status badges).
-- **styles.py stays with HEX dict:** AG Grid cell renderers are JavaScript strings. They cannot read CSS custom properties at runtime. The HEX dict in `styles.py` remains the source for any hex values injected into JS strings.
+No new files. No new directories. All changes are targeted edits inside existing functions. The migration v10 follows the existing numbered-migration pattern exactly — add a new `_migrate_v10_contract_number` function and register it at the bottom of `_run_migrations()`.
 
 ## Architectural Patterns
 
-### Pattern 1: Two-Layer Token System
+### Pattern 1: Numbered Migration Chain
 
-**What:** Primitive tokens define the raw palette (`--color-indigo-600: #4f46e5`). Semantic tokens map intent to primitives (`--color-accent: var(--color-indigo-600)`). Components reference semantic tokens only, never primitives.
+**What:** Each migration is a standalone `_migrate_vN_*` function. `_run_migrations()` calls all of them in order. Each migration checks `_is_migration_applied()` first — making it idempotent.
 
-**When to use:** Every value that appears in more than one context. The semantic layer is the public API that pages and components consume. The primitive layer is the palette that can be swapped.
+**When to use:** Any schema change. This pattern is already established through v1–v9 and must be followed for v10.
 
-**Trade-offs:** One extra indirection in CSS. Worth it — changing the accent color in v0.8 from indigo to another color is a one-line change in tokens.css instead of a grep across 15 files.
+**Trade-offs:** Simple and correct for SQLite. Linear scan at startup is negligible with fewer than 20 migrations.
 
-**Example:**
-```css
-/* app/static/tokens.css */
-:root {
-  /* Primitives */
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-indigo-50:  #eef2ff;
-  --color-slate-900:  #0f172a;
-  --color-slate-700:  #334155;
-  --color-slate-600:  #475569;
-  --color-slate-500:  #64748b;
-  --color-slate-400:  #94a3b8;
-  --color-slate-300:  #cbd5e1;
-  --color-slate-200:  #e2e8f0;
-  --color-slate-100:  #f1f5f9;
-  --color-slate-50:   #f8fafc;
-
-  /* Semantic colors */
-  --color-accent:         var(--color-indigo-600);
-  --color-accent-hover:   var(--color-indigo-700);
-  --color-accent-subtle:  var(--color-indigo-50);
-  --color-text-primary:   var(--color-slate-900);
-  --color-text-secondary: var(--color-slate-600);
-  --color-text-muted:     var(--color-slate-400);
-  --color-surface:        #ffffff;
-  --color-surface-raised: var(--color-slate-50);
-  --color-border:         var(--color-slate-200);
-  --color-border-strong:  var(--color-slate-300);
-
-  /* Typography scale */
-  --font-size-hero:   2.5rem;
-  --font-size-h1:     1.75rem;
-  --font-size-h2:     1.25rem;
-  --font-weight-bold: 700;
-  --font-weight-semi: 600;
-  --line-height-tight: 1.2;
-
-  /* Spatial scale */
-  --space-hero:    64px;
-  --space-section: 48px;
-  --space-block:   24px;
-  --space-item:    12px;
-
-  /* Surfaces */
-  --radius-card:   12px;
-  --radius-badge:  6px;
-  --shadow-card:   0 4px 16px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.05);
-  --shadow-card-hover: 0 8px 24px -4px rgba(0,0,0,0.12), 0 2px 8px -2px rgba(0,0,0,0.06);
-  --shadow-header: 0 1px 3px rgba(0,0,0,0.04);
-}
+**Example for v10:**
+```python
+def _migrate_v10_contract_number(conn: sqlite3.Connection) -> None:
+    """v10: Добавить contract_number в contracts."""
+    if _is_migration_applied(conn, 10):
+        return
+    try:
+        conn.execute("ALTER TABLE contracts ADD COLUMN contract_number TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    _mark_migration_applied(conn, 10)
 ```
 
-### Pattern 2: Quasar Color Bridge
+Then register: `_migrate_v10_contract_number(conn)` in `_run_migrations()`.
 
-**What:** NiceGUI exposes `ui.colors()` which sets Quasar CSS variables (`--q-primary`, `--q-accent`, etc.) on `document.body`. All Quasar interactive components (buttons, chips, dialogs, menus) read these variables. Without calling `ui.colors()`, buttons remain default Quasar blue regardless of Tailwind overrides.
+### Pattern 2: Explicit Lock Acquisition via `with db._lock`
 
-**When to use:** Mandatory. Called once in `root()` before `render_header()`. Uses the same hex value as `--color-accent` in tokens.css — keeps Quasar and the token system synchronized.
+**What:** All `db.conn.execute()` calls that read or write shared state must be wrapped with `with db._lock:`. This is already done correctly for all write paths and `get_contract_by_id`, `get_contract_id_by_hash`. Three read methods currently skip it.
 
-**Trade-offs:** `ui.colors()` is per-page (called in `root()`), not globally at module level. In this SPA with a single `@ui.page('/')`, that is fine. Do not call it inside page builders — it injects a `<style>` tag on every navigation, accumulating duplicates.
+**When to use:** Every database access path that could be called from multiple threads. The pipeline uses `ThreadPoolExecutor`, and the UI runs async callbacks that also call database methods.
+
+**Trade-offs:** `_lock` is a `threading.Lock()` which is appropriate. It does not need upgrading to `RLock` unless a single thread re-enters the same lock — which does not happen in this codebase.
+
+**Missing applications (three methods in database.py):**
+```python
+def is_processed(self, file_hash: str) -> bool:
+    with self._lock:                                    # ADD THIS
+        cursor = self.conn.execute(...)
+        return cursor.fetchone() is not None
+
+def get_all_results(self) -> list[dict]:
+    with self._lock:                                    # ADD THIS
+        cursor = self.conn.execute(...)
+        rows = cursor.fetchall()
+    results = []
+    ...
+
+def get_stats(self) -> dict:
+    with self._lock:                                    # ADD THIS
+        cursor = self.conn.execute(...)
+        row = cursor.fetchone()
+    ...
+```
+
+### Pattern 3: Stateless Services with `db` Injection
+
+**What:** All service functions receive `db: Database` as a parameter. Services hold no state — they are pure functions over the database object.
+
+**Implication for fixes:** `get_attention_required` in `lifecycle_service.py` calls `db.conn.execute()` directly. It must acquire `db._lock` explicitly, since it bypasses the `Database` method layer:
+
+```python
+def get_attention_required(db: Database, warning_days: int) -> list[DeadlineAlert]:
+    sql = f"SELECT ... WHERE ..."
+    with db._lock:                                      # ADD THIS
+        rows = db.conn.execute(sql, {"warning_days": warning_days}).fetchall()
+    ...
+```
+
+### Pattern 4: `__post_init__` for Config Validation
+
+**What:** Python dataclasses support `__post_init__` which runs after `__init__`. This is the correct hook for field validation and derived-value fixups.
+
+**When to use:** Any constraint on Config fields — valid providers, port range, and the `active_model` property fixup.
 
 **Example:**
 ```python
-# app/main.py — inside root(), before render_header()
-ui.colors(primary='#4f46e5', secondary='#475569')
-```
-
-### Pattern 3: body--light Scoped Quasar Overrides
-
-**What:** Quasar automatically applies `body.body--light` class when dark mode is off. Scoping overrides of Quasar defaults to this class prevents conflicts if dark mode is added later in v0.8.
-
-**When to use:** Any rule that overrides Quasar component backgrounds, borders, or colors — headers, dialogs, menus, cards. Animation rules targeting `.q-btn`, `.q-card` stay unscoped since they apply in both modes.
-
-**Trade-offs:** Adds CSS specificity. Necessary for future-proofing dark mode.
-
-**Example:**
-```css
-/* design-system.css */
-body.body--light .q-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  box-shadow: var(--shadow-header);
-}
-```
-
-### Pattern 4: Hero Section as Structural Zone
-
-**What:** Full-width sections with an explicit background, vertical rhythm, large typographic anchors, and visual weight. Not padding inflation on an existing column — an intentional structural wrapper with its own CSS class.
-
-**When to use:** Splash page (full-screen hero). Registry page top area (heading + stats bar + filters as a cohesive zone). Document card header zone.
-
-**Trade-offs:** Requires replacing the existing `p-8 gap-6` patterns on page entry points with explicit zone containers. Cannot be bolted onto existing layout structure.
-
-**Example:**
-```python
-# Registry page hero zone
-with ui.element('div').classes('hero-zone w-full'):
-    with ui.column().classes('gap-2'):
-        ui.label('Реестр документов').style(
-            'font-size: var(--font-size-h1);'
-            'font-weight: var(--font-weight-bold);'
-            'color: var(--color-text-primary);'
-            'line-height: var(--line-height-tight);'
+def __post_init__(self) -> None:
+    valid_providers = {"ollama", "zai", "openrouter"}
+    if self.active_provider not in valid_providers:
+        raise ValueError(
+            f"active_provider must be one of {valid_providers}, got {self.active_provider!r}"
         )
+    if not (1024 <= self.llama_server_port <= 65535):
+        raise ValueError(f"llama_server_port out of range: {self.llama_server_port}")
 ```
 
-```css
-/* tokens.css */
-.hero-zone {
-  padding: var(--space-hero) var(--space-section);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-}
+And the `active_model` property fix:
+```python
+@property
+def active_model(self) -> str:
+    if self.active_provider == "ollama":
+        return "qwen-1.5b"          # or self.llama_model_filename
+    if self.active_provider == "zai":
+        return "glm-4.7"
+    return self.model_fallback
+```
+
+### Pattern 5: Provider Timeout via `OpenAI(timeout=...)`
+
+**What:** The `openai.OpenAI` client accepts a `timeout` parameter at construction. Without it, HTTP requests have no deadline — a hung llama-server or slow cloud provider blocks the worker thread in `ThreadPoolExecutor` indefinitely.
+
+**When to use:** All three providers.
+
+**Example:**
+```python
+self._client = OpenAI(
+    base_url=base_url,
+    api_key="not-needed",
+    timeout=30.0,   # seconds — prevents hung threads in ThreadPoolExecutor
+)
 ```
 
 ## Data Flow
 
-### Theme Load Order
+### Pipeline Processing Flow
 
 ```
-ui.run() starts
+Source directory
     ↓
-root() called
+scanner.scan_directory() → list[FileInfo]
     ↓
-ui.add_head_html(tokens.css)            CSS custom properties defined
+[Sequential, per-file]
+extractor.extract_text(file_info) → ExtractedText
     ↓
-ui.add_head_html(design-system.css)     Animations + Quasar overrides using var(--)
+anonymizer.anonymize(text) → AnonymizedText   [skipped for ollama provider]
     ↓
-ui.add_head_html(status badge CSS)      Tailwind @layer components — literal class names
+[Parallel: ThreadPoolExecutor(max_workers=5)]
+ai_extractor.extract_metadata(anon_text, config, provider) → ContractMetadata
     ↓
-ui.colors(primary='#4f46e5', ...)       Quasar --q-primary aligned to --color-accent value
+[Back to sequential, per-result]
+controller._deanonymize(metadata fields, replacements)
+    ← BUG TODAY: only 4 fields (counterparty, parties, subject, special_conditions)
+    ← FIX: add contract_type, amount, contract_number, payment_terms
     ↓
-render_header()
+organizer.organize_file(result, output_dir) → organized_path
     ↓
-sub_pages routes to active page
-    ↓
-Page renders with Tailwind utility classes + style= attributes where vars needed
+database.save_result(result)   ← thread-safe (has _lock)
+    ↓ (non-blocking, exception-swallowed)
+version_service.find_version_match()  ← BUG TODAY: c.contract_number col missing
+    → fixed by migration v10 + ContractMetadata.contract_number field
+version_service.link_versions()
+payment_service.save_payments()
 ```
 
-### Token Change Flow (future palette update)
+### Settings Persistence Flow
 
 ```
-Edit tokens.css primitive layer
+UI settings change (e.g., toggle provider)
     ↓
-Browser recalculates all var(--*) references instantly (no recompile)
-    ↓
-Update ui.colors(primary=NEW_HEX) in main.py (one line)
-    ↓
-Update HEX dict in styles.py (for AG Grid JS renderers only)
+config.save_setting(key, value)
+    ↓ BUG: unsynchronized read-modify-write
+load_settings() → mutate dict → write_text()
+    ↓ FIX: wrap in threading.Lock() or use atomic Path.replace()
+~/.yurteg/settings.json
 ```
 
-### Key Data Flows
+### `active_model` Bug Flow
 
-1. **Tailwind classes resolve at parse time** — they do not read CSS vars at runtime. `bg-indigo-600` is always indigo. For colors that must flex with the token system, use `style="background: var(--color-accent)"` or define a custom class in `@layer components`.
-
-2. **AG Grid cell renderers are JavaScript strings** — they reference CSS class names (`.status-active` etc.) or hardcoded hex. They cannot access CSS custom properties. The HEX dict in `styles.py` stays alive for values injected into JS strings.
-
-3. **FullCalendar overrides** — already in `design-system.css`. After tokens.css is live, replace hardcoded hex values (`#4f46e5`, `#4338ca`, etc.) with `var(--color-accent)` etc.
-
-## Scaling Considerations
-
-This is a desktop app — "scaling" here means maintainability as visual complexity grows across future milestones.
-
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| v0.7 (this milestone) | Single light theme, CSS vars in :root — no scoping needed |
-| v0.8 (potential dark mode) | Add `body.body--dark { --color-surface: #0f172a; --color-text-primary: #f8fafc; }` block — semantic layer repoints automatically, components unchanged |
-| v1+ (brand refresh) | Edit primitive layer in tokens.css only — all semantic tokens cascade through automatically |
-
-### Scaling Priorities
-
-1. **First issue:** Tailwind class strings in Python (`TEXT_HEADING`, `BTN_PRIMARY`, inline in pages) cannot read CSS vars — they are static strings resolved at Tailwind JIT parse time. Solution: use Tailwind for layout and spacing (flex, gap, padding, rounded), use `style=` attributes with `var(--)` for color, shadow, and type scale where Tailwind coverage ends.
-
-2. **Second issue:** AG Grid column definitions produce JS strings. Any color in a cellRenderer must remain a literal hex or CSS class name. Keep HEX dict in `styles.py` as the single source for these values and update it in sync with tokens.css primitives.
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Overloading design-system.css with token definitions
-
-**What people do:** Add all new visual rules — hero sizes, card shadows, header weight — directly to the existing `design-system.css` alongside the animation rules.
-
-**Why it's wrong:** design-system.css is the behavior layer. Mixing value definitions into it makes it impossible to understand what controls what, and a token change requires reading through animation code to find the value to edit.
-
-**Do this instead:** `tokens.css` for values only, `design-system.css` for behaviors only. `style=` attribute for one-off per-element overrides.
-
-### Anti-Pattern 2: Adding new hardcoded Tailwind color classes to styles.py
-
-**What people do:** Continue adding `"text-indigo-600"` or `"bg-slate-900"` as new Tailwind class strings in `styles.py` for the v0.7 overhaul.
-
-**Why it's wrong:** Tailwind color classes are hardcoded at parse time. If the accent shifts from indigo to another color in v0.8, every occurrence needs grep-and-replace across the entire codebase.
-
-**Do this instead:** For hero text, large headings, and any color that should track the token system — use `style="color: var(--color-text-primary)"`. For stable utility colors (borders, subtle backgrounds) where Tailwind classes like `border-slate-200` are fine to stay, they can remain as Tailwind classes.
-
-### Anti-Pattern 3: Hero sections via padding inflation
-
-**What people do:** Add `pt-16 pb-12` to existing column containers to simulate a hero section.
-
-**Why it's wrong:** A hero section is a structural zone with its own background, visual boundary, and typographic anchor. Padding inflation on an existing flex column produces a wireframe with extra whitespace, not a designed section with visual character.
-
-**Do this instead:** Introduce explicit section wrapper elements (`ui.element('div')`) with semantic CSS classes defined in tokens.css (`.hero-zone`, `.registry-header`, etc.). These wrappers own their background, padding, and border.
-
-### Anti-Pattern 4: Calling ui.colors() inside page builders
-
-**What people do:** Call `ui.colors()` inside `registry.build()` or `settings.build()` to ensure colors are set on each navigation.
-
-**Why it's wrong:** `ui.colors()` injects a `<style>` tag into the page head. Called per sub_page switch, it reinjects on every navigation, accumulating duplicate style tags over the lifetime of the session.
-
-**Do this instead:** Call `ui.colors()` once in `root()` before the sub_pages block. It persists for the lifetime of the SPA session.
-
-### Anti-Pattern 5: Mixing layout structure changes with visual changes
-
-**What people do:** Rework Tailwind class strings while simultaneously restructuring the layout of a page.
-
-**Why it's wrong:** Layout structure changes break functional behavior (filters stop firing, navigation breaks). Visual changes are safe if layout is stable. Mixing both in one edit makes it impossible to bisect what broke something.
-
-**Do this instead:** Structural rework (new zone containers, hero wrappers) first. Visual token application (replacing hardcoded hex with vars, adding shadows, upgrading type scale) second, per component.
+```
+config.active_provider = "ollama"
+config.active_model → returns "glm-4.7"    ← hardcoded, ignores active_provider
+result.model_used = config.active_model    → stored as "glm-4.7" in DB for all ollama runs
+```
 
 ## Integration Points
 
-### Where Theme Logic Lives
+### Cross-Cutting Concerns (affects multiple files)
 
-| Concern | File | Status | Notes |
-|---------|------|--------|-------|
-| CSS custom property values | `app/static/tokens.css` | NEW | Loaded first via main.py |
-| Quasar color alignment | `app/main.py` root() | MODIFY | Add `ui.colors(primary='#4f46e5')` |
-| Animation + behavior CSS | `app/static/design-system.css` | MODIFY | Replace hardcoded hex with var(--) |
-| Python Tailwind constants | `app/styles.py` | MODIFY | Add semantic style helpers; keep HEX dict |
-| AG Grid hex for JS renderers | `app/styles.py` HEX dict | KEEP | Cannot use CSS vars in JS strings |
-| Per-page layout structure | `app/pages/*.py` | MODIFY | Structural zone wrappers added per page |
-| Header visual weight | `app/components/header.py` | MODIFY | Logo mark, accent CTA, visual anchoring |
-| Splash hero | `app/components/onboarding/splash.py` | MODIFY | Full-screen, large type, visual confidence |
+| Concern | Files Affected | Fix Approach |
+|---------|----------------|--------------|
+| `contract_number` column | `database.py` (migration + save_result SQL) + `models.py` (ContractMetadata field) + `controller.py` (pass to save) | Strictly sequential: models → migration → save_result SQL. version_service query fixes itself automatically after migration lands |
+| `STATUS_LABELS` with `css_class` | `lifecycle_service.py` + all UI pages reading status badges | Add `css_class` key to STATUS_LABELS dict; UI reads it. No other files change |
+| `APP_VERSION` constant | `config.py` + footer in UI | Add to config.py; UI imports it |
+| `get_logprobs()` in provider ABC | `providers/base.py` + `providers/zai.py` + `providers/openrouter.py` | Add default `return {}` impl to base.py; zai/openrouter inherit the default; ollama keeps its full implementation |
 
-### Internal Boundaries
+### Fix Dependency Graph
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| tokens.css → design-system.css | `var()` references | Load order critical: tokens must come first |
-| tokens.css → Tailwind @layer | No direct connection | Tailwind resolves at parse time; use `style=` for dynamic values |
-| styles.py → pages/components | Python string import | Tailwind class string constants; semantic additions welcome |
-| ui.colors() → Quasar components | CSS `--q-primary` etc. on body | Called once in root() |
-| AG Grid cellRenderers → CSS | Class name strings in JS | Must use literal `.status-*` class names; no CSS var access |
-| FullCalendar → tokens | CSS class overrides in design-system.css | Replace hardcoded hex with var(--) after tokens.css is live |
+```
+Wave 1 — independent, no deps, safe to do in any order:
+  config.py: __post_init__ + active_model fix + APP_VERSION + save_setting atomicity
+  providers/base.py: get_logprobs() default impl
+  providers/ollama.py + zai.py + openrouter.py: timeout parameter
 
-### Build Order for This Milestone
+Wave 2 — strictly sequential within this wave:
+  models.py: add contract_number to ContractMetadata   ← must be first
+      ↓
+  database.py: migration v10 _migrate_v10_contract_number   ← must be second
+      ↓
+  database.py: save_result SQL includes contract_number   ← must be third
+  database.py: _lock on 3 read methods   ← independent, batch here for locality
 
-Dependencies determine the order phases must ship in:
+Wave 3 — depends on Wave 2:
+  lifecycle_service.py: STATUS_LABELS css_class + get_attention_required lock
+  payment_service.py: edge case fixes
+  (version_service.py: no code change needed after migration v10)
 
-1. **tokens.css + main.py wiring** — foundation. No visual work is coherent before the token system is defined and loading correctly. Validate in browser devtools that `:root` custom properties are present.
+Wave 4 — depends on Wave 2 + Wave 3:
+  controller.py: deanonymize all string metadata fields
 
-2. **Header** — persistent across all pages. Reworked header must be stable before any page-level work, since it anchors the visual rhythm and the accent CTA sets expectations for interaction.
+Wave 5 — test coverage:
+  Tests for thread safety (concurrent save + read)
+  Tests for migrations v2-v9 idempotency
+  Tests for payment edges
+  Tests for ai_extractor helpers
+```
 
-3. **Splash** — isolated component, no state dependencies, high visual impact. Full-screen hero. Good confidence check that large typography and hero zones work before tackling complex pages.
+### New vs Modified Summary
 
-4. **Registry page** — highest complexity (stats bar, filter zone, AG Grid table, calendar toggle, empty state). Depends on tokens and header being stable. Most user-facing impact.
+| Change Type | Count | Files |
+|-------------|-------|-------|
+| New functions | 1 | `database.py` — `_migrate_v10_contract_number` |
+| New fields on dataclass | 1 | `models.py` — `ContractMetadata.contract_number` |
+| New constant | 1 | `config.py` — `APP_VERSION` |
+| New method on ABC | 1 | `providers/base.py` — `get_logprobs()` with default impl |
+| Modified methods | 12 | Various (see structure section above) |
+| No change (auto-fixed by dependency) | 1 | `version_service.py` — works after migration v10 |
 
-5. **Document card** — depends on registry navigation working correctly. Breadcrumbs, structured metadata blocks, visual section separators.
+## Recommended Build Order
 
-6. **Templates + Settings** — relatively isolated, lower visual complexity. Can ship as a pair.
+### Wave 1 — Foundation (zero dependencies, unblocks everything)
 
-7. **Sквозные микро-детали** — footer, transition polish, hover states, consistent spacing — final pass after all pages are structurally complete and stable.
+1. `config.py` — `__post_init__`, `active_model` fix, `APP_VERSION`, atomic `save_setting`
+2. `providers/base.py` — `get_logprobs()` default impl
+3. `providers/ollama.py`, `providers/zai.py`, `providers/openrouter.py` — add `timeout=30.0`
+
+Write tests for config validation and provider construction immediately. These are fully independent.
+
+### Wave 2 — Data layer (sequential)
+
+4. `modules/models.py` — add `contract_number: Optional[str] = None` to `ContractMetadata`
+5. `modules/database.py` (migration) — `_migrate_v10_contract_number` + register in `_run_migrations`
+6. `modules/database.py` (save_result) — include `contract_number` in INSERT/UPDATE SQL
+7. `modules/database.py` (thread safety) — `with self._lock:` in `get_all_results`, `get_stats`, `is_processed`
+
+Step 4 before step 5 before step 6 is a hard ordering requirement. Step 7 is independent but batched here for locality.
+
+### Wave 3 — Services (after Wave 2)
+
+8. `services/lifecycle_service.py` — `STATUS_LABELS` `css_class` key + `get_attention_required` lock
+9. `services/payment_service.py` — edge case fixes
+10. `services/version_service.py` — verify query works (no code change expected)
+
+### Wave 4 — Controller (after Wave 2 + Wave 3)
+
+11. `controller.py` — add `contract_type`, `amount`, `contract_number`, `payment_terms` to deanonymize block
+
+### Wave 5 — Test coverage
+
+12. Thread safety: concurrent `save_result` + `get_all_results` test
+13. Migration idempotency: v2-v9 re-run test
+14. Payment edges: zero amount, unknown frequency
+15. `ai_extractor` helper function unit tests
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Direct `db.conn.execute()` Outside the Lock
+
+**What people do:** Call `db.conn.execute(...)` directly in services or controller without `with db._lock:`, relying on `check_same_thread=False` to permit multi-thread access.
+
+**Why it's wrong:** `check_same_thread=False` only removes the thread-ownership assertion. SQLite in WAL mode handles concurrent reads well, but the application-level `_lock` is still the correctness mechanism for the read-modify-write patterns used throughout (e.g., `is_processed` then `save_result` in the pipeline).
+
+**Do this instead:** All `db.conn.execute()` calls must be inside `with db._lock:`. If calling from a service that receives `db` by injection, acquire `db._lock` explicitly before accessing `db.conn`.
+
+### Anti-Pattern 2: Bare `except Exception: pass` on Schema Operations
+
+**What people do:** Wrap the entire migration body in `except Exception: pass` to silence all errors.
+
+**Why it's wrong:** A migration that fails silently leaves the schema in a partially applied state. `_is_migration_applied` records it as done, but the column is absent.
+
+**Do this instead:** Catch only `sqlite3.OperationalError` (the specific exception for "column already exists"). Let all other exceptions propagate. The existing v1-v9 migrations already do this correctly.
+
+### Anti-Pattern 3: Unsynchronized Read-Modify-Write on settings.json
+
+**What people do:** `load_settings()` → mutate → `write_text()` without synchronization. Two rapid UI settings toggles can both read the same stale JSON and one write overwrites the other's change.
+
+**Do this instead:** Add a module-level `_settings_lock = threading.Lock()` in `config.py` and wrap the entire `save_setting` body with `with _settings_lock:`. Alternatively, write to a temp file then use `Path.replace()` for atomic swap.
+
+### Anti-Pattern 4: Hardcoded Return Value in a Property That Reads Config
+
+**What people do:** `active_model` property always returns `"glm-4.7"` regardless of `active_provider`.
+
+**Why it's wrong:** The stored `model_used` value in the database becomes wrong for ollama runs. Any debugging, auditing, or statistics based on this field is unreliable.
+
+**Do this instead:** The property must branch on `self.active_provider`. Each provider maps to its canonical model name.
+
+### Anti-Pattern 5: No Timeout on External HTTP Clients in a ThreadPoolExecutor
+
+**What people do:** Create `OpenAI(base_url=..., api_key=...)` without a `timeout` parameter, then submit tasks to `ThreadPoolExecutor`.
+
+**Why it's wrong:** If llama-server hangs or a cloud provider is slow, the worker thread blocks indefinitely. With `max_workers=5`, five simultaneous hangs exhaust the thread pool and the entire pipeline stalls with no error until the process is killed.
+
+**Do this instead:** Always pass `timeout=30.0` (or a value appropriate for the provider) to the `OpenAI` client constructor.
 
 ## Sources
 
-- [NiceGUI ui.colors documentation](https://nicegui.io/documentation/colors) — HIGH confidence
-- [NiceGUI Styling and Theming (DeepWiki)](https://deepwiki.com/zauberzeug/nicegui/7.2-styling-and-theming) — HIGH confidence
-- [Quasar Dark Mode — body--dark/body--light classes](https://quasar.dev/style/dark-mode/) — HIGH confidence
-- [CSS Design Tokens and Custom Properties guide 2025](https://www.frontendtools.tech/blog/css-variables-guide-design-tokens-theming-2025) — MEDIUM confidence
-- [Practical Guide to CSS Custom Properties for Theming](https://ronaldsvilcins.com/2025/03/30/a-practical-guide-to-css-custom-properties-for-theming/) — MEDIUM confidence
-- Codebase direct analysis: `app/static/design-system.css`, `app/styles.py`, `app/main.py`, `app/components/header.py`, `app/pages/registry.py`, `app/pages/settings.py` — HIGH confidence
+- Direct code inspection: `modules/database.py`, `config.py`, `controller.py`, `services/lifecycle_service.py`, `services/version_service.py`, `providers/base.py`, `providers/ollama.py`, `modules/models.py` — HIGH confidence
+- Python `threading.Lock` semantics and `dataclasses.__post_init__` contract: Python standard library documentation — HIGH confidence
+- SQLite `check_same_thread` behavior: Python sqlite3 documentation — HIGH confidence
+- `openai.OpenAI(timeout=...)` parameter: openai Python SDK documentation — HIGH confidence
 
 ---
-*Architecture research for: ЮрТэг v0.7 — visual design system overhaul*
-*Researched: 2026-03-22*
+*Architecture research for: ЮрТэг v1.0 — backend bug-fixing milestone*
+*Researched: 2026-03-28*

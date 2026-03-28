@@ -1,382 +1,390 @@
 # Stack Research
 
-**Domain:** Visual overhaul of existing NiceGUI 3.9.0 desktop app — design system, theming, typography weight, animation
-**Researched:** 2026-03-22
-**Confidence:** HIGH (NiceGUI 3.9.0 installed and verified; Quasar color API confirmed via nicegui.io; Tailwind 4 layer system confirmed via v3 discussion thread)
+**Domain:** Python desktop app — backend hardening (thread safety, atomic I/O, HTTP timeouts, config validation, concurrent test coverage)
+**Researched:** 2026-03-28
+**Confidence:** HIGH
 
 ---
 
-## Context
+## Context: This Is a Hardening Milestone, Not a Greenfield
 
-This is a **purely visual milestone**. The existing Python stack (NiceGUI 3.9.0, AG Grid, SQLite, IBM Plex Sans, Tailwind 4, Quasar, llama-server) is not changing. No new Python dependencies are required. The question is: what CSS architecture, theming patterns, and animation techniques are needed to transform the current wireframe-grade UI into a bold, confident product?
+The table below shows the locked existing stack. Nothing here changes.
 
-**Current state (v0.6):** Functional, clean, but visually thin. Flat white backgrounds everywhere. Typography at two weights (400/600) only. Header has no visual weight. Splash is a centered card that looks like a form. Segments have shape but no presence. Empty states exist but feel generic.
+| Technology | Version | Status |
+|------------|---------|--------|
+| Python | 3.10+ | locked |
+| NiceGUI | 3.9.0 | locked |
+| sqlite3 | stdlib | locked |
+| openai SDK | 2.26.0 | locked |
+| httpx | 0.27.0 | locked (openai dependency) |
+| threading | stdlib | locked |
+| pytest | installed | locked |
 
-**Target (v0.7):** RunPod-grade visual confidence. Heavy typography (300–700 range used intentionally). Dark accent surfaces for hero moments. Stats bar with numbers. Rich empty states. Hover states that feel intentional. A design system that lives in CSS custom properties (not just Python string constants).
+**Verified via:** `pip show openai` → 2.26.0; `cat requirements.txt` → httpx==0.27.0
 
----
-
-## What NOT to Add (New Dependencies)
-
-| Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| Any new Python UI library | No new pip dependencies — visual work is CSS/JS only | Inline `<style>` and `<script>` via `ui.add_head_html` |
-| GSAP / Framer Motion / anime.js | Overkill for micro-interactions in a desktop productivity app; adds CDN dependency | Pure CSS `@keyframes` + `transition` — already proven in design-system.css |
-| Tailwind CSS v4 `@theme` directive | NiceGUI bundles its own Tailwind 4 CDN build. Custom `@theme` blocks require a Tailwind build step, which NiceGUI doesn't expose. `@layer components` is the correct integration point. | `<style type="text/tailwindcss">` with `@layer components` blocks (already used in main.py for status badges) |
-| CSS-in-JS or styled-components | Not applicable in Python/NiceGUI | CSS custom properties in `:root` |
-| Icon font CDN (Font Awesome, etc.) | Adds latency on first load; Material Icons already bundled by Quasar | `ui.icon()` with Quasar material icons, or inline SVG for hero moments |
-| Dark mode toggle | v0.7 goal is confident light-with-dark-accent, not a full dark mode system. Adding a toggle doubles the CSS surface area. | `ui.dark_mode(value=False)` stays fixed; dark surfaces implemented as bg-slate-900 regions, not system dark mode |
+The research below covers only the four backend problem areas from the audit.
 
 ---
 
-## Core Theming Architecture
+## Area 1: Thread-Safe SQLite
 
-### Layer 1 — Quasar Brand Colors (app-wide, set at startup)
+### What Was Found in the Code
 
-NiceGUI 3.9.0 exposes `app.colors()` (v3.6.0+) and `ui.colors()` (per-page). These set Quasar's `--q-primary`, `--q-secondary`, etc. as CSS custom properties on `:root`.
+`database.py` already has `threading.Lock()` at `__init__` and uses it in `save_result()`, `get_contract_by_id()`, `get_contract_id_by_hash()`, `clear_all()`, `update_review()`.
 
-**Integration point:** Call `app.colors()` once at module level in `main.py` before `ui.run()`. This eliminates the need to repeat `ui.colors()` on every page.
+**Missing locks:** `get_all_results()`, `get_stats()`, `is_processed()` — all execute `self.conn.execute(...)` without `with self._lock:`. With 5 parallel AI worker threads writing results while the UI thread reads the registry, this is a live race condition.
+
+### Pattern: Extend Existing Lock to All Read Methods
+
+No new library. No architecture change. Mechanical fix: wrap all `self.conn.execute()` calls in every public method with `with self._lock:`, and ensure `fetchall()` / `fetchone()` happen **inside** the lock.
 
 ```python
-from nicegui import app
+# WRONG — current state in get_all_results():
+cursor = self.conn.execute("SELECT * FROM contracts ORDER BY processed_at")
+rows = cursor.fetchall()
 
-app.colors(
-    primary='#4f46e5',    # indigo-600 — already the brand color in v0.6
-    secondary='#64748b',  # slate-500
-    accent='#4f46e5',
-    positive='#059669',   # green-600
-    negative='#dc2626',   # red-600
-    warning='#d97706',    # amber-600
-    info='#3b82f6',       # blue-500
-    dark='#0f172a',       # slate-900
-    dark_page='#0f172a',
+# CORRECT — cursor is tied to the connection; fetchall must be inside the lock
+with self._lock:
+    cursor = self.conn.execute("SELECT * FROM contracts ORDER BY processed_at")
+    rows = cursor.fetchall()
+```
+
+**Why fetchall inside the lock:** `sqlite3.Cursor` holds a reference to the connection. Calling `fetchall()` after releasing the lock lets another thread execute on the same connection before results are collected — the cursor can see an inconsistent snapshot or raise `ProgrammingError`.
+
+### Why Not WAL Mode or Per-Thread Connections?
+
+- **WAL mode** (`PRAGMA journal_mode=WAL`) allows concurrent readers without blocking writers — but introduces a WAL file on disk and checkpoint management. Overkill for a desktop app with 5 write threads and low read latency requirements.
+- **Per-thread connections** (`threading.local()`) eliminates the lock entirely but requires every method to open/close connections per-thread, complicating transaction semantics and the migration flow.
+
+**Decision: keep single shared connection + extend lock to all public methods.**
+
+---
+
+## Area 2: Atomic Settings File Write
+
+### What Was Found in the Code
+
+`config.py::save_setting()`:
+
+```python
+def save_setting(key: str, value) -> None:
+    s = load_settings()                    # read
+    s[key] = value                         # modify
+    _SETTINGS_FILE.write_text(...)         # write — NOT atomic
+```
+
+`Path.write_text()` opens, truncates, writes, closes. A crash between truncate and write produces a zero-byte or half-written settings file. On next launch `load_settings()` silently returns `{}`, losing all persisted settings.
+
+### Pattern: Write-to-Temp-then-Replace
+
+No new library. stdlib `tempfile` + `os.replace()`. Both are already available.
+
+```python
+import os
+import tempfile
+
+def save_setting(key: str, value) -> None:
+    s = load_settings()
+    s[key] = value
+    _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    # Write to temp in same directory — same filesystem guarantees atomic rename
+    fd, tmp_path = tempfile.mkstemp(dir=_SETTINGS_FILE.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(s, ensure_ascii=False, indent=2))
+            f.flush()
+            os.fsync(f.fileno())           # flush kernel buffer → disk
+        os.replace(tmp_path, _SETTINGS_FILE)   # atomic on POSIX (rename(2) syscall)
+    except Exception:
+        try:
+            os.unlink(tmp_path)            # clean up temp on failure
+        except OSError:
+            pass
+        raise
+```
+
+**Why `os.replace()` not `Path.rename()`:** Both call `rename(2)` on POSIX (atomic). `os.replace()` is explicit about overwrite semantics and is documented as atomic when src/dst are on the same filesystem. Same filesystem is guaranteed by `dir=_SETTINGS_FILE.parent`.
+
+**Why not `atomicwrites` library (PyPI):** Last release 2020. No Python 3.10+ CI. No maintenance. 10-line stdlib pattern achieves the same result with zero new dependency.
+
+---
+
+## Area 3: HTTP Timeout in openai SDK
+
+### What Was Found in the Code
+
+`OllamaProvider.__init__` (and equivalents in `ZaiProvider`, `OpenRouterProvider`):
+
+```python
+self._client = OpenAI(
+    base_url=base_url,
+    api_key="not-needed",
+    # No timeout — default is 600 seconds (10 minutes)
 )
 ```
 
-This is HIGH confidence — verified at nicegui.io/documentation/colors. `app.colors()` added in NiceGUI v3.6.0; current installed version is 3.9.0.
+With 5 `ThreadPoolExecutor` workers, one hung llama-server can stall a worker thread for up to 10 minutes. The app UI appears frozen.
 
-### Layer 2 — CSS Custom Properties Design Tokens (in design-system.css)
+### Pattern: httpx.Timeout at Client Construction
 
-Extend `app/static/design-system.css` with a `:root` block defining the full design token set. These are plain CSS variables — no build step, no framework, available everywhere including AG Grid `cellRenderer` JavaScript strings.
-
-```css
-:root {
-  /* Palette */
-  --color-brand:       #4f46e5;  /* indigo-600 */
-  --color-brand-dark:  #4338ca;  /* indigo-700 */
-  --color-brand-light: #eef2ff;  /* indigo-50 */
-  --color-surface:     #ffffff;
-  --color-surface-2:   #f8fafc;  /* slate-50 */
-  --color-surface-3:   #f1f5f9;  /* slate-100 */
-  --color-border:      #e2e8f0;  /* slate-200 */
-  --color-text-strong: #0f172a;  /* slate-900 */
-  --color-text-body:   #475569;  /* slate-600 */
-  --color-text-muted:  #94a3b8;  /* slate-400 */
-  --color-hero-bg:     #0f172a;  /* slate-900 — for hero/splash dark surface */
-
-  /* Typography scale */
-  --font-family:     'IBM Plex Sans', system-ui, sans-serif;
-  --text-hero:       clamp(2.5rem, 5vw, 3.5rem);  /* splash headline */
-  --text-display:    2rem;     /* 32px — page section titles */
-  --text-title:      1.25rem;  /* 20px — card headings */
-  --text-body:       0.875rem; /* 14px — default body */
-  --text-small:      0.75rem;  /* 12px — labels, badges */
-  --weight-light:    300;
-  --weight-regular:  400;
-  --weight-medium:   500;      /* IBM Plex Sans supports 500 */
-  --weight-semibold: 600;
-  --weight-bold:     700;
-
-  /* Spacing scale */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-  --space-16: 4rem;
-
-  /* Shadow scale */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.06);
-
-  /* Radius scale */
-  --radius-sm: 0.375rem;  /* 6px */
-  --radius-md: 0.5rem;    /* 8px */
-  --radius-lg: 0.75rem;   /* 12px */
-  --radius-xl: 1rem;      /* 16px */
-
-  /* Transition */
-  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
-  --duration-fast: 150ms;
-  --duration-base: 200ms;
-  --duration-slow: 300ms;
-}
-```
-
-**Why CSS custom properties instead of Python constants in styles.py:** The Python constants in `styles.py` are Tailwind class strings — they work for `.classes()` calls but cannot be used in AG Grid `cellRenderer` JavaScript, inline `<style>` blocks, or `calc()` expressions. CSS custom properties are the single source of truth accessible from all three layers (Python/NiceGUI, CSS, JavaScript).
-
-**Migrate styles.py:** Keep the Tailwind class constants in `styles.py` for Python-side usage, but have them reference the same visual values defined in `:root`. This keeps the dual access pattern without duplication.
-
-### Layer 3 — Tailwind Component Classes (@layer components)
-
-The existing `<style type="text/tailwindcss">` block in `main.py` already defines status badge classes. Extend this pattern for new reusable components that need Tailwind utility composition:
+`httpx` 0.27.0 is already in `requirements.txt` (openai's HTTP backend). No new install.
 
 ```python
-ui.add_head_html("""
-<style type="text/tailwindcss">
-  @layer components {
-    /* Hero surface */
-    .hero-surface {
-      @apply bg-slate-900 text-white;
-    }
-    /* Stats bar item */
-    .stat-item {
-      @apply flex flex-col gap-0.5 px-6 py-4 border-r border-slate-800 last:border-r-0;
-    }
-    .stat-number {
-      @apply text-2xl font-bold text-white tabular-nums;
-    }
-    .stat-label {
-      @apply text-xs text-slate-400 uppercase tracking-wide;
-    }
-    /* Section header pattern */
-    .section-header {
-      @apply flex items-center justify-between px-6 py-4 border-b border-slate-200;
-    }
-    /* Rich empty state */
-    .empty-state {
-      @apply flex flex-col items-center justify-center gap-4 py-24 text-center;
-    }
-    /* Accent CTA button */
-    .btn-hero {
-      @apply px-8 py-3 bg-indigo-600 text-white font-semibold text-base rounded-lg
-             hover:bg-indigo-700 transition-colors duration-150 shadow-md;
-    }
-  }
-</style>
-""", shared=True)
+import httpx
+from openai import OpenAI
+
+# For OllamaProvider (local llama-server)
+self._client = OpenAI(
+    base_url=base_url,
+    api_key="not-needed",
+    timeout=httpx.Timeout(
+        connect=5.0,    # llama-server is local — 5s connect is generous
+        read=90.0,      # GBNF-constrained inference on CPU: 30–60s typical
+        write=10.0,
+        pool=5.0,
+    ),
+)
+
+# For ZaiProvider / OpenRouterProvider (cloud)
+self._client = OpenAI(
+    base_url=base_url,
+    api_key=api_key,
+    timeout=httpx.Timeout(
+        connect=10.0,
+        read=120.0,     # cloud inference can be slower under load
+        write=10.0,
+        pool=5.0,
+    ),
+)
 ```
 
-**Layer ordering confirmed (NiceGUI v3):** `theme, base, quasar, nicegui, components, utilities, overrides, quasar_importants`. The `components` layer sits above `quasar` — classes defined there override Quasar defaults without needing `!important`.
+**What happens on timeout:** openai SDK raises `openai.APITimeoutError` (subclass of `openai.APIError`). Replace bare `except Exception` in provider `complete()` methods with `except openai.APITimeoutError` and `except openai.APIError` specifically.
 
-### Layer 4 — Quasar `!important` Overrides (for Quasar internals)
+### get_logprobs Contract in Base Class
 
-When overriding Quasar component internals (e.g., `.q-header` background, `.q-btn` padding), use `@layer overrides` in `design-system.css`:
+`OllamaProvider` defines `get_logprobs()` but `LLMProvider` base class (`providers/base.py`) has no such method. The audit flagged: callers importing `LLMProvider` for type hints get an `AttributeError` at runtime if the provider doesn't implement it.
 
-```css
-@layer overrides {
-  /* Header: give it visual weight instead of flat white */
-  .q-header {
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface) !important;
-  }
-  /* Remove Quasar's default button text-transform: uppercase */
-  .q-btn .block {
-    text-transform: none !important;
-  }
-}
+Fix: add a default implementation to `base.py`. Not abstract — most providers don't support logprobs.
+
+```python
+def get_logprobs(
+    self, messages: list[dict], fields_to_check: list[str]
+) -> dict[str, float]:
+    """Logprob confidence scoring. Override in providers that support it.
+    Default: returns empty dict (logprobs not supported).
+    """
+    return {}
 ```
+
+No new dependency. Pure Python.
 
 ---
 
-## Typography Upgrade
+## Area 4: Config Validation via `__post_init__`
 
-IBM Plex Sans already loaded from Google Fonts. Currently only weights 400 and 600 are requested. The v0.7 hero splash needs 300 (light for display contrast) and 700 (bold for hero text). Update the font `<link>` in `main.py`:
+### What Was Found in the Code
 
-```python
-ui.add_head_html("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap&subset=cyrillic" rel="stylesheet">
-<style>
-  body {
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    color: var(--color-text-strong);
-  }
-</style>
-""", shared=True)
-```
+`config.py` `Config` is a `@dataclass` with no `__post_init__`. The `active_model` property is hardcoded to `"glm-4.7"` regardless of `active_provider`. Invalid values silently pass through.
 
-**IBM Plex Sans weight support (verified):** The typeface supports 100, 200, 300, 400, 500, 600, 700 — all available via Google Fonts with Cyrillic subset. Currently the app requests only 400 and 600. Adding 300 (for hero subtext at size) and 700 (for hero headline) is a no-cost one-line change to the Google Fonts URL.
+### Pattern: Dataclass __post_init__ with ValueError
 
-**Typography rules for v0.7:**
-- Hero headline: `font-size: var(--text-hero); font-weight: 700; letter-spacing: -0.02em`
-- Page section title: `font-size: var(--text-display); font-weight: 700`
-- Card heading: `font-size: var(--text-title); font-weight: 600`
-- Stats number: `font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums`
-- Body: `font-size: var(--text-body); font-weight: 400`
-- Labels/uppercase: `font-size: var(--text-small); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase`
-
----
-
-## Animation Additions
-
-The existing `design-system.css` already has a solid animation foundation: `row-in`, `page-fade-in`, `dialog-in`, `badge-in`, `toast-in`, `link-underline-grow`. These are correct and stay. V0.7 needs three additional patterns:
-
-### 1. Hero text entrance (stagger children)
-
-```css
-/* Staggered entrance for hero content blocks */
-@keyframes hero-slide-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero-enter {
-  animation: hero-slide-up var(--duration-slow) var(--ease-out) both;
-}
-.hero-enter:nth-child(1) { animation-delay: 0ms; }
-.hero-enter:nth-child(2) { animation-delay: 100ms; }
-.hero-enter:nth-child(3) { animation-delay: 200ms; }
-.hero-enter:nth-child(4) { animation-delay: 300ms; }
-```
-
-Apply `.hero-enter` to each child block of the splash hero section. Pure CSS, no JavaScript, respects `prefers-reduced-motion` (already covered by the existing `@media` block in design-system.css).
-
-### 2. Number counter (stats bar)
-
-For the stats bar showing document count / expiring count / processed today, numbers should animate from 0 to their value on load. This requires 5 lines of vanilla JS injected once:
-
-```javascript
-// Animate data-count elements from 0 to target
-document.querySelectorAll('[data-count]').forEach(el => {
-  const target = parseInt(el.dataset.count);
-  const dur = 800;
-  const start = performance.now();
-  const step = (now) => {
-    const p = Math.min((now - start) / dur, 1);
-    el.textContent = Math.round(p * target);
-    if (p < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-});
-```
-
-Called via `ui.run_javascript(COUNTER_SCRIPT)` after stats are rendered. No library needed.
-
-### 3. Card hover lift (templates page)
-
-Already partially implemented for `.q-card.cursor-default`. Extend to all template cards explicitly:
-
-```css
-@layer components {
-  .template-card {
-    transition: box-shadow var(--duration-base) var(--ease-out),
-                transform var(--duration-base) var(--ease-out);
-  }
-  .template-card:hover {
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-3px);
-  }
-}
-```
-
----
-
-## Surfaces and Dark Accent Approach
-
-The v0.7 goal is "дерзкий" (bold, daring) — not minimalist white. The pattern from RunPod: use a dark surface for high-impact moments (hero, splash, maybe header), light surfaces everywhere else. This avoids full dark mode complexity while achieving visual weight.
-
-**Implementation pattern:**
+No new library. Pure stdlib.
 
 ```python
-# Splash hero — full dark surface
-with ui.column().classes("min-h-screen bg-slate-900 text-white"):
-    with ui.column().classes("max-w-2xl mx-auto py-24 px-8 gap-8"):
-        ui.label("ЮрТэг").classes(
-            "text-base font-semibold text-slate-400 uppercase tracking-widest"
+VALID_PROVIDERS = frozenset({"zai", "openrouter", "ollama"})
+VALID_VALIDATION_MODES = frozenset({"off", "selective", "full"})
+
+def __post_init__(self) -> None:
+    if self.active_provider not in VALID_PROVIDERS:
+        raise ValueError(
+            f"active_provider must be one of {VALID_PROVIDERS}, "
+            f"got {self.active_provider!r}"
         )
-        ui.html("<h1 style='font-size: var(--text-hero); font-weight: 700; "
-                "letter-spacing: -0.02em; line-height: 1.15; margin: 0;'>"
-                "Реестр договоров<br>за 20 минут</h1>")
-        ui.label("Загрузите папку — получите структурированный реестр с "
-                 "метаданными, сроками и автосортировкой.").classes(
-            "text-lg font-light text-slate-300 max-w-lg"
+    if self.fallback_provider not in VALID_PROVIDERS:
+        raise ValueError(
+            f"fallback_provider must be one of {VALID_PROVIDERS}, "
+            f"got {self.fallback_provider!r}"
+        )
+    if self.validation_mode not in VALID_VALIDATION_MODES:
+        raise ValueError(
+            f"validation_mode must be one of {VALID_VALIDATION_MODES}, "
+            f"got {self.validation_mode!r}"
+        )
+    if not 0.0 <= self.ai_temperature <= 2.0:
+        raise ValueError(
+            f"ai_temperature must be 0.0–2.0, got {self.ai_temperature}"
+        )
+    if self.ai_max_tokens < 1:
+        raise ValueError(
+            f"ai_max_tokens must be >= 1, got {self.ai_max_tokens}"
+        )
+    if self.max_workers < 1:
+        raise ValueError(
+            f"max_workers must be >= 1, got {self.max_workers}"
+        )
+    if self.confidence_high <= self.confidence_low:
+        raise ValueError(
+            f"confidence_high ({self.confidence_high}) must be > "
+            f"confidence_low ({self.confidence_low})"
         )
 ```
 
-**Key surfaces by section:**
-
-| Section | Surface | Rationale |
-|---------|---------|-----------|
-| Splash/hero | `bg-slate-900` dark | Maximum visual impact, RunPod-like confidence |
-| Header | `bg-white` with stronger border and logo weight | Professional, recedes behind content |
-| Stats bar (registry top) | `bg-slate-900` strip or `bg-indigo-600` | Numbers pop visually |
-| Registry table | `bg-white` | Content-first, readable |
-| Template cards | `bg-white` with `shadow-md` | Cards need lift to feel interactive |
-| Settings sections | `bg-slate-50` section containers | Gentle grouping |
-| Empty state | `bg-white` with centered SVG illustration | Inviting, not clinical |
-
----
-
-## styles.py Upgrade
-
-Keep `styles.py` for Python-side Tailwind class constants. Extend with new v0.7 tokens:
+**Fix `active_model` property:** Current hardcoded `return "glm-4.7"` ignores `active_provider`. Fix: map provider → model name, or remove the property and have each provider know its own model string.
 
 ```python
-# ── New v0.7 constants ────────────────────────────────────────────────────────
+_PROVIDER_MODEL_MAP = {
+    "zai": "glm-4.7",
+    "openrouter": "arcee-ai/trinity-large-preview:free",
+    "ollama": "local",
+}
 
-# Hero / dark surface typography
-TEXT_HERO = "font-bold text-white tracking-tight leading-tight"
-TEXT_HERO_SUB = "text-lg font-light text-slate-300"
-TEXT_EYEBROW = "text-xs font-semibold text-slate-400 uppercase tracking-widest"
-
-# Stats bar
-STAT_NUMBER = "text-2xl font-bold text-white tabular-nums"
-STAT_LABEL = "text-xs text-slate-400 uppercase tracking-wide"
-
-# Section structural
-SECTION_HEADER = "flex items-center justify-between px-6 py-4 border-b border-slate-200"
-DIVIDER = "border-t border-slate-100 my-6"
-
-# Template card
-TEMPLATE_CARD = "template-card bg-white border border-slate-200 rounded-xl p-5 cursor-pointer"
-
-# Accent CTA
-BTN_HERO = "btn-hero"
-
-# Header logo mark
-LOGO_MARK = "text-base font-bold text-slate-900 tracking-tight"
+@property
+def active_model(self) -> str:
+    return _PROVIDER_MODEL_MAP.get(self.active_provider, "local")
 ```
 
 ---
 
-## No New pip Dependencies
+## Area 5: Test Patterns for Coverage Gaps
 
-The entire v0.7 visual overhaul requires zero new Python packages. All tools are already in the stack:
+### Concurrent Write/Read Safety Tests
 
-| Need | Tool | Already Available |
-|------|------|-------------------|
-| CSS custom properties | Plain CSS in design-system.css | Yes |
-| Tailwind utility composition | `@layer components` in existing `<style type="text/tailwindcss">` block | Yes |
-| Quasar brand color tokens | `app.colors()` from NiceGUI | Yes |
-| Font weight expansion | Google Fonts URL parameter | Yes (free) |
-| Hero animations | CSS `@keyframes` in design-system.css | Yes |
-| Stats counter animation | 10-line vanilla JS via `ui.run_javascript()` | Yes |
-| Dark surface sections | `bg-slate-900` Tailwind class | Yes |
-| Card shadows and lift | Tailwind `shadow-*` + CSS transition | Yes |
+Use stdlib `threading.Barrier` — not a plugin. Barrier ensures all threads start simultaneously, maximizing race window.
+
+```python
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def test_concurrent_save_no_corruption(tmp_db):
+    db = Database(tmp_db)
+    n = 20
+    barrier = threading.Barrier(n)
+
+    def write_one(i: int) -> None:
+        barrier.wait()                      # all threads release at same instant
+        result = make_fake_result(f"hash_{i:03d}")
+        db.save_result(result)
+
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        futures = [pool.submit(write_one, i) for i in range(n)]
+        for fut in as_completed(futures):
+            fut.result()                    # re-raises thread exceptions into test
+
+    assert db.get_stats()["total"] == n
+    db.close()
+```
+
+**Why `threading.Barrier`:** Guarantees the concurrent access window is real. Without it, threads execute sequentially and no race occurs. This is the standard Python free-threading test pattern per [py-free-threading.github.io](https://py-free-threading.github.io/testing/).
+
+### Migration Idempotency Tests (v2–v9)
+
+Current `test_migrations.py` only tests v1. Each migration must be idempotent (running twice must not raise).
+
+```python
+@pytest.mark.parametrize("version", range(1, 10))
+def test_migration_idempotent(tmp_db, version):
+    db = Database(tmp_db)   # applies all migrations
+    db.close()
+    db2 = Database(tmp_db)  # applies again — should silently skip already-applied
+    db2.close()
+```
+
+### Atomic Write Failure Test
+
+```python
+def test_save_setting_atomic(tmp_path, monkeypatch):
+    """If process crashes mid-write, existing file must survive intact."""
+    settings_file = tmp_path / "settings.json"
+    settings_file.write_text('{"existing_key": "value"}', encoding="utf-8")
+
+    # Simulate crash by raising during write
+    import builtins
+    original_open = builtins.open
+    call_count = [0]
+    def flaky_open(*args, **kwargs):
+        call_count[0] += 1
+        if call_count[0] == 2:      # second open = temp file write
+            raise OSError("disk full")
+        return original_open(*args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", flaky_open)
+    with pytest.raises(OSError):
+        save_setting("new_key", "new_value")
+
+    # Original file must still be intact
+    assert json.loads(settings_file.read_text())["existing_key"] == "value"
+```
+
+### Config Validation Tests
+
+```python
+@pytest.mark.parametrize("bad_provider", ["gpt4", "", "OLLAMA", None])
+def test_config_rejects_invalid_provider(bad_provider):
+    with pytest.raises(ValueError, match="active_provider"):
+        Config(active_provider=bad_provider)
+
+def test_config_rejects_temperature_out_of_range():
+    with pytest.raises(ValueError, match="ai_temperature"):
+        Config(ai_temperature=5.0)
+```
 
 ---
 
-## Integration Points with Existing Stack
+## Recommended Stack for This Milestone
 
-| Existing System | v0.7 Touch Point | Change |
-|-----------------|-----------------|--------|
-| `app/static/design-system.css` | Add `:root` token block, hero-enter animation, template-card hover, @layer overrides | Extend only — existing rules stay |
-| `app/main.py` | Add `app.colors()` call, update font weights in Google Fonts URL, extend `@layer components` block | Targeted edits |
-| `app/styles.py` | Add new Python constants for v0.7 surfaces | Additive only |
-| `app/components/onboarding/splash.py` | Full rework — dark hero surface, heavy typography, centered CTA | Full rewrite of layout |
-| `app/components/header.py` | Logo weight/mark, stronger visual presence, accent CTA button style | Targeted edits |
-| `app/pages/registry.py` | Add stats bar above table, update empty state visuals | New stats bar component |
-| `app/pages/templates.py` | Card shadow/lift, colored type badges | CSS class changes |
-| `app/pages/settings.py` | Section containers with `bg-slate-50`, visual dividers | Layout additions |
-| `app/components/registry_table.py` | AG Grid theme tweaks for header row weight | CSS in design-system.css |
+### Core Technologies (no installs, all already present)
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| sqlite3 | stdlib | Database | Extend existing Lock to all read methods |
+| threading | stdlib | Concurrency primitives | Barrier for tests, existing Lock extended |
+| tempfile + os | stdlib | Atomic file writes | mkstemp + os.replace = atomic on POSIX |
+| httpx | 0.27.0 | HTTP timeout configuration | Already in requirements.txt as openai dep |
+| openai | 2.26.0 | LLM client with timeout | Add timeout= at OpenAI() construction |
+
+### Import Additions (no new pip installs)
+
+| Import | Module | Used For |
+|--------|--------|---------|
+| `import httpx` | providers/ollama.py, providers/zai.py, providers/openrouter.py | `httpx.Timeout(...)` passed to `OpenAI()` |
+| `import os, tempfile` | config.py | Atomic settings write |
+| `from openai import APITimeoutError, APIError` | providers/*.py | Specific exception handling |
+
+---
+
+## Installation
+
+No changes to `requirements.txt` for this milestone.
+
+```bash
+# Verify all needed modules are available:
+python -c "import httpx, openai, tempfile, threading, sqlite3; print('all ok')"
+```
+
+---
+
+## Alternatives Considered
+
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| Extend threading.Lock to all methods | WAL mode (PRAGMA journal_mode=WAL) | WAL creates side files on disk; adds checkpoint management; overkill for 5 threads |
+| Extend threading.Lock to all methods | Per-thread connections via threading.local() | Requires refactor of all Database callers; complicates migration flow |
+| stdlib tempfile + os.replace | atomicwrites library (PyPI) | Abandoned since 2020, no Python 3.10+ CI |
+| httpx.Timeout at client construction | Per-request timeout override | Client-level default is cleaner; per-request override still available when needed |
+| threading.Barrier inside test | pytest-run-parallel plugin | Plugin runs whole tests concurrently; Barrier gives targeted control within one test |
+
+---
+
+## What NOT to Add
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| SQLAlchemy | 10+ MB bundle weight, ORM overkill for 8 tables | sqlite3 with proper locking |
+| atomicwrites (PyPI) | Unmaintained, abandoned 2020 | stdlib tempfile + os.replace |
+| pytest-run-parallel | Runs all tests concurrently — breaks fixtures that assume sequential isolation | threading.Barrier inside targeted concurrency tests |
+| aiosqlite | Async SQLite wrapper — NiceGUI already wraps blocking calls in run.io_bound() | sqlite3 with Lock |
+| pydantic | ~2MB bundle weight for a single Config dataclass | dataclass __post_init__ with ValueError |
+| threading.RLock | Re-entrant lock unnecessary — no recursive DB calls in the codebase | threading.Lock (already used) |
 
 ---
 
@@ -384,28 +392,25 @@ The entire v0.7 visual overhaul requires zero new Python packages. All tools are
 
 | Package | Version | Notes |
 |---------|---------|-------|
-| nicegui | 3.9.0 (installed) | `app.colors()` available since 3.6.0 — confirmed |
-| Tailwind CSS | 4.x (bundled by NiceGUI) | `@layer components` works; `@theme` directive not available without build step |
-| Quasar | bundled | `--q-primary` etc. set via `app.colors()` |
-| IBM Plex Sans | variable 100–700 | Cyrillic subset, Google Fonts CDN |
-| CSS custom properties | native browser | Fully supported in WKWebView (macOS) and EdgeChromium (Windows) |
+| openai | 2.26.0 | `httpx.Timeout` passed to `OpenAI(timeout=...)` — supported since openai 1.0+ |
+| httpx | 0.27.0 | `httpx.Timeout(connect, read, write, pool)` — all fields supported since httpx 0.20+ |
+| sqlite3 | stdlib | `threading.Lock` pattern is version-independent; `check_same_thread=False` requires all write ops serialized by user |
 
 ---
 
 ## Sources
 
-- [nicegui.io/documentation/colors](https://nicegui.io/documentation/colors) — `app.colors()` API, `ui.colors()` per-page — HIGH confidence
-- [nicegui.io/documentation/add_style](https://nicegui.io/documentation/add_style) — `ui.add_css()`, CSS layer ordering — HIGH confidence
-- [nicegui.io/documentation/section_styling_appearance](https://nicegui.io/documentation/section_styling_appearance) — Tailwind @layer components, CSS layer stack — HIGH confidence
-- [github.com/zauberzeug/nicegui/discussions/5331](https://github.com/zauberzeug/nicegui/discussions/5331) — NiceGUI v3 ships Tailwind 4; `.tailwind()` removed — HIGH confidence
-- [github.com/zauberzeug/nicegui/discussions/5240](https://github.com/zauberzeug/nicegui/discussions/5240) — CSS layer ordering for overriding Quasar; `@layer overrides` pattern — HIGH confidence
-- [quasar.dev/style/color-palette](https://quasar.dev/style/color-palette/) — `--q-primary` and other CSS vars exposed by Quasar — HIGH confidence
-- [quasar.dev/style/dark-mode](https://quasar.dev/style/dark-mode/) — `body--light` / `body--dark` class mechanism — HIGH confidence
-- [fonts.google.com/specimen/IBM+Plex+Sans](https://fonts.google.com/specimen/IBM%2BPlex+Sans) — Weight range 100–700, Cyrillic subset available — HIGH confidence
-- [tailwindcss.com/blog/tailwindcss-v4](https://tailwindcss.com/blog/tailwindcss-v4) — @theme vs :root distinction, CSS-native token system — HIGH confidence
-- Verified installed version: `pip show nicegui` → 3.9.0 (confirmed March 2026)
+- [SQLite Threading Modes — sqlite.org](https://sqlite.org/threadsafe.html) — serialized/multi-thread/single-thread modes (HIGH confidence)
+- [Python sqlite3 docs](https://docs.python.org/3/library/sqlite3.html) — `check_same_thread=False` note: "write operations should be serialized by the user" (HIGH confidence)
+- [cpython issue #118172](https://github.com/python/cpython/issues/118172) — sqlite3 multithreading cache inconsistency discussion (MEDIUM confidence)
+- [openai-python GitHub](https://github.com/openai/openai-python) — `timeout` param accepts `float | httpx.Timeout`; default 10 minutes (HIGH confidence)
+- [openai community — timeout configuration](https://community.openai.com/t/configuring-timeout-for-chatcompletion-python/107226) — httpx.Timeout usage pattern confirmed (MEDIUM confidence)
+- [python-atomicwrites PyPI](https://pypi.org/project/atomicwrites/) — last release 1.4.0 (2020), no 3.10+ CI — confirmed abandoned (HIGH confidence)
+- [Python atomic write discussion](https://discuss.python.org/t/adding-atomicwrite-in-stdlib/11899) — stdlib tempfile + os.replace as canonical pattern (HIGH confidence)
+- [py-free-threading.github.io/testing](https://py-free-threading.github.io/testing/) — threading.Barrier for concurrent test patterns (HIGH confidence)
+- Installed versions verified via `pip show openai` → 2.26.0 and `cat requirements.txt` → httpx==0.27.0
 
 ---
 
-*Stack research for: ЮрТэг v0.7 — Визуальный продукт*
-*Researched: 2026-03-22*
+*Stack research for: ЮрТэг v1.0 Backend Hardening — audit fixes*
+*Researched: 2026-03-28*

@@ -1,252 +1,354 @@
 # Pitfalls Research
 
-**Domain:** Visual overhaul of existing NiceGUI 3.x desktop app (NiceGUI 3.9.0, Tailwind 4, AG Grid, FullCalendar)
-**Researched:** 2026-03-22
-**Confidence:** HIGH — all critical pitfalls confirmed via official NiceGUI GitHub issues, release notes, and v3.0 migration docs
+**Domain:** Backend hardening — добавление thread safety, валидации, error handling в существующее Python desktop приложение (NiceGUI + SQLite + llama-server)
+**Researched:** 2026-03-28
+**Confidence:** HIGH — все паттерны основаны на прямой инспекции кодовой базы + известные Python threading/SQLite паттерны
 
-> This file focuses on v0.7 "Визуальный продукт" — adding a full design-system overhaul on top of the working v0.6 codebase.
-> Previous migration pitfalls (Pitfall 1–8 from v0.6 PITFALLS.md) remain valid for the business logic layer.
+> Этот файл фокусируется на v1.0 Backend hardening milestone: 83 баги + 15 test coverage gaps.
+> Предыдущие UI pitfalls (NiceGUI @layer, AG Grid, Quasar) остаются в силе для frontend слоя.
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Custom CSS Without @layer — Silently Ignored by Quasar
+### Pitfall 1: Вложенный `with db._lock` → deadlock
 
 **What goes wrong:**
-Custom CSS added via `ui.add_css()` or `ui.add_head_html('<style>...')` doesn't override Quasar/NiceGUI component styles. Buttons, cards, inputs look unchanged despite correct CSS being in the DOM. Symptoms: no visual error, but the style simply doesn't apply.
+`threading.Lock()` в Python **не реентрантен**. Если функция A берёт `db._lock`, а внутри вызывает функцию B, которая тоже берёт `db._lock` — поток зависает навсегда.
+
+В этой кодовой базе риск реальный: `find_version_match()` в `version_service.py` берёт `with db._lock` для загрузки кандидатов, потом внутри цикла снова берёт `with db._lock` для `_load_embedding()`. Сейчас это работает, потому что между двумя блоками lock освобождается. Один неосторожный рефакторинг (например, обернуть весь цикл в один `with db._lock`) — и deadlock без ошибки, просто зависание.
+
+При добавлении locks на read-методы (`get_all_results`, `get_stats`) появится новая цепочка: любой сервис, вызывающий эти методы внутри уже залоченного контекста, дедлочится.
 
 **Why it happens:**
-NiceGUI 3.x (including 3.9.0) moved all Tailwind and Quasar CSS into CSS `@layer` blocks. Layer hierarchy (highest to lowest priority): `overrides → utilities → components → nicegui → quasar → base → theme`. CSS written outside any `@layer` declaration loses cascade priority to layered framework styles. Previously (v2.x), unlayered CSS would win by default — this changed in v3.0.0 and broke existing style overrides silently.
+Разработчик видит «здесь делаем чтение из БД» и добавляет `with db._lock`, не проверяя стек вызовов. Особенно опасно при вложенных вызовах между service-функциями.
 
 **How to avoid:**
-All custom CSS overrides must be wrapped in the appropriate `@layer`:
+Два варианта — выбрать один и придерживаться:
 
-```css
-/* RIGHT — survives cascade */
-@layer components {
-  .my-card { background: #f8fafc; border-radius: 12px; }
-}
+Вариант A (рекомендуемый): заменить `threading.Lock()` на `threading.RLock()` в `Database.__init__`. RLock реентрантен — один поток может взять его несколько раз без deadlock.
 
-@layer overrides {
-  /* For overriding Quasar !important declarations */
-  .q-btn.accent-cta { background: #4f46e5; }
-}
-
-/* WRONG — silently overridden by Quasar's layered CSS */
-.my-card { background: #f8fafc; }
-```
-
-For `app/static/design-system.css`, wrap section by section in `@layer components` unless targeting AG Grid (which lives outside NiceGUI's layer system — see Pitfall 3).
+Вариант B: строгий invariant — lock берётся только внутри методов класса `Database`, сервисы (`lifecycle_service`, `version_service`) никогда не обращаются к `db._lock` напрямую. Сейчас несколько сервисов уже нарушают это правило (`set_manual_status`, `ensure_embedding`).
 
 **Warning signs:**
-- Style added to CSS file, visible in DevTools DOM, but element looks wrong
-- Works with `!important` but fails without it
-- Only affects Quasar components (`.q-btn`, `.q-card`, `.q-header`), not plain HTML divs
+- Тест с двумя потоками зависает (timeout) вместо того, чтобы упасть с ошибкой
+- `threading.Lock` в `Database.__init__` (а не `RLock`)
+- `grep "db._lock" services/` показывает прямые вызовы lock из сервисов
 
-**Phase to address:** Phase 1 (Design system foundation) — establish layer convention before writing any new CSS.
+**Phase to address:**
+Thread safety phase — первым делом, до добавления locks на read-методы.
 
 ---
 
-### Pitfall 2: Quasar Color Palette !important Pollution
+### Pitfall 2: `get_all_results()` и `get_stats()` без lock — `OperationalError: database is locked`
 
 **What goes wrong:**
-All Quasar semantic color classes (`.text-primary`, `.bg-primary`, `.text-negative`, `.text-dark`, etc.) are generated with `!important` on every property. Trying to override them with custom CSS creates a specificity war — your CSS needs `!important` too, which then bleeds into other elements and creates cascading !important pollution across the stylesheet.
+`get_all_results()` и `get_stats()` в `database.py` используют `self.conn.execute()` без `with self._lock`. При параллельной обработке пайплайн вызывает `save_result()` (с lock + commit) в 5 потоках (`max_workers=5`), пока UI читает `get_all_results()` для обновления реестра. В дефолтном режиме SQLite (не WAL) writer блокирует весь файл на время COMMIT — reader получает `OperationalError: database is locked`.
 
 **Why it happens:**
-NiceGUI maintainers intentionally do not modify `quasar.prod.css`. Issue #4415 was closed as "not planned." The `@layer` system partially neuters this by wrapping Quasar's `!important` in a lower-priority layer, but Quasar-prop-based colors (set via `.props('color=primary')`) still emit `!important` inline-style equivalents in v3.
+Читающие методы кажутся «безопасными» — мы же только читаем. Но SQLite не разделяет read-lock и write-lock при `journal_mode=DELETE` (по умолчанию).
 
 **How to avoid:**
-Do not use Quasar semantic color props for elements that need custom overrides. Instead use Tailwind utility classes directly (`bg-indigo-600`, `text-white`) via `.classes()`:
+Два подхода:
 
+Подход A: добавить `with self._lock` во все методы `Database`. Просто, предсказуемо, но читатели блокируются на время записи.
+
+Подход B: включить WAL mode в `__init__`:
 ```python
-# WRONG — bg-primary is !important, hard to override
-ui.button("CTA").props("color=primary")
+self.conn.execute("PRAGMA journal_mode=WAL")
+```
+WAL позволяет параллельные reads во время write без блокировки. Для desktop app с одним пользователем это оптимально. Минус: создаёт дополнительные `.wal` и `.shm` файлы рядом с `.db`.
 
-# RIGHT — Tailwind class, overridable, in design system
-ui.button("CTA").classes("bg-indigo-600 text-white hover:bg-indigo-700")
+**Warning signs:**
+- `sqlite3.OperationalError: database is locked` в логах при обработке папки с 20+ файлами
+- Тест с параллельными write/read падает недетерминированно
+
+**Phase to address:**
+Thread safety phase.
+
+---
+
+### Pitfall 3: Миграция v10 — три места для обновления, обычно забывают одно
+
+**What goes wrong:**
+`save_result()` содержит жёстко прописанный INSERT с явным перечислением 25 колонок и соответствующим tuple значений. После добавления `contract_number` (миграция v10) нужно синхронно обновить **три места**:
+1. `_migrate_v10_contract_number()` — `ALTER TABLE contracts ADD COLUMN contract_number TEXT`
+2. `save_result()` — добавить `contract_number` в column list и в tuple `data`
+3. `ON CONFLICT DO UPDATE SET` — добавить `contract_number = excluded.contract_number`
+
+Пропуск любого шага: молчаливая потеря данных (contract_number не сохраняется), или `OperationalError: table has N columns but N+1 values were supplied`.
+
+Особая опасность: tuple `data` в `save_result()` строится по позиции — несоответствие числа `?` и значений → ошибка только в runtime, не при парсинге.
+
+**Why it happens:**
+Разработчик добавляет ALTER TABLE, видит что тесты не падают (потому что тест для v10 ещё не написан), считает работу завершённой.
+
+**How to avoid:**
+Писать тест ДО изменения (TDD):
+```python
+def test_v10_contract_number_saved(tmp_db):
+    db = Database(tmp_db)
+    # создать ProcessingResult с contract_number="12345/2026"
+    # save_result(result)
+    # get_contract_by_id → проверить contract_number == "12345/2026"
+```
+Тест даёт красный. Потом обновить все три места. Тест зеленеет.
+
+**Warning signs:**
+- `get_contract_by_id()` возвращает `contract_number: None` для только что обработанного файла
+- Тест пишет контракт с contract_number, читает обратно — получает None
+- `grep "contract_number" modules/database.py` показывает ALTER TABLE, но не INSERT
+
+**Phase to address:**
+Data integrity phase (миграция v10).
+
+---
+
+### Pitfall 4: `save_setting()` — гонка read-modify-write на файле
+
+**What goes wrong:**
+`save_setting()` в `config.py` делает read → modify → write:
+```python
+s = load_settings()     # читает JSON
+s[key] = value          # меняет один ключ
+_SETTINGS_FILE.write_text(json.dumps(s, ...))  # пишет обратно
+```
+Если два потока (UI сохраняет API key, Telegram sync пишет chat_id) вызывают `save_setting()` одновременно — второй поток перезапишет файл версией, прочитанной до записи первого. Один ключ будет потерян молча.
+
+**Why it happens:**
+Файловое I/O кажется «медленным и последовательным». GIL Python не защищает от этой гонки — между `load_settings()` и `write_text()` три Python-операции, GIL может переключить поток на каждой.
+
+**How to avoid:**
+Добавить module-level lock в `config.py`:
+```python
+_settings_lock = threading.Lock()
+
+def save_setting(key: str, value) -> None:
+    with _settings_lock:
+        s = load_settings()
+        s[key] = value
+        _SETTINGS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _SETTINGS_FILE.write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding="utf-8")
 ```
 
-In `app/styles.py`, make sure `BTN_PRIMARY` and similar tokens only use Tailwind, not Quasar props.
-
 **Warning signs:**
-- Attempting to override button colors by adding CSS class that Quasar's color prop also touches
-- DevTools shows `!important` on color/background rules you didn't write
-- Only happens on Quasar-prop-colored components, not plain-styled elements
+- API ключ или chat_id периодически пропадает после сохранения настроек
+- Тест с двумя потоками, пишущими разные ключи — иногда теряет один
 
-**Phase to address:** Phase 1 (Design system) — audit `styles.py` tokens. Phase 2 (Header/CTA) — header uses Quasar button props.
+**Phase to address:**
+Data integrity phase (атомарная запись settings).
 
 ---
 
-### Pitfall 3: AG Grid CSS Needs Theme Scope Prefix, Not Tailwind Layer
+### Pitfall 5: `Config.__post_init__()` с `raise` ломает существующие `settings.json`
 
 **What goes wrong:**
-Attempts to restyle AG Grid (row height, header background, cell padding, border colors) either do nothing or require `!important` on every rule. The AG Grid table looks like the default alpine theme regardless of what CSS is written.
-
-**Why it happens:**
-AG Grid's CSS specificity system requires selectors scoped to the theme class. Without the prefix, AG Grid's bundled CSS wins. For example:
-
-```css
-/* WRONG — too low specificity */
-.ag-header-cell { background: #f8fafc; }
-
-/* RIGHT — theme-scoped */
-.ag-theme-alpine .ag-header-cell { background: #f8fafc; }
-/* or if using Quartz theme: */
-.ag-theme-quartz .ag-header-cell { background: #f8fafc; }
+Если добавить строгую валидацию:
+```python
+def __post_init__(self):
+    if self.active_provider not in {"zai", "openrouter", "ollama"}:
+        raise ValueError(f"Unknown provider: {self.active_provider}")
 ```
+то пользователи с `~/.yurteg/settings.json`, содержащим старые значения (например, `"active_provider": "local"` из предыдущих версий, или опечатку) — не смогут запустить приложение. Crash при старте, непонятная ошибка.
 
-Additionally, AG Grid styles live completely outside NiceGUI's `@layer` system — they're injected by AG Grid's own JS bundle. So `@layer components { .ag-row { ... } }` has no effect on AG Grid's internal cascade.
+**Why it happens:**
+Разработчик добавляет валидацию для «защиты от дурака», не думая о forward/backward compatibility. Фокус на новом коде, а не на существующих данных пользователей.
 
 **How to avoid:**
-- Write all AG Grid CSS outside any `@layer` (in `design-system.css`) with `.ag-theme-alpine` prefix
-- Use `!important` only where AG Grid's bundled CSS uses `!important` internally (row hover backgrounds, focus rings)
-- Check which theme is active: `ui.aggrid` in NiceGUI 3.x defaults to `ag-theme-quartz` — verify with DevTools
-- CSS custom properties (`--ag-*`) are the official way to restyle AG Grid without specificity fights:
-
-```css
-.ag-theme-quartz {
-  --ag-header-background-color: #f8fafc;
-  --ag-odd-row-background-color: transparent;
-  --ag-row-hover-color: #f1f5f9;
-  --ag-border-color: #e2e8f0;
-  --ag-font-family: 'IBM Plex Sans', sans-serif;
-  --ag-font-size: 13px;
-}
+`__post_init__()` должен **исправлять** невалидные значения, не падать:
+```python
+def __post_init__(self):
+    _VALID_PROVIDERS = {"zai", "openrouter", "ollama"}
+    if self.active_provider not in _VALID_PROVIDERS:
+        logger.warning("Неизвестный провайдер %r, использую ollama", self.active_provider)
+        self.active_provider = "ollama"
+    if self.llama_server_port <= 0 or self.llama_server_port > 65535:
+        logger.warning("Неверный порт %d, использую 8080", self.llama_server_port)
+        self.llama_server_port = 8080
 ```
+`raise` только для критических несовместимостей, которые невозможно исправить автоматически.
 
 **Warning signs:**
-- AG Grid CSS changes seemingly random — sometimes works, sometimes doesn't
-- Styles apply in browser DevTools when typed manually but don't apply from stylesheet
-- Row hover color different from rest of grid theme
+- `Config(active_provider="legacy_value")` поднимает `ValueError` в тесте
+- Приложение не стартует после обновления у пользователя с кастомным settings.json
 
-**Phase to address:** Phase 3 (Registry visual rework) — AG Grid is the core component here.
+**Phase to address:**
+Config hardening phase.
 
 ---
 
-### Pitfall 4: Dark Mode Tailwind Classes Break in Specific Component Trees
+### Pitfall 6: `active_model` property хардкодит `"glm-4.7"` независимо от провайдера
 
 **What goes wrong:**
-This project uses `dark=False` (light mode only), but Quasar's `body--dark` class can be toggled accidentally or bleed from OS-level dark mode detection. When this happens, Tailwind `dark:` variant classes activate while your custom Tailwind light-mode classes remain — producing a half-dark, half-light visual state with broken colors.
-
-More specifically: since NiceGUI 2.0, there is a verified race condition (Issue #3753) where Tailwind dynamic styles don't populate into the `<style>` tag before elements render. Classes are present in the DOM but their CSS rules are missing from the stylesheet. The symptom is that `w-1/2` or `bg-slate-50` classes appear on elements but have no visual effect.
+```python
+@property
+def active_model(self) -> str:
+    return "glm-4.7"  # всегда
+```
+`OllamaProvider.complete()` использует `model="local"` напрямую, игнорируя `config.active_model`. Это значит что `model_used` в логах и БД будет `"glm-4.7"` для документов, обработанных локальной моделью. Если хардинг добавляет логику через `active_model` (например, выбор параметров запроса) — она будет работать неверно для ollama.
 
 **Why it happens:**
-NiceGUI renders the initial DOM before Tailwind's JIT engine has finished scanning for class names and emitting CSS rules. With `dark=False` set at `ui.run()` level, the risk is lower but not zero — especially when Quasar's storage-persisted dark mode setting conflicts with the hardcoded `dark=False`.
+Property добавлялся как placeholder. Разработчик не отследил что `OllamaProvider` его не использует.
 
 **How to avoid:**
-1. Keep `dark=False` at `ui.run()` AND also call `ui.dark_mode(value=False)` inside the `@ui.page('/')` function (belt-and-suspenders). Already done in v0.6, keep it.
-2. For new design-system CSS: prefer inline `style=` attributes or `.classes()` with Tailwind for layout-critical properties (width, height, flex). These are applied synchronously.
-3. Avoid `dark:` Tailwind variant classes entirely — this is a light-mode-only product.
-4. If a Tailwind class seems to have no effect: add a one-off `style="background: red"` inline to confirm the element is being targeted, then diagnose why the class isn't emitting.
+Исправить property на основе `active_provider`:
+```python
+@property
+def active_model(self) -> str:
+    if self.active_provider == "ollama":
+        return "local"
+    elif self.active_provider == "openrouter":
+        return self.model_fallback
+    return "glm-4.7"
+```
+После исправления — проверить `model_used` в `save_result()`, он должен отражать реальную модель.
 
 **Warning signs:**
-- Colors correct in one run, wrong in another (non-deterministic)
-- `asyncio.sleep()` workarounds making CSS "work"
-- DevTools shows class name on element but no matching CSS rule in Styles panel
+- `model_used = "glm-4.7"` в БД для контракта, обработанного ollama
+- `config.active_model` возвращает `"glm-4.7"` когда `active_provider == "ollama"`
 
-**Phase to address:** Phase 1 (Design system) — establish the "no dark: variants" rule upfront.
+**Phase to address:**
+Config hardening phase (active_model fix).
 
 ---
 
-### Pitfall 5: FullCalendar Styles Bleed Into the Rest of the App
+### Pitfall 7: Добавление `get_logprobs` как `abstractmethod` ломает ZAI и OpenRouter провайдеры
 
 **What goes wrong:**
-FullCalendar's CDN bundle injects its own CSS globally. Generic selectors like `.fc button`, `.fc table`, `.fc td` can conflict with Tailwind's base reset or your custom CSS if class names overlap. More critically: FullCalendar's theme relies on CSS custom properties (`--fc-*`) which can be overridden by `body` or `:root` level CSS variables you add to the design system.
+`ai_extractor.py` проверяет `if not hasattr(provider, "get_logprobs")` — workaround, потому что метод есть только у `OllamaProvider`. Если при хардинге добавить `get_logprobs` как `@abstractmethod` в `LLMProvider` base class — `ZaiProvider` и `OpenrouterProvider` упадут с `TypeError: Can't instantiate abstract class` при старте.
+
+Обратный сценарий: убрать `hasattr` без добавления метода в base class → `AttributeError` для non-ollama провайдеров в runtime.
 
 **Why it happens:**
-FullCalendar is loaded via `<script>` tag injected by NiceGUI (lazy-loaded in the current codebase on first calendar toggle). Its CSS is not scoped — it targets generic element selectors with `.fc` parent scope. Any CSS custom property you define on `:root` that shares a name pattern with `--fc-*` variables can accidentally override calendar behavior.
+Метод добавлялся как расширение одного провайдера, не как часть контракта. hasattr — быстрый workaround, который работает пока.
 
 **How to avoid:**
-- Always scope FullCalendar overrides to `.fc { ... }` — already done in `design-system.css`
-- When adding CSS variables for the design system, use a project-specific prefix: `--yt-*` (юртэг) instead of bare `--color-*` or `--spacing-*`
-- After any CSS variable addition, visually check the calendar view in the app — it's the most fragile integration
-- Keep FullCalendar CSS overrides in a dedicated `/* FullCalendar theme overrides */` block at the bottom of `design-system.css` — already done, maintain this discipline
+Добавить `get_logprobs` в базовый класс как **non-abstract** метод с default implementation:
+```python
+def get_logprobs(self, messages: list[dict], fields_to_check: list[str]) -> dict[str, float]:
+    """Logprobs не поддерживаются этим провайдером. Override в OllamaProvider."""
+    return {}
+```
+Тогда `hasattr` можно убрать — все провайдеры имеют метод. `OllamaProvider` переопределяет его реальной логикой.
 
 **Warning signs:**
-- Calendar toolbar buttons lose styling after design-system changes
-- Calendar day cells get unexpected backgrounds
-- `.fc-button-primary` color reverts to FullCalendar blue after you change indigo palette
+- `AttributeError: 'ZaiProvider' object has no attribute 'get_logprobs'` в runtime
+- `TypeError: Can't instantiate abstract class ZaiProvider` после добавления abstractmethod
+- Тест `test_providers.py` падает при создании ZAI/OpenRouter provider
 
-**Phase to address:** Phase 5 (Cross-cutting polish) — CSS variable additions happen here and need calendar smoke-test.
+**Phase to address:**
+Provider cleanup phase (get_logprobs контракт в base class).
 
 ---
 
-### Pitfall 6: Breaking Functional Code by Changing Classes That Drive JS Logic
+### Pitfall 8: Timeout для ollama — слишком короткий read timeout переключает на fallback
 
 **What goes wrong:**
-Renaming or removing Tailwind/custom CSS classes from Python components breaks JavaScript cell renderers and event handlers in AG Grid that target those class names. In this codebase: `actions-cell`, `action-icon`, `expand-icon`, and `status-*` classes are referenced directly in the `STATUS_CELL_RENDERER`, `_ACTIONS_CELL_RENDERER`, and `_EXPAND_CELL_RENDERER` JS strings in `registry_table.py`. Remove or rename any of these and the AG Grid interactivity silently breaks.
+Если добавить `timeout=30` к `self._client.chat.completions.create(...)` (как для облачных провайдеров), то при холодном старте llama-server или первом inference на CPU — запрос упадёт с `openai.APITimeoutError`. Retry логика в `ai_extractor.py` поймает это как ошибку провайдера и переключится на ZAI fallback, тратя API кредиты. llama-server при этом работает нормально, просто медленно.
+
+Реальное время inference QWEN 1.5B: ~2-5 сек на M1, ~15-30 сек на CPU Intel, до 60 сек на первый запрос после cold start.
 
 **Why it happens:**
-In NiceGUI, Python generates both HTML structure and the JS string literals injected into AG Grid cellRenderers. These JS strings use `className` assignments that reference CSS class names. There is no type-checking or IDE warning if a class name drifts between the Python/CSS and the JS string.
+Timeout 30 сек разумен для облачных API. Разработчик применяет одну константу ко всем провайдерам.
 
 **How to avoid:**
-- Before renaming any CSS class in `design-system.css` or `styles.py`: grep the entire `app/` directory for that class name string
-- Classes that must be treated as a stable API (do not rename without finding all usages):
-  - `actions-cell` — `.ag-row:hover .actions-cell` in CSS + JS cellRenderer
-  - `action-icon` — JS cellRenderer + CSS
-  - `expand-icon` — JS cellRenderer + CSS
-  - `status-active`, `status-expiring`, `status-expired`, `status-unknown`, `status-terminated`, `status-extended`, `status-negotiation`, `status-suspended` — used in AG Grid JS AND defined via `@layer components` Tailwind block in `main.py`
-- During visual overhaul: add new classes for new visual treatments, never mutate existing functional class names
+Разделить timeout для ollama:
+```python
+# В OllamaProvider.__init__
+from openai import OpenAI
+import httpx
+
+self._client = OpenAI(
+    base_url=base_url,
+    api_key="not-needed",
+    timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=5.0),
+)
+```
+Для ZAI/OpenRouter — стандартный `timeout=30` достаточен.
 
 **Warning signs:**
-- AG Grid action column (⋯) disappears or stops responding to hover
-- Status badges revert to plain text after CSS changes
-- Expand/collapse arrows (▶/▼) in version rows stop working
+- `openai.APITimeoutError` в логах при первом документе после запуска llama-server
+- Приложение переключается на ZAI хотя ollama работает (проверить через `ollama list`)
+- Тест мокирует задержку 5 сек и видит timeout
 
-**Phase to address:** Phase 3 (Registry) — highest risk. Establish "functional class freeze" rule before editing anything in `registry_table.py`.
+**Phase to address:**
+Provider cleanup phase (timeout).
 
 ---
 
-### Pitfall 7: Staggered Row Animation Doubles on Grid Refresh
+### Pitfall 9: Замена bare `except` на конкретные исключения ломает тесты с `pytest.raises(RuntimeError)`
 
 **What goes wrong:**
-The `.ag-row:nth-child()` stagger animation defined in `design-system.css` triggers on every AG Grid `grid.update()` call. In a heavy visual overhaul where design tokens change spacing, fonts, or colors, the grid may refresh multiple times (initial load, data update, column resize). Each refresh re-fires the animation, causing a distracting flash-and-stagger loop visible to the user.
+Если тест делает `with pytest.raises(RuntimeError)` и при хардинге bare except заменяется на `except openai.APIConnectionError` без wrap — тест начинает падать с `DID NOT RAISE`. Или наоборот: `openai.APIConnectionError` является подклассом `Exception`, тест с `pytest.raises(Exception)` проходит, но код, ожидающий `RuntimeError` в вызывающем коде, получает неожиданный тип.
+
+Конкретный риск: `test_providers.py` и `test_ai_extractor_wiring.py` — проверить через `grep -n "pytest.raises" tests/test_providers.py tests/test_ai_extractor_wiring.py`.
 
 **Why it happens:**
-CSS `animation` on `.ag-row` is re-triggered whenever AG Grid re-renders the row DOM (which happens on any `grid.options["rowData"] = ...; grid.update()` call). The animation has no `animation-fill-mode: none` guard and is applied unconditionally via a tag selector.
+Тесты написаны под старое поведение. При изменении контракта исключений тесты не обновляются — они просто падают с неочевидным сообщением.
 
 **How to avoid:**
-- Cap total animation duration: current implementation has `animation-delay` up to 640ms for rows 9+. With large datasets, this means the last row animates 640ms after load — acceptable for first load but jarring for rapid refreshes
-- Consider adding a CSS class guard: only apply the animation when a special `.animate-initial` class is present on the grid wrapper, and remove it after first load
-- After design-system changes: test grid with 50+ rows and trigger a filter change to verify animation doesn't double-fire
-- If animateRows causes performance issues on macOS native (pywebview/WebKit): set `animateRows: false` in AG Grid options as a fallback
+При замене bare except использовать **wrap pattern** — сохраняет контракт исключений:
+```python
+# Было:
+try:
+    response = self._client.chat.completions.create(...)
+except Exception as e:
+    raise RuntimeError(f"Provider error: {e}") from e
+
+# Стало (конкретное + wrap):
+try:
+    response = self._client.chat.completions.create(...)
+except openai.APIConnectionError as e:
+    raise RuntimeError(f"Нет связи с провайдером: {e}") from e
+except openai.APITimeoutError as e:
+    raise RuntimeError(f"Таймаут провайдера: {e}") from e
+```
+Тесты с `pytest.raises(RuntimeError)` продолжают работать. При необходимости добавить тест на конкретный тип.
 
 **Warning signs:**
-- Rows flash/blink when switching filter segments (Все / Истекают / Внимание)
-- Animation plays during search input typing
-- Performance degradation with 200+ rows on macOS (pywebview uses WebKit which is less GPU-optimized than Chrome)
+- `grep -r "pytest.raises(RuntimeError)" tests/` показывает тесты в provider/extractor тестах
+- После изменения error handling тест падает с `DID NOT RAISE` или с `raises unexpected <type>`
+- `test_providers.py` проходил ДО, падает ПОСЛЕ изменения
 
-**Phase to address:** Phase 3 (Registry) — animation is part of registry. Phase 5 (Polish) — performance pass.
+**Phase to address:**
+Error handling phase + test coverage phase (запускать tests после каждого изменения).
 
 ---
 
-### Pitfall 8: NiceGUI Default Padding Variables Override Tailwind Spacing Classes
+### Pitfall 10: Concurrent тесты загрязняют друг друга через глобальный embedding singleton
 
 **What goes wrong:**
-NiceGUI defines `--nicegui-default-padding` and `--nicegui-default-gap` CSS variables applied to `.nicegui-content`, `.nicegui-card`, `.nicegui-row`, `.nicegui-column`. These override Tailwind padding classes (`p-4`, `px-6`, etc.) when the Tailwind class loads into a lower-priority `@layer`. The result: you set `p-6` on a card, it visually shows the NiceGUI default padding instead.
+`version_service.py` содержит глобальный singleton:
+```python
+_model = None
+_model_lock = threading.Lock()
+```
+Он инициализируется лениво при первом вызове `get_embedding_model()` и **не сбрасывается** между тестами. Если один тест делает monkeypatch на `SentenceTransformer` или на `_model` — следующий тест в том же процессе получит или мок-объект, или реальную модель в зависимости от порядка запуска.
+
+Симптом: тест проходит при `pytest tests/test_versioning.py`, падает при `pytest` (полный suite).
 
 **Why it happens:**
-NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility classes are in the `utilities` layer. The interaction between these two layers can produce unexpected results depending on exactly how NiceGUI's framework CSS is ordered relative to your additions. Confirmed in Issue #5408 where Quasar's `q-pa-xs` was silently overridden by `.nicegui-header { padding: var(--nicegui-default-padding) }`.
+Глобальное состояние модуля не сбрасывается автоматически между тестами. `importlib.reload()` помогает, но требует явной фикстуры.
 
 **How to avoid:**
-- Override NiceGUI spacing variables at the `:root` level when needed:
-  ```css
-  :root {
-    --nicegui-default-padding: 0;
-    --nicegui-default-gap: 0;
-  }
-  ```
-- Or use `.classes('nicegui-card-tight')` to zero out padding before adding custom spacing
-- When adding spacing to design system cards/containers, test visually with DevTools rather than assuming the Tailwind class wins
-- Prefer inline `.style('padding: 20px')` on critical layout elements if Tailwind class is unreliable
+Добавить autouse фикстуру в `conftest.py`:
+```python
+@pytest.fixture(autouse=True)
+def reset_embedding_singleton(monkeypatch):
+    import services.version_service as vs
+    monkeypatch.setattr(vs, "_model", None)
+    yield
+    monkeypatch.setattr(vs, "_model", None)
+```
+Для thread safety тестов: использовать `threading.Barrier` для детерминированного старта потоков, иначе гонка может не воспроизводиться.
 
 **Warning signs:**
-- Padding looks wrong even though correct Tailwind class is in DevTools DOM
-- Spacing inconsistency between different card components using the same Tailwind class
-- DevTools shows correct class but `Computed` tab shows a different padding value (from CSS variable)
+- Тест падает только при запуске всего suite, но проходит в изоляции
+- `get_embedding_model()` возвращает mock из предыдущего теста
+- `AttributeError` на mock-объекте в тесте, который вообще не мокирует embedding
 
-**Phase to address:** Phase 1 (Design system foundation) — set variable overrides at root level from the start.
+**Phase to address:**
+Test coverage phase (test isolation).
 
 ---
 
@@ -254,12 +356,12 @@ NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility class
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Hardcode hex colors inline instead of design tokens | Fast iteration | Colors drift, impossible to theme consistently | Never — defeats the point of a design system |
-| Use `!important` to "fix" a CSS specificity issue | Solves the immediate problem | Creates !important chains, makes future overrides impossible | Only as last resort for AG Grid internal overrides |
-| Rename functional CSS classes (actions-cell etc.) without grep | Cleaner naming | Silently breaks AG Grid JS renderers | Never |
-| Add CSS outside `@layer` | Simpler code | Silently loses to Quasar/NiceGUI layered CSS | Never in NiceGUI 3.x |
-| Use Quasar color props (`color=primary`) instead of Tailwind classes | Less verbose | Cannot be overridden without !important war | Only for elements you'll never need to restyle |
-| Inline all styles instead of CSS file | Always works, no layer confusion | 2800 LOC of app code gets polluted with style strings | Only for truly one-off critical elements |
+| `except Exception: pass` в миграциях для идемпотентности | Миграции не падают повторно | Скрывает реальные ошибки (диск полон, права, corrupt БД) | Только для `sqlite3.OperationalError` — нужно ловить только его |
+| `check_same_thread=False` без WAL | Один connection на всё приложение | Требует явного lock на каждой операции; пропуск = гонка | Приемлемо при строгой lock-дисциплине |
+| `hasattr(provider, "get_logprobs")` | Не трогать ZAI/OpenRouter | Хрупко при рефакторинге провайдеров | Временно — нужен default в базовом классе |
+| Глобальный `_model` singleton | Однократная загрузка модели (5-10 сек) | Тесты загрязняют друг друга без reset-фикстуры | В production приемлемо, в тестах — только с autouse фикстурой |
+| `active_model` возвращает хардкод | Быстро написать | Логи и БД врут о реальной модели | Never — нужно исправить |
+| Timeout одинаковый для всех провайдеров | Простой код | ollama на CPU переключается на fallback при нормальной работе | Never для production |
 
 ---
 
@@ -267,14 +369,12 @@ NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility class
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| AG Grid | Writing CSS without `.ag-theme-quartz` prefix | Always scope: `.ag-theme-quartz .ag-row { ... }` |
-| AG Grid | Using Tailwind classes in cellRenderer JS strings | Use plain CSS classes defined outside @layer, or inline `style=""` in the JS string |
-| AG Grid | Setting `domLayout: autoHeight` for variable-height grid | Use `domLayout: normal` + `paginationAutoPageSize` — already fixed in v0.6, don't revert |
-| FullCalendar | Modifying `:root` CSS variables with names conflicting with `--fc-*` | Use `--yt-` prefix for all project-level CSS variables |
-| FullCalendar | Eager loading CDN script | Already lazy-loaded on calendar toggle — do not change to eager without measuring startup time |
-| Quasar buttons | Using `.props('color=indigo-600')` | Use `.classes('bg-indigo-600 text-white')` — Tailwind class is overridable, Quasar prop is not |
-| NiceGUI header | Adding custom `ui.header()` styles | Styles must be in `@layer components` or NiceGUI's default header padding overrides them |
-| pywebview / native | Testing only in browser, not native window | Always do final visual check in native mode — fonts, shadows, backdrop-filter may render differently in WebKit vs. Chrome |
+| llama-server + openai SDK | `timeout=30` как для облака | `httpx.Timeout(connect=10, read=120)` — inference на CPU медленный |
+| SQLite + threading | `with db._lock` в сервисе внутри уже залоченного метода | Заменить `Lock()` → `RLock()` в `Database.__init__` |
+| pytest + глобальный singleton | Тест меняет `_model`, следующий получает грязное состояние | `monkeypatch.setattr(module, "_model", None)` в autouse-фикстуре |
+| `Config.__post_init__` + `settings.json` | `raise ValueError` на невалидных полях | `logger.warning + fallback` к дефолту |
+| SQLite `ALTER TABLE` в миграциях | `ALTER TABLE` внутри транзакции → OperationalError | В SQLite `ALTER TABLE` нельзя в явной транзакции — уже решено через отдельные `conn.execute()` без `BEGIN` |
+| openai SDK + bare `except Exception` | Замена на конкретные ломает тесты | Wrap pattern: `except SpecificError as e: raise RuntimeError(...) from e` |
 
 ---
 
@@ -282,36 +382,30 @@ NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility class
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| CSS `animation` on `.ag-row` firing on every grid.update() | Row flash on filter/search change | Add class guard or use `animation-play-state` | Any grid refresh — low threshold |
-| `box-shadow` + `transform` on every card on hover | Jank on hover in grids with 50+ cards | Use `will-change: transform` on template cards, not globally | 20+ animated elements simultaneously |
-| Google Fonts CDN load on startup | 200-400ms delay before IBM Plex Sans renders (FOUT) | Already preconnect-loaded in main.py — don't move or reorder the link tag | Every startup if link tag order changes |
-| `backdrop-filter: blur()` in native pywebview/WebKit | Significant CPU spike on macOS | Avoid backdrop-filter entirely — WebKit on macOS is not GPU-accelerated the same as Chrome | Immediately on any blur usage |
-| Heavy `@keyframes` animation on page-level containers | Stuttering on slow machines | Test on lowest-spec target machine; keep `page-fade-in` under 200ms | Low-end hardware |
+| `get_all_results()` без lock — dirty read | `OperationalError: database is locked` в логах | WAL mode или lock на чтение | При параллельной обработке 10+ файлов |
+| Embedding модель загружается в UI потоке | Freeze интерфейса 2-10 сек | Вызывать только из pipeline потоков, не из UI callback | При первом открытии карточки с версионированием |
+| Backup при каждом апгрейде большой БД | Старт занимает несколько секунд (копирование файла) | Backup только при первом апгрейде — уже реализовано, не ломать | При БД > 100MB |
 
 ---
 
-## UX Pitfalls
+## Security Mistakes
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Removing padding from AG Grid rows during visual overhaul | Rows become too dense, content truncates | Increase `--ag-row-height` via CSS variable instead of removing padding |
-| Making header visually heavier (taller, more elements) | Reduces vertical space for the registry table — core of the app | Keep header at 48px (h-12) — any increase must be deliberate and tested with full registry visible |
-| Adding decorative animations to functional status badges | Distracts from status reading during rapid scanning | Status badge `badge-in` animation already exists; don't add persistent pulse/glow to status badges |
-| Hiding AG Grid floating filters during redesign | Users lose column-level filter capability they may rely on | Keep `floatingFilter: True` on contract_type and counterparty columns |
-| Using low-contrast accent colors to look "subtle" | Юрист пропустит срочный статус (expired/expiring) | Status color contrast must meet WCAG AA minimum even if overall palette is muted |
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| API ключи в `settings.json` plaintext | При синхронизации папки в облако — утечка | Для desktop app приемлемо, достаточно предупреждения в UI |
+| `f"ALTER TABLE contracts ADD COLUMN {col}"` | SQL injection | Приемлемо — `col` это константа в коде, не user input |
 
 ---
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Splash hero section:** Check that the CTA button routes correctly to wizard flow — visual change may accidentally remove the `on_click` handler if the button is rebuilt from scratch
-- [ ] **AG Grid after theme rework:** Test all 8 status badges render correctly (active/expiring/expired/unknown/terminated/extended/negotiation/suspended) — `status-*` classes must remain in `@layer components` block in `main.py`
-- [ ] **Header CTA button:** Confirm `+ Загрузить документы` still triggers `pick_folder()` after header is rebuilt — structural changes to `render_header()` can lose the callback binding
-- [ ] **Settings page:** Verify provider radio buttons still save to config correctly after visual sectioning — visual refactors often re-wrap inputs in new containers that break `bind_value` targets
-- [ ] **FullCalendar after palette change:** Open calendar view and verify events still render with correct colors — `--fc-button-bg-color` and `--fc-event-bg-color` may need manual sync with new palette
-- [ ] **Document card breadcrumbs:** After typography overhaul, confirm breadcrumb nav links still fire `ui.navigate.to()` correctly — don't confuse `.classes()` changes with `.props()` or event handler changes
-- [ ] **Animations under reduced-motion:** macOS Accessibility setting "Reduce Motion" must suppress all animations — `@media (prefers-reduced-motion: reduce)` block already exists in `design-system.css`, keep it intact after adding new animations
-- [ ] **Template card CRUD:** After visual card rebuild, confirm Delete/Edit dialogs still open correctly — `.on('click')` handlers on card children can be swallowed by parent click events if event propagation changes
+- [ ] **Миграция v10:** `ALTER TABLE` добавлен И `save_result()` обновлён И `ON CONFLICT DO UPDATE` обновлён — проверить `grep "contract_number" modules/database.py` показывает все три места
+- [ ] **Thread safety read-методов:** `get_all_results()`, `get_stats()`, `is_processed()` имеют `with self._lock` — проверить `grep "def get_\|def is_" modules/database.py`
+- [ ] **Config валидация:** `Config(active_provider="old_unknown_value")` — не поднимает исключений, возвращает `active_provider == "ollama"`
+- [ ] **get_logprobs в base class:** `ZaiProvider().get_logprobs([], [])` — возвращает `{}`, не `AttributeError`
+- [ ] **active_model fix:** `Config(active_provider="ollama").active_model` — не возвращает `"glm-4.7"`
+- [ ] **Timeout разделён:** `OllamaProvider` использует `httpx.Timeout(read=120)`, облачные провайдеры — `timeout=30`
+- [ ] **Test isolation:** все тесты проходят при `pytest --randomly-seed=12345` (рандомный порядок) — проверяет отсутствие зависимости от порядка
 
 ---
 
@@ -319,13 +413,12 @@ NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility class
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| CSS silently not applying (layer issue) | LOW | Wrap offending CSS in `@layer components { }`, clear browser cache in pywebview |
-| Quasar !important war | MEDIUM | Switch component from Quasar prop-based color to Tailwind class; remove !important from both sides |
-| Functional class renamed, AG Grid JS broken | MEDIUM | Restore old class name in CSS + JS cellRenderer string simultaneously; grep for all usages first |
-| FullCalendar broken after CSS variable addition | LOW | Rename CSS variable to use `--yt-` prefix; smoke-test calendar after every `:root` variable change |
-| Animation double-fire on grid refresh | LOW | Add `animation: none` override scoped to a `.loaded` class; apply class after first data load |
-| NiceGUI default padding overriding Tailwind | LOW | Add `--nicegui-default-padding: 0` to `:root` at top of design-system.css |
-| Breaking splash/onboarding flow during visual rebuild | HIGH | Keep functional logic separate: rebuild visual wrapper, preserve all event handlers and callbacks; test first-run flow end-to-end after each phase |
+| Deadlock от вложенных locks | HIGH (зависание без ошибки) | Переключить `Lock` → `RLock` в `Database.__init__`, перезапустить |
+| Миграция v10 не обновила INSERT | MEDIUM | Написать fix-миграцию v10b для backfill из AI re-parse; или принять потерю contract_number в уже обработанных записях |
+| settings.json повреждён гонкой | LOW | Удалить `~/.yurteg/settings.json` — приложение создаст дефолтный; пользователь вводит настройки заново |
+| Тесты сломаны из-за изменения контракта исключений | LOW | Обновить тесты: `pytest.raises(RuntimeError)` или применить wrap pattern в провайдерах |
+| Timeout слишком короткий для ollama | LOW | Увеличить `read` timeout в конфиге OllamaProvider + добавить прогресс-индикатор |
+| Глобальный singleton загрязняет тесты | LOW | Добавить autouse фикстуру в conftest.py + перезапустить suite |
 
 ---
 
@@ -333,31 +426,28 @@ NiceGUI's CSS variable rules are inside a specific layer. Tailwind utility class
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| CSS @layer ignored (Pitfall 1) | Phase 1: Design system foundation | Every CSS rule in new design system must be in `@layer components` or `@layer overrides` |
-| Quasar !important pollution (Pitfall 2) | Phase 1: Design system / Phase 2: Header | Audit `styles.py` tokens; replace any Quasar props with Tailwind classes before building new components |
-| AG Grid theme scoping (Pitfall 3) | Phase 3: Registry visual rework | AG Grid DevTools inspection — confirm `.ag-theme-quartz` prefix on all AG Grid CSS |
-| Dark mode race condition (Pitfall 4) | Phase 1: Design system | Establish "no dark: variants" rule; confirm `ui.dark_mode(value=False)` persists |
-| FullCalendar CSS bleed (Pitfall 5) | Phase 5: Cross-cutting polish | Visual smoke-test of calendar view after every `:root` CSS variable addition |
-| Functional class breakage (Pitfall 6) | Phase 3: Registry | Grep `app/` for class name before any rename; test AG Grid actions and status badges after every change |
-| Animation double-fire (Pitfall 7) | Phase 3: Registry / Phase 5: Polish | Trigger filter segment switch and search while watching for animation replay |
-| NiceGUI padding variable override (Pitfall 8) | Phase 1: Design system | Set `--nicegui-default-padding: 0` at `:root` at the start of design-system.css |
+| Вложенный lock → deadlock | Thread safety: database.py locks | Тест: два потока параллельно вызывают `save_result` + `find_version_match` — не зависает |
+| `get_all_results` без lock | Thread safety: read-методы | Тест: concurrent reads во время write — нет `OperationalError` |
+| Миграция v10 неполная | Data integrity: contract_number | Тест пишет запись с contract_number, читает обратно — не None |
+| save_setting гонка | Data integrity: атомарная запись | Тест: два потока пишут разные ключи — оба ключа в файле |
+| `__post_init__` ломает старый settings.json | Config hardening | `Config(active_provider="deprecated")` — не поднимает исключений |
+| active_model hardcode | Config hardening | `Config(active_provider="ollama").active_model != "glm-4.7"` |
+| get_logprobs не в base class | Provider cleanup | `ZaiProvider().get_logprobs([], []) == {}` |
+| Timeout ломает ollama fallback | Provider cleanup: timeout | Тест с mock задержкой 5 сек — fallback не срабатывает |
+| Test isolation через singleton | Test coverage | `pytest --randomly-seed=999` — все тесты зелёные |
+| Исключения меняются → тесты ломаются | Error handling + test coverage | Запускать полный suite после каждого изменения error handling |
 
 ---
 
 ## Sources
 
-- [Dark mode breaks Tailwind styling since NiceGUI 2.0 — Issue #3753](https://github.com/zauberzeug/nicegui/issues/3753)
-- [NiceGUI v3 CSS customization broken — Discussion #5240](https://github.com/zauberzeug/nicegui/discussions/5240)
-- [NiceGUI v3.0.0 Release Notes — CSS layers breaking change](https://github.com/zauberzeug/nicegui/releases/tag/v3.0.0)
-- [Quasar color palette !important pollution — Issue #4415](https://github.com/zauberzeug/nicegui/issues/4415)
-- [Quasar padding classes ignored — Issue #5408](https://github.com/zauberzeug/nicegui/issues/5408)
-- [AG Grid styling with CSS properties — Issue #4743](https://github.com/zauberzeug/nicegui/issues/4743)
-- [AG Grid dark theme in NiceGUI — Discussion #3611](https://github.com/zauberzeug/nicegui/discussions/3611)
-- [AG Grid performance in Electron/desktop — Medium](https://medium.com/swlh/ag-grid-performance-optimization-memory-usage-and-speed-slowness-considerations-for-enterprise-72b4b5e9e64d)
-- [NiceGUI styling methods overview — Discussion #1806](https://github.com/zauberzeug/nicegui/discussions/1806)
-- [NiceGUI Styling and Theming — DeepWiki](https://deepwiki.com/zauberzeug/nicegui/7.2-styling-and-theming)
-- [NiceGUI warning on classes being lost — Discussion #3204](https://github.com/zauberzeug/nicegui/discussions/3204)
+- Прямая инспекция кодовой базы: `modules/database.py`, `config.py`, `services/lifecycle_service.py`, `services/version_service.py`, `providers/ollama.py`, `providers/base.py`
+- Существующие тесты: `tests/test_lifecycle.py`, `tests/test_migrations.py`, `tests/test_providers.py`
+- Python threading docs: `threading.Lock` vs `threading.RLock` (реентрантность) — HIGH confidence
+- SQLite docs: WAL mode, `check_same_thread`, `journal_mode=DELETE` поведение при concurrent access — HIGH confidence
+- openai-python SDK: `httpx.Timeout` для разделения connect/read timeout — HIGH confidence
+- pytest docs: `monkeypatch.setattr`, `autouse` фикстуры для изоляции глобального состояния — HIGH confidence
 
 ---
-*Pitfalls research for: NiceGUI 3.x visual overhaul — ЮрТэг v0.7*
-*Researched: 2026-03-22*
+*Pitfalls research for: backend hardening — Python desktop app (NiceGUI + SQLite + llama-server)*
+*Researched: 2026-03-28*
