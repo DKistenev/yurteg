@@ -23,23 +23,22 @@ from nicegui import run, ui
 from app.components.header import _header_refs
 from app.components.process import start_pipeline
 from app.demo_data import insert_demo_contracts
-from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, STATS_BAR, STATS_ITEM, STAT_NUMBER, STAT_LABEL, BTN_ACCENT_FILLED
+from app.styles import SEG_ACTIVE, SEG_INACTIVE, TOGGLE_ACTIVE, TOGGLE_INACTIVE, BTN_ACCENT_FILLED
 from app.components.registry_table import (
     load_table_data,
     load_version_children,
     render_registry_table,
     _client_manager,
     _collapse_version_children,
-    _fetch_counts,
 )
 from app.components.split_panel import render_split_panel
 from app.components.bulk_actions import (
     render_bulk_toolbar,
-    show_bulk_status_dialog, show_bulk_delete_dialog,
+    show_bulk_delete_dialog,
 )
 from app.state import get_state
 from config import load_settings, save_setting
-from services.lifecycle_service import MANUAL_STATUSES, STATUS_LABELS, set_manual_status, get_attention_required
+from services.lifecycle_service import get_attention_required
 from services.payment_service import get_calendar_events
 
 logger = logging.getLogger(__name__)
@@ -255,13 +254,10 @@ def _inject_hover_preview(grid) -> None:
 
         var STATUS_MAP = {{
             'active':      ['\\u2714', 'Действует',       '#dcfce7', '#166534'],
-            'expiring':    ['\\u26a0', 'Скоро истекает',   '#fef9c3', '#854d0e'],
-            'expired':     ['\\u2718', 'Истёк',            '#fee2e2', '#991b1b'],
-            'unknown':     ['',  'Нет даты',         '#f1f5f9', '#475569'],
-            'terminated':  ['',  'Расторгнут',       '#f1f5f9', '#475569'],
-            'extended':    ['\\u21bb', 'Продлён',          '#dbeafe', '#1e40af'],
-            'negotiation': ['',  'На согласовании',  '#faf5ff', '#6b21a8'],
-            'suspended':   ['\\u23f8', 'Приостановлен',    '#f1f5f9', '#475569']
+            'expiring':    ['\\u26a0', 'Заканчивается',   '#fef9c3', '#854d0e'],
+            'expired':     ['\\u2718', 'Закончился',      '#fee2e2', '#991b1b'],
+            'unknown':     ['',  'Нет даты',              '#f1f5f9', '#475569'],
+            'negotiation': ['',  'На согласовании',       '#faf5ff', '#6b21a8']
         }};
 
         function formatDate(d) {{
@@ -477,23 +473,6 @@ def build() -> None:
     _timer: list = [None]
 
     with ui.column().classes("w-full max-w-none"):
-        # ── Stats bar (REGI-01) — светлый фон, не тёмная полоса ──────────────────
-        # CRITICAL: all labels created INSIDE with-block so NiceGUI places them in DOM
-        # inside the flex container, not outside it (NiceGUI DOM creation order bug)
-        with ui.row().classes(STATS_BAR + " w-full") as stats_row:
-            stats_row.props('role="region" aria-label="Статистика реестра"')
-            with ui.column().classes(STATS_ITEM + " flex-1"):
-                total_num = ui.label("—").classes(STAT_NUMBER + " text-slate-900").props('aria-label="Всего документов"')
-                ui.label("документов").classes(STAT_LABEL + " text-slate-500")
-            ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
-            with ui.column().classes(STATS_ITEM + " flex-1 cursor-pointer").on("click", lambda: _switch_segment("expiring")):
-                expiring_num = ui.label("—").classes(STAT_NUMBER + " text-amber-600").props('aria-label="Документов истекает"')
-                ui.label("истекают").classes(STAT_LABEL + " text-slate-500")
-            ui.element("div").classes("w-px h-8 bg-slate-200 self-center")
-            with ui.column().classes(STATS_ITEM + " flex-1 cursor-pointer").on("click", lambda: _switch_segment("attention")):
-                attention_num = ui.label("—").classes(STAT_NUMBER + " text-red-600").props('aria-label="Требуют внимания"')
-                ui.label("требуют внимания").classes(STAT_LABEL + " text-slate-500")
-
         # ── Trust-building banner placeholder (Phase 16) ──────────────────────────
         trust_banner_container = ui.column().classes("w-full")
         trust_banner_container.set_visibility(False)
@@ -583,33 +562,45 @@ def build() -> None:
 
     # ── Inner helpers ──────────────────────────────────────────────────────────
 
-    async def _refresh_stats() -> None:
-        """Обновляет counts в stats bar (REGI-01). Вызывается при init и после фильтрации."""
-        counts = await run.io_bound(_fetch_counts, state.current_client, state.warning_days_threshold)
-        total_num.set_text(str(counts["total"]))
-        expiring_num.set_text(str(counts["expiring"]))
-        attention_num.set_text(str(counts["attention"]))
-
     async def _refresh_deadline_widget() -> None:
         """Загружает и отображает виджет документов, требующих внимания (WIRE-03)."""
         db = _client_manager.get_db(state.current_client)
-        alerts = await run.io_bound(get_attention_required, db, state.warning_days_threshold)
+        all_alerts = await run.io_bound(get_attention_required, db, state.warning_days_threshold)
+        dismissed = set(load_settings().get("dismissed_alerts", []))
+        alerts = [a for a in all_alerts if a.contract_id not in dismissed]
         deadline_container.clear()
         if not alerts:
             deadline_container.set_visibility(False)
             return
         deadline_container.set_visibility(True)
+
+        # Split into expired vs expiring
+        expired = [a for a in alerts if a.days_until_expiry < 0]
+        expiring = [a for a in alerts if a.days_until_expiry >= 0]
+
         with deadline_container:
             with ui.element("div").style(
                 "background:white;border:1px solid #e2e8f0;border-radius:12px;"
-                "border-left:3px solid #d97706;"
-                "margin:0 24px 8px 24px;padding:12px 16px;"
+                "margin:0 24px 8px 24px;padding:14px 16px;"
                 "box-shadow:0 1px 2px rgba(0,0,0,0.04);"
             ):
                 _expanded: dict = {"v": False}
-                items_col = ui.column().classes("w-full gap-1 mt-2")
-                items_col.set_visibility(False)
                 expand_icon_ref: list = []
+
+                # Header FIRST in DOM
+                with ui.row().classes("items-center gap-2 cursor-pointer w-full") as _hdr_row:
+                    ui.icon("schedule").style("font-size:18px;color:#d97706;")
+                    ui.label(f"Требуют внимания: {len(alerts)}").style(
+                        "font-size:13px;font-weight:600;color:#92400e;"
+                    )
+                    _icon = ui.icon("expand_more").style(
+                        "color:#d97706;font-size:18px;margin-left:auto;"
+                    )
+                    expand_icon_ref.append(_icon)
+
+                # Items AFTER header
+                items_col = ui.column().classes("w-full gap-0 mt-2")
+                items_col.set_visibility(False)
 
                 def _toggle_deadline(
                     _exp: dict = _expanded,
@@ -621,37 +612,39 @@ def build() -> None:
                     if _icons:
                         _icons[0].set_name("expand_less" if _exp["v"] else "expand_more")
 
-                with ui.row().classes("items-center gap-2 cursor-pointer w-full").on(
-                    "click", lambda: _toggle_deadline()
-                ):
-                    ui.icon("schedule").style("font-size:18px;color:#d97706;")
-                    ui.label(f"Требуют внимания: {len(alerts)}").style(
-                        "font-size:13px;font-weight:600;color:#92400e;"
+                _hdr_row.on("click", lambda: _toggle_deadline())
+
+                async def _dismiss_alert(contract_id: int) -> None:
+                    """Dismiss alert by saving to dismissed list in settings."""
+                    dismissed = load_settings().get("dismissed_alerts", [])
+                    if contract_id not in dismissed:
+                        dismissed.append(contract_id)
+                        save_setting("dismissed_alerts", dismissed)
+                    await _refresh_deadline_widget()
+
+                def _render_alert_row(alert, is_last: bool) -> None:
+                    days = alert.days_until_expiry
+                    if days < 0:
+                        days_text = f"истёк {abs(days)} дн. назад"
+                        badge_bg = "#fee2e2"
+                        badge_color = "#b91c1c"
+                    else:
+                        days_text = f"через {days} дн."
+                        badge_bg = "#fef3c7"
+                        badge_color = "#a16207"
+
+                    counterparty = alert.counterparty or "\u2014"
+                    contract_type = alert.contract_type or "Документ"
+                    border_bottom = "border-bottom:1px solid #f1f5f9;" if not is_last else ""
+
+                    row_el = ui.element("div").style(
+                        f"padding:8px 12px;{border_bottom}"
+                        "display:flex;align-items:center;gap:8px;"
                     )
-                    _icon = ui.icon("expand_more").style(
-                        "color:#d97706;font-size:18px;margin-left:auto;"
-                    )
-                    expand_icon_ref.append(_icon)
-
-                with items_col:
-                    for i, alert in enumerate(alerts):
-                        days = alert.days_until_expiry
-                        if days < 0:
-                            days_text = f"истёк {abs(days)} дн. назад"
-                            badge_bg = "#fee2e2"
-                            badge_color = "#b91c1c"
-                        else:
-                            days_text = f"через {days} дн."
-                            badge_bg = "#fef3c7"
-                            badge_color = "#a16207"
-
-                        counterparty = alert.counterparty or "\u2014"
-                        contract_type = alert.contract_type or "Документ"
-                        border_bottom = "border-bottom:1px solid #f1f5f9;" if i < len(alerts) - 1 else ""
-
+                    with row_el:
                         with ui.element("div").style(
-                            f"padding:8px 12px;{border_bottom}"
-                            "display:flex;align-items:center;gap:8px;cursor:pointer;"
+                            "flex:1;overflow:hidden;cursor:pointer;"
+                            "display:flex;align-items:center;gap:8px;"
                         ).on(
                             "click",
                             lambda cid=alert.contract_id: ui.navigate.to(f"/document/{cid}"),
@@ -665,6 +658,35 @@ def build() -> None:
                                 f'background:{badge_bg};padding:2px 8px;border-radius:99px;'
                                 f'white-space:nowrap;">{days_text}</span>'
                             )
+                        ui.button(
+                            icon="close",
+                            on_click=lambda _e, cid=alert.contract_id: _dismiss_alert(cid),
+                        ).props("flat round dense size=xs").style(
+                            "color:#94a3b8;min-width:24px;min-height:24px;"
+                        ).tooltip("Скрыть")
+
+                with items_col:
+                    # Expired section (only if has items)
+                    if expired:
+                        ui.label("Просрочены").style(
+                            "font-size:10px;font-weight:600;color:#b91c1c;"
+                            "text-transform:uppercase;letter-spacing:0.05em;"
+                            "padding:6px 12px 2px;"
+                        )
+                        for i, alert in enumerate(expired):
+                            _render_alert_row(alert, is_last=(i == len(expired) - 1 and not expiring))
+
+                    # Expiring section (only if has items)
+                    if expiring:
+                        if expired:
+                            ui.element("div").style("height:8px;")
+                        ui.label("Скоро истекают").style(
+                            "font-size:10px;font-weight:600;color:#a16207;"
+                            "text-transform:uppercase;letter-spacing:0.05em;"
+                            "padding:6px 12px 2px;"
+                        )
+                        for i, alert in enumerate(expiring):
+                            _render_alert_row(alert, is_last=(i == len(expiring) - 1))
 
     def _apply_segment_classes(active_key: str) -> None:
         """Update button classes based on active segment."""
@@ -857,10 +879,10 @@ def build() -> None:
         # 7. Render UI
         calendar_container.clear()
         with calendar_container:
-            with ui.row().classes("w-full gap-4 px-6"):
+            with ui.row(wrap=False).classes("w-full gap-6"):
 
-                # LEFT: Timeline feed (~55% width)
-                with ui.column().classes("min-w-0").style("flex: 5;"):
+                # LEFT: Timeline feed (fills remaining space)
+                with ui.column().classes("min-w-0 flex-1"):
                     ui.label("Ближайшие события").style(
                         "font-size:15px; font-weight:600; color:#1e293b; margin-bottom:14px;"
                     )
@@ -947,8 +969,8 @@ def build() -> None:
                             "text-sm text-slate-400 py-8 text-center"
                         )
 
-                # RIGHT: Mini-calendar + summary (~45% width)
-                with ui.column().classes("min-w-0").style("flex: 4;"):
+                # RIGHT: Mini-calendar + summary (fixed 280px)
+                with ui.column().classes("shrink-0").style("width: 280px;"):
                     _render_mini_calendar(today, events)
 
                     with ui.element("div").classes("cal-summary"):
@@ -1059,54 +1081,9 @@ def build() -> None:
         with menu:
             # Открыть (D-13)
             ui.menu_item("Открыть", on_click=lambda: ui.navigate.to(f"/document/{contract_id}"))
-            ui.separator()
-            # Быстрая смена статуса (D-14)
-            with ui.menu_item("Изменить статус"):
-                with ui.menu():
-                    for status in sorted(MANUAL_STATUSES):
-                        label_info = STATUS_LABELS.get(status, ("", status, ""))
-                        display = f"{label_info[0]} {label_info[1]}"
-                        ui.menu_item(
-                            display,
-                            on_click=lambda s=status: _quick_status_change(contract_id, s),
-                        )
-                    ui.separator()
-                    ui.menu_item(
-                        "Сбросить ручной статус",
-                        on_click=lambda: _clear_status(contract_id),
-                    )
 
         menu.open()
 
-    async def _quick_status_change(contract_id: int, status: str) -> None:
-        """Устанавливает ручной статус и перегружает таблицу (D-14)."""
-        from nicegui import run
-        db = _client_manager.get_db(state.current_client)
-        try:
-            await run.io_bound(set_manual_status, db, contract_id, status)
-        except Exception:
-            logger.exception("Ошибка при обработке реестра: смена статуса")
-            ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
-            return
-        if grid_ref["grid"]:
-            await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        label_info = STATUS_LABELS.get(status, ("", status, ""))
-        ui.notify(f"Статус изменён: {label_info[1]}", type="positive")
-
-    async def _clear_status(contract_id: int) -> None:
-        """Сбрасывает ручной статус."""
-        from nicegui import run
-        from services.lifecycle_service import clear_manual_status
-        db = _client_manager.get_db(state.current_client)
-        try:
-            await run.io_bound(clear_manual_status, db, contract_id)
-        except Exception:
-            logger.exception("Ошибка при обработке реестра: сброс статуса")
-            ui.notify("Не удалось выполнить действие. Попробуйте ещё раз.", type="negative")
-            return
-        if grid_ref["grid"]:
-            await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        ui.notify("Статус сброшен", type="info")
 
     # ── Version expand/collapse ──────────────────────────────────────────────────
 
@@ -1138,7 +1115,7 @@ def build() -> None:
                     selected_ids=state.selected_doc_ids,
                     total_count=total,
                     on_clear=_clear_bulk_selection,
-                    on_status_change=lambda: show_bulk_status_dialog(state.selected_doc_ids, _apply_bulk_status),
+                    on_status_change=lambda: None,
                     on_delete=lambda: show_bulk_delete_dialog(state.selected_doc_ids, _delete_bulk),
                 )
 
@@ -1149,16 +1126,6 @@ def build() -> None:
         if grid_ref["grid"]:
             grid_ref["grid"].run_grid_method("deselectAll")
 
-    async def _apply_bulk_status(doc_ids, new_status):
-        db = _client_manager.get_db(state.current_client)
-        for doc_id in doc_ids:
-            await run.io_bound(set_manual_status, db, doc_id, new_status)
-        _clear_bulk_selection()
-        if grid_ref["grid"]:
-            await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        await _refresh_stats()
-        ui.notify(f"Статус обновлён для {len(doc_ids)} документов", type="positive")
-
     async def _delete_bulk(doc_ids):
         db = _client_manager.get_db(state.current_client)
         for doc_id in doc_ids:
@@ -1167,7 +1134,6 @@ def build() -> None:
         _clear_bulk_selection()
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        await _refresh_stats()
         await _refresh_deadline_widget()
         ui.notify(f"Удалено {len(doc_ids)} документов", type="positive")
 
@@ -1228,13 +1194,12 @@ def build() -> None:
         # After pipeline: refresh table (D-11)
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        await _refresh_stats()
+        await _refresh_deadline_widget()
 
     # Store callback on state so main.py can delegate to it
     state._on_upload = _on_upload  # type: ignore[attr-defined]
 
     async def _init() -> None:
-        await _refresh_stats()
         await _refresh_deadline_widget()
         skeleton_container.set_visibility(False)
         grid_container.set_visibility(True)

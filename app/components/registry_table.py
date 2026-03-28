@@ -32,22 +32,18 @@ _THRESHOLD = 80
 # ── Status HTML rendering (data transform, not cellRenderer) ─────────────────
 
 _STATUS_MAP = {
-    "active":      ("✔", "Действует", "status-active"),
-    "expiring":    ("⚠", "Скоро истекает", "status-expiring"),
-    "expired":     ("✗", "Истёк", "status-expired"),
-    "unknown":     ("", "Нет даты", "status-unknown"),
-    "terminated":  ("", "Расторгнут", "status-terminated"),
-    "extended":    ("↻", "Продлён", "status-extended"),
-    "negotiation": ("", "На согласовании", "status-negotiation"),
-    "suspended":   ("⏸", "Приостановлен", "status-suspended"),
+    "active":      ("Действует", "status-active"),
+    "expiring":    ("Заканчивается", "status-expiring"),
+    "expired":     ("Закончился", "status-expired"),
+    "unknown":     ("Нет даты", "status-unknown"),
+    "negotiation": ("На согласовании", "status-negotiation"),
 }
 
 
 def _status_html(status: str) -> str:
     """Возвращает HTML badge для статуса — рендерится через html_columns."""
-    icon, label, cls = _STATUS_MAP.get(status, ("", status, "status-unknown"))
-    icon_part = f"<span>{icon}</span>" if icon else ""
-    return f'<span class="{cls}">{icon_part}{label}</span>'
+    label, cls = _STATUS_MAP.get(status, (status, "status-unknown"))
+    return f'<span class="{cls}">{label}</span>'
 
 
 def _expand_html(has_children: bool, is_expanded: bool = False) -> str:
@@ -75,8 +71,6 @@ COLUMN_DEFS = [
         "field": "selected",
         "width": 40,
         "maxWidth": 40,
-        "checkboxSelection": True,
-        "headerCheckboxSelection": True,
         "pinned": "left",
         "sortable": False,
         "filter": False,
@@ -112,9 +106,9 @@ COLUMN_DEFS = [
         "headerName": "Предмет",
         "field": "subject",
         "minWidth": 200,
-        "flex": 1,
         "filter": "agTextColumnFilter",
         "sortable": True,
+        "tooltipField": "subject",
         "cellStyle": {"textOverflow": "ellipsis", "whiteSpace": "nowrap", "overflow": "hidden"},
     },
     # Status (D-05) — HTML via _status_html()
@@ -133,15 +127,7 @@ COLUMN_DEFS = [
         "filter": "agTextColumnFilter",
         "cellStyle": {"fontVariantNumeric": "tabular-nums"},
     },
-    # Actions column (D-12) — HTML via _actions_html()
-    {
-        "headerName": "",
-        "field": "actions_html",
-        "width": 80,
-        "sortable": False,
-        "filter": False,
-        "resizable": False,
-    },
+    # Actions column removed — context menu handles actions (D-12)
     # Скрытые колонки (D-02)
     {"field": "date_start", "hide": True},
     {"field": "date_end", "hide": True},
@@ -415,9 +401,15 @@ async def render_registry_table(state: "AppState"):
             "defaultColDef": {
                 "sortable": True,
                 "resizable": True,
+                "flex": 1,
             },
-            "rowSelection": "multiple",
-            "suppressRowClickSelection": True,
+            "tooltipShowDelay": 300,
+            "rowSelection": {
+                "mode": "multiRow",
+                "checkboxes": True,
+                "headerCheckbox": True,
+                "enableClickSelection": False,
+            },
             "pagination": True,
             "paginationPageSize": 50,
             "paginationAutoPageSize": False,
@@ -442,13 +434,10 @@ async def render_registry_table(state: "AppState"):
                 "pageSize": "",
             },
         },
-        html_columns=[1, 5, 7],  # expand, status, actions — render HTML from rowData (shifted +1 for checkbox col)
+        html_columns=[1, 5],  # expand, status — render HTML from rowData (shifted +1 for checkbox col)
         theme="quartz",
         auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
     ).classes("w-full max-w-none").style("height: 520px;")
-
-    # Fit columns to container width after grid renders (replaces auto_size_columns)
-    ui.timer(0.3, lambda: grid.run_grid_method("sizeColumnsToFit"), once=True)
 
     return grid
 
@@ -478,6 +467,4 @@ async def load_table_data(grid, state: "AppState", segment: str = "all") -> None
 
     grid.options["rowData"] = rows
     grid.update()
-    # Re-fit columns after data load (grid may have resized)
-    grid.run_grid_method("sizeColumnsToFit")
     logger.debug("Загружено %d строк реестра (сегмент=%s)", len(rows), segment)

@@ -85,6 +85,7 @@ app.colors(
 from pathlib import Path as _Path
 
 _STATIC = _Path(__file__).parent / "static"
+app.add_static_files("/static", str(_STATIC))
 
 # Font (must load before any rendered element) — served locally, no CDN
 ui.add_head_html("""
