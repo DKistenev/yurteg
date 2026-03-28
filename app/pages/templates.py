@@ -245,7 +245,10 @@ def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None)
 
         with ui.row().classes("justify-end gap-2 w-full"):
             ui.button("Отмена", on_click=dlg.close).props("flat no-caps color=grey")
-            save_btn = ui.button("Сохранить", on_click=_confirm).props("no-caps color=primary")
+            save_btn = ui.button("Сохранить", on_click=_confirm).props("unelevated no-caps").classes(
+                "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                " hover:bg-indigo-700 transition-colors duration-150"
+            )
 
     dlg.open()
 
@@ -357,7 +360,10 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
             ui.button("Отмена", on_click=dlg.close).props("flat no-caps color=grey")
             add_btn = ui.button(
                 "Добавить", on_click=_confirm
-            ).props("no-caps color=primary")
+            ).props("unelevated no-caps").classes(
+                "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                " hover:bg-indigo-700 transition-colors duration-150"
+            )
 
     dlg.open()
 

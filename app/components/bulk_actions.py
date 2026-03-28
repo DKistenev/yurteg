@@ -82,5 +82,8 @@ def show_bulk_delete_dialog(selected_ids: list[int], on_confirm: Callable) -> No
                 await on_confirm(selected_ids)
                 dialog.close()
 
-            ui.button("Удалить", on_click=_delete).props("no-caps color=red")
+            ui.button("Удалить", on_click=_delete).props("unelevated no-caps").classes(
+                "px-4 py-1.5 bg-red-600 text-white text-sm font-semibold rounded-lg"
+                " hover:bg-red-700 transition-colors duration-150"
+            )
     dialog.open()

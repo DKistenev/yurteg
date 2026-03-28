@@ -325,8 +325,8 @@ def build() -> None:
 
                     with ui.row().classes("items-center gap-2"):
                         code_input  # noqa: B018
-                        ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
-                            "bg-indigo-600 text-white text-xs"
+                        ui.button("Привязать", on_click=_bind).props("flat dense no-caps").classes(
+                            "text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors duration-150"
                         )
 
                 _settings_row(
