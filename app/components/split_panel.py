@@ -78,13 +78,13 @@ def render_split_panel(
         with ui.row().classes("px-5 py-4 border-b border-slate-100 justify-between items-start w-full"):
             with ui.column().classes("gap-1"):
                 ui.label(doc.get("counterparty", "—")).style(
-                    "font-size:15px; font-weight:600; color:#1e293b; line-height:1.3;"
+                    "font-size:15px; font-weight:600; color:var(--yt-p-slate-800); line-height:1.3;"
                 )
                 contract_type = doc.get("contract_type", "")
                 if contract_type:
                     ui.label(contract_type).classes(PANEL_TYPE_TAG)
             ui.button(icon="close", on_click=on_close).props("flat dense round").style(
-                "color:#94a3b8; min-width:28px; min-height:28px;"
+                "color:var(--yt-color-text-muted); min-width:28px; min-height:28px;"
             )
 
         # Секция ДОКУМЕНТ
@@ -114,12 +114,12 @@ def render_split_panel(
             ui.label("Финансы").classes(PANEL_SEC_TITLE)
             amount_str = _format_amount(doc.get("amount"))
             ui.label(amount_str).style(
-                "font-size:20px; font-weight:700; color:#1e293b; letter-spacing:-0.02em;"
+                "font-size:20px; font-weight:700; color:var(--yt-p-slate-800); letter-spacing:-0.02em;"
             )
 
         # Кнопка "Открыть карточку →"
         ui.button("Открыть карточку →", on_click=on_open_full).style(
-            "margin:12px 16px 16px; padding:8px; border:1px solid #e2e8f0; border-radius:8px; "
-            "background:white; color:#475569; font-size:12px; font-weight:500; "
+            "margin:12px 16px 16px; padding:8px; border:1px solid var(--yt-color-border); border-radius:8px; "
+            "background:white; color:var(--yt-color-text-secondary); font-size:12px; font-weight:500; "
             "width:calc(100% - 32px); text-align:center; font-family:inherit;"
         ).props("flat no-caps")

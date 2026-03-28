@@ -71,17 +71,17 @@ def _render_summary_cards(settings: dict, switch_fn, card_refs: dict) -> None:
 
     cards_data = [
         {
-            "icon": "smart_toy", "icon_bg": "#eef2ff", "icon_color": "#4f46e5",
+            "icon": "smart_toy", "icon_bg": "var(--yt-color-accent-subtle)", "icon_color": "var(--yt-color-accent)",
             "title": "ИИ-помощник",
             "detail": ai_detail, "detail_color": ai_detail_color, "section": "ИИ",
         },
         {
-            "icon": "tune", "icon_bg": "#f1f5f9", "icon_color": "#475569",
+            "icon": "tune", "icon_bg": "var(--yt-p-slate-100)", "icon_color": "var(--yt-color-text-secondary)",
             "title": "Обработка",
             "detail": anon_text, "detail_color": proc_detail_color, "section": "Обработка",
         },
         {
-            "icon": "notifications_none", "icon_bg": "#fef3c7", "icon_color": "#d97706",
+            "icon": "notifications_none", "icon_bg": "#fef3c7", "icon_color": "var(--yt-p-amber-600)",
             "title": "Уведомления",
             "detail": tg_text, "detail_color": tg_detail_color, "section": "Уведомления",
         },
@@ -122,7 +122,7 @@ def _render_summary_cards(settings: dict, switch_fn, card_refs: dict) -> None:
 def _section_header(icon: str, title: str, description: str) -> None:
     """Render a section header with icon, title, and description."""
     with ui.row().classes("items-center gap-3 mb-4"):
-        ui.icon(icon).style("font-size:22px; color:#4f46e5;")
+        ui.icon(icon).style("font-size:22px; color:var(--yt-color-accent);")
         with ui.column().classes("gap-0"):
             ui.label(title).classes(TEXT_HEADING)
             ui.label(description).classes(TEXT_SECONDARY)
@@ -259,54 +259,6 @@ def build() -> None:
         _section_header("notifications_none", "Уведомления", "Напоминания о сроках через Telegram")
 
         with ui.column().classes("w-full gap-0 mt-2"):
-            # Telegram
-            def _telegram_control():
-                srv_url = settings.get("telegram_server_url", "")
-                chat_id = settings.get("telegram_chat_id", 0)
-                is_bound = bool(chat_id)
-
-                if is_bound:
-                    with ui.row().classes("items-center gap-2"):
-                        ui.label("Привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
-                        )
-                        ui.button("Отвязать", on_click=lambda: (
-                            save_setting("telegram_chat_id", ""),
-                            ui.navigate.to("/settings"),
-                        )).props("flat dense no-caps").classes("text-red-500 text-xs")
-                else:
-                    with ui.column().classes("gap-3"):
-                        ui.label("Не привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
-                        )
-                        with ui.row().classes("items-center gap-2"):
-                            code_input = ui.input(placeholder="Код из Telegram").props("dense outlined").classes("w-32")
-
-                            async def _bind():
-                                code = code_input.value
-                                if code and len(code) == 6:
-                                    try:
-                                        sync = TelegramSync(server_url=srv_url, chat_id=0)
-                                        result = await run.io_bound(sync.bind, code)
-                                        if result:
-                                            save_setting("telegram_chat_id", result)
-                                            ui.notify("Telegram привязан!", type="positive")
-                                            ui.navigate.to("/settings")
-                                        else:
-                                            ui.notify("Неверный код или бот недоступен", type="negative")
-                                    except Exception:
-                                        logger.exception("Ошибка при привязке Telegram-бота")
-                                        ui.notify("Неверный код или бот недоступен", type="negative")
-
-                            ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
-                                "bg-indigo-600 text-white text-xs"
-                            )
-                        ui.label("Отправьте /start боту @YurTagBot \u2014 он пришлёт код").classes(
-                            "text-xs text-slate-400"
-                        )
-
-            _settings_row("Telegram", "", control_fn=_telegram_control)
-
             # Warning threshold
             def _threshold_control():
                 inp = ui.number(
@@ -320,6 +272,65 @@ def build() -> None:
                 "За сколько дней до истечения предупреждать",
                 control_fn=_threshold_control,
             )
+
+            # Telegram status
+            srv_url = settings.get("telegram_server_url", "")
+            chat_id = settings.get("telegram_chat_id", 0)
+            is_bound = bool(chat_id)
+
+            def _telegram_status_control():
+                if is_bound:
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label("Привязан").classes(
+                            "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                        )
+                        ui.button("Отвязать", on_click=lambda: (
+                            save_setting("telegram_chat_id", ""),
+                            ui.navigate.to("/settings"),
+                        )).props("flat dense no-caps").classes("text-red-500 text-xs")
+                else:
+                    ui.label("Не привязан").classes(
+                        "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
+                    )
+
+            _settings_row(
+                "Telegram",
+                "Получайте уведомления о сроках в мессенджер",
+                control_fn=_telegram_status_control,
+            )
+
+            # Telegram bind flow (only if not bound)
+            if not is_bound:
+                def _telegram_bind_control():
+                    code_input = ui.input(placeholder="6-значный код").props("dense outlined").classes("w-32")
+
+                    async def _bind():
+                        code = code_input.value
+                        if code and len(code) == 6:
+                            try:
+                                sync = TelegramSync(server_url=srv_url, chat_id=0)
+                                result = await run.io_bound(sync.bind, code)
+                                if result:
+                                    save_setting("telegram_chat_id", result)
+                                    ui.notify("Telegram привязан!", type="positive")
+                                    ui.navigate.to("/settings")
+                                else:
+                                    ui.notify("Неверный код или бот недоступен", type="negative")
+                            except Exception:
+                                logger.exception("Ошибка при привязке Telegram-бота")
+                                ui.notify("Неверный код или бот недоступен", type="negative")
+
+                    with ui.row().classes("items-center gap-2"):
+                        code_input  # noqa: B018
+                        ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
+                            "bg-indigo-600 text-white text-xs"
+                        )
+
+                _settings_row(
+                    "Привязка бота",
+                    "Отправьте /start боту @YurTagBot \u2014 он пришлёт код",
+                    control_fn=_telegram_bind_control,
+                )
 
     # Summary cards at top (dummy _switch for card clicks — scrolls to section)
     def _switch(section: str) -> None:
