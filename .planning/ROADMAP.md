@@ -30,6 +30,12 @@ Phases 28–31: v0.9 Backend Hardening
 - [ ] **Phase 35: Templates, Settings & Onboarding** — Visual consistency вспомогательных экранов, wizard end-to-end
 - [ ] **Phase 36: Cross-Scope Integration** — Подключение STATUS_LABELS, APP_VERSION, убрать dict cast (ждёт CalmBridge)
 - [ ] **Phase 37: Final Visual Pass** — Spacing, typography, animations — консистентность по всем экранам перед хакатоном
+- [ ] **Phase 38: Cross-Scope + Config Hardening** — Разблокировать VioletRiver + Config __post_init__ + atomic settings
+- [ ] **Phase 39: Provider Cleanup** — Timeout, get_logprobs контракт, API key validation, resource cleanup
+- [ ] **Phase 40: Data Integrity** — contract_number chain, деанонимизация, truncation flag, redline дата
+- [ ] **Phase 41: Thread Safety** — RLock, locks на read-методы, атомарные операции, llama_server race fix
+- [ ] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation guards, GBNF fail-loud
+- [ ] **Phase 43: Test Coverage** — 15 test gaps: concurrent writes, migrations, payment edges, helpers
 
 ## Phase Details
 
@@ -103,19 +109,6 @@ Plans:
   2. Нет видимых «сырых» элементов или несоответствий дизайн-системе при прохождении demo flow
 **Plans**: TBD
 **UI hint**: yes
-
-### 🚧 v1.0 Hackathon-Ready Backend (In Progress — CalmBridge)
-
-**Milestone Goal:** Устранить 67 backend bugs из двойного аудита — thread safety, data integrity, config validation, provider cleanup, error handling, test coverage.
-
-- [ ] **Phase 38: Cross-Scope + Config Hardening** — Разблокировать VioletRiver (APP_VERSION, STATUS_LABELS, dict) + Config __post_init__ + atomic settings
-- [ ] **Phase 39: Provider Cleanup** — Timeout на все LLM провайдеры, get_logprobs контракт, API key validation, resource cleanup
-- [ ] **Phase 40: Data Integrity** — contract_number chain (models → migration v10 → SQL), деанонимизация всех полей, truncation flag, redline дата
-- [ ] **Phase 41: Thread Safety** — RLock первым, locks на все read-методы, атомарные операции в version_service, llama_server race fix
-- [ ] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation guards, GBNF fail-loud, cleanup
-- [ ] **Phase 43: Test Coverage** — 15 test gaps: concurrent writes, migrations v2-v9, payment edges, ai_extractor helpers
-
-## Phase Details (Backend)
 
 ### Phase 38: Cross-Scope + Config Hardening
 **Goal**: Разблокировать VioletRiver Phase 36 и сделать Config безопасным
