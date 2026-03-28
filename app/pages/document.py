@@ -5,7 +5,7 @@ Per D-02: Header: breadcrumbs + prev/next + action buttons in left panel top.
 Per D-03: Prev/next navigate doc_id in URL.
 """
 import logging
-from datetime import date as _date
+
 from pathlib import Path as _Path
 
 from nicegui import run, ui
@@ -13,44 +13,25 @@ from nicegui import run, ui
 from app.state import get_state
 from config import load_settings, save_setting
 from app.styles import (
-    DOC_LEFT_PANEL, DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
-    DOC_PREVIEW_BG,
+    DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
     BREADCRUMB_LINK, BREADCRUMB_CURRENT,
     VERSION_DOT, VERSION_LINE,
     ACTION_BTN, ACTION_BTN_PRIMARY,
     APPLE_CARD_COMPACT,
     PANEL_TYPE_TAG,
 )
+from app.utils import format_date_ru
 from modules.models import ContractMetadata
 from services.client_manager import ClientManager
 from services.lifecycle_service import (
     STATUS_LABELS,
-    MANUAL_STATUSES,
     get_computed_status_sql,
-    set_manual_status,
-    clear_manual_status,
 )
 from services.review_service import match_template, review_against_template, list_templates
 from services.version_service import get_version_group, diff_versions
 
 logger = logging.getLogger(__name__)
 _client_manager = ClientManager()
-
-_MONTHS_RU = [
-    "", "января", "февраля", "марта", "апреля", "мая", "июня",
-    "июля", "августа", "сентября", "октября", "ноября", "декабря",
-]
-
-
-def _format_date_ru(val: str | None) -> str:
-    """Format ISO date (2025-09-01) to '1 сентября 2025'. Returns '--' on failure."""
-    if not val or val == "\u2014":
-        return "\u2014"
-    try:
-        d = _date.fromisoformat(str(val))
-        return f"{d.day} {_MONTHS_RU[d.month]} {d.year}"
-    except (ValueError, IndexError):
-        return str(val)
 
 
 def _dict_to_metadata(d: dict) -> ContractMetadata:
@@ -148,17 +129,15 @@ async def build(doc_id: str = "") -> None:
     )
     computed_status = dict(status_row)["computed_status"] if status_row else "unknown"
 
-    # ── Two-column outer container (full viewport below header) ────────────
-    with ui.row(wrap=False).classes("min-w-0").style(
-        "width: 100%; height: calc(100vh - 56px); overflow: hidden;"
+    # ── Single-column scrollable layout (full viewport below header) ────────────
+    with ui.column().classes("min-w-0").style(
+        "width: 100%; max-width: 720px; margin: 0 auto; height: calc(100vh - 56px); overflow-y: auto;"
     ):
 
         # ══════════════════════════════════════════════════════════════════
-        # LEFT PANEL — 380px fixed, scrollable
+        # MAIN CONTENT — centered, full-width cards
         # ══════════════════════════════════════════════════════════════════
-        with ui.column().classes(DOC_LEFT_PANEL).style(
-            "width: 380px; min-width: 380px; overflow-y: auto; height: 100%;"
-        ):
+        with ui.column().classes("bg-white px-6 py-4 gap-0 w-full"):
 
             # ── Top bar: breadcrumbs + prev/next + action buttons ──────
             with ui.row(wrap=False).classes("items-center gap-0 mb-4 w-full"):
@@ -284,9 +263,9 @@ async def build(doc_id: str = "") -> None:
             with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
                 _section_title("СРОКИ И ФИНАНСЫ")
                 with ui.grid(columns=2).classes("gap-x-6 gap-y-3 w-full mt-2"):
-                    _field_row("Дата начала", _format_date_ru(contract.get("date_start")))
-                    _field_row("Дата окончания", _format_date_ru(contract.get("date_end")))
-                    _field_row("Дата подписания", _format_date_ru(contract.get("date_signed")))
+                    _field_row("Дата начала", format_date_ru(contract.get("date_start")))
+                    _field_row("Дата окончания", format_date_ru(contract.get("date_end")))
+                    _field_row("Дата подписания", format_date_ru(contract.get("date_signed")))
                     # Amount — larger
                     with ui.column().classes("gap-0.5"):
                         ui.label("Сумма").classes(DOC_FIELD_LABEL)
@@ -310,76 +289,11 @@ async def build(doc_id: str = "") -> None:
             with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
                 _section_title("СТАТУС")
 
-                icon, label_text, color = STATUS_LABELS.get(
+                icon, label_text, _color = STATUS_LABELS.get(
                     computed_status, ("?", computed_status, "#9ca3af")
                 )
                 status_css_class = f"status-{computed_status}"
-                with ui.row().classes("items-center gap-4 mb-2"):
-                    ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')
-                    status_select_container = ui.row().classes("items-center gap-2")
-
-                with status_select_container:
-                    ui.button(
-                        "Изменить",
-                        on_click=lambda: status_row_el.set_visibility(True)
-                    ).props("flat dense no-caps").classes("text-indigo-600 text-xs")
-
-                    async def _clear_status() -> None:
-                        try:
-                            await run.io_bound(clear_manual_status, db, int(doc_id))
-                        except Exception:
-                            logger.exception("Ошибка сброса статуса")
-                            ui.notify("Не удалось сбросить статус.", type="negative")
-                            return
-                        ui.navigate.to(f"/document/{doc_id}")
-
-                    if contract.get("manual_status"):
-                        ui.button(
-                            "Сбросить",
-                            on_click=_clear_status
-                        ).props("flat dense no-caps").classes("text-slate-500 text-xs")
-
-                status_row_el = ui.row().classes("items-center gap-2 mt-2")
-                status_row_el.set_visibility(False)
-
-                manual_status_options = {
-                    "terminated": "Расторгнут",
-                    "extended": "Продлён",
-                    "negotiation": "На согласовании",
-                    "suspended": "Приостановлен",
-                }
-
-                with status_row_el:
-                    status_sel = ui.select(
-                        options=manual_status_options,
-                        value=contract.get("manual_status"),
-                        label="Выберите статус",
-                    ).classes("w-48").props("dense outlined")
-
-                    async def _apply_status() -> None:
-                        val = status_sel.value
-                        if val and val in MANUAL_STATUSES:
-                            apply_btn.disable()
-                            try:
-                                try:
-                                    await run.io_bound(set_manual_status, db, int(doc_id), val)
-                                except Exception:
-                                    logger.exception("Ошибка смены статуса")
-                                    ui.notify("Не удалось изменить статус.", type="negative")
-                                    return
-                                ui.navigate.to(f"/document/{doc_id}")
-                            finally:
-                                apply_btn.enable()
-
-                    apply_btn = ui.button(
-                        "Применить",
-                        on_click=_apply_status
-                    ).props("dense no-caps").classes("bg-indigo-600 text-white text-xs")
-
-                    ui.button(
-                        "Отмена",
-                        on_click=lambda: status_row_el.set_visibility(False)
-                    ).props("flat dense no-caps").classes("text-slate-500 text-xs")
+                ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')
 
             # ══════════════════════════════════════════════════════════════
             # Section 4: ПРОВЕРКА ПО ШАБЛОНУ
@@ -601,18 +515,3 @@ async def build(doc_id: str = "") -> None:
                 "Сохранить как шаблон", icon="bookmark_add", on_click=_save_as_template
             ).props("flat dense no-caps").classes(ACTION_BTN + " w-full justify-center")
 
-        # ══════════════════════════════════════════════════════════════════
-        # RIGHT PANEL — Dark preview placeholder (flex: 1)
-        # ══════════════════════════════════════════════════════════════════
-        with ui.column().classes("items-center justify-center min-w-0").style(
-            f"flex: 1; max-width: 50%; background: {DOC_PREVIEW_BG}; height: 100%; overflow: hidden;"
-        ):
-            # Toolbar
-            with ui.element("div").classes("doc-preview-toolbar").style("position: absolute; top: 0; left: 0;"):
-                ui.html('<span class="doc-preview-filename">Предпросмотр</span>')
-                ui.html('<span class="doc-preview-filename">стр. 1 из 1</span>')
-
-            # Center placeholder
-            ui.icon("description").style("font-size: 64px; color: #64748b;")
-            ui.label("Предпросмотр документа").classes("text-slate-400 mt-4 text-base")
-            ui.label("PDF и DOCX \u2014 скоро").classes("text-slate-500 text-sm mt-1")

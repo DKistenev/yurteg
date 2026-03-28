@@ -15,6 +15,7 @@ from app.styles import (
     PANEL_FIELD_LABEL,
     PANEL_FIELD_VALUE,
 )
+from app.utils import format_date_ru
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +83,8 @@ def render_split_panel(
                 contract_type = doc.get("contract_type", "")
                 if contract_type:
                     ui.label(contract_type).classes(PANEL_TYPE_TAG)
-            ui.button("✕", on_click=on_close).props("flat dense").style(
-                "color:#94a3b8; font-size:18px; padding:0; min-width:auto; min-height:auto;"
+            ui.button(icon="close", on_click=on_close).props("flat dense round").style(
+                "color:#94a3b8; min-width:28px; min-height:28px;"
             )
 
         # Секция ДОКУМЕНТ
@@ -103,10 +104,10 @@ def render_split_panel(
             with ui.row().classes("gap-4 w-full"):
                 with ui.column().classes("gap-0.5 flex-1"):
                     ui.label("Начало").classes(PANEL_FIELD_LABEL)
-                    ui.label(doc.get("date_start") or "—").classes(PANEL_FIELD_VALUE)
+                    ui.label(format_date_ru(doc.get("date_start"), short=True)).classes(PANEL_FIELD_VALUE)
                 with ui.column().classes("gap-0.5 flex-1"):
                     ui.label("Окончание").classes(PANEL_FIELD_LABEL)
-                    ui.label(doc.get("date_end") or "—").classes(PANEL_FIELD_VALUE)
+                    ui.label(format_date_ru(doc.get("date_end"), short=True)).classes(PANEL_FIELD_VALUE)
 
         # Секция ФИНАНСЫ
         with ui.column().classes("px-5 py-3 w-full gap-1"):
