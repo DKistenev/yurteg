@@ -28,11 +28,11 @@
 - [x] **DOC-02**: Feedback при сохранении заметки (toast «Сохранено» при blur)
 
 ## Templates & Settings Polish
-- [ ] **TMPL-01**: Шаблоны — visual consistency, empty state доведение
-- [ ] **SETT-01**: Настройки — summary cards scroll-to-section работает
+- [x] **TMPL-01**: Шаблоны — visual consistency, empty state доведение
+- [x] **SETT-01**: Настройки — summary cards scroll-to-section работает
 
 ## Onboarding Polish
-- [ ] **ONBR-01**: Wizard и гид-тур работают end-to-end, визуально консистентны
+- [x] **ONBR-01**: Wizard и гид-тур работают end-to-end, визуально консистентны
 
 ## Final Visual Pass
 - [ ] **VIS-01**: Финальный проход — spacing, typography, animations консистентны на всех экранах
@@ -57,9 +57,9 @@
 | REG-03 | Phase 34 | Complete |
 | DOC-01 | Phase 34 | Complete |
 | DOC-02 | Phase 34 | Complete |
-| TMPL-01 | Phase 35 | Pending |
-| SETT-01 | Phase 35 | Pending |
-| ONBR-01 | Phase 35 | Pending |
+| TMPL-01 | Phase 35 | Complete |
+| SETT-01 | Phase 35 | Complete |
+| ONBR-01 | Phase 35 | Complete |
 | XSCOPE-01 | Phase 36 | Pending |
 | XSCOPE-02 | Phase 36 | Pending |
 | XSCOPE-03 | Phase 36 | Pending |
