@@ -1,6 +1,4 @@
 """Тесты пакета providers/ — фабрика, ZAI, OpenRouter, Ollama (FUND-03)."""
-import pytest
-
 from config import Config
 
 
@@ -20,8 +18,9 @@ def test_factory_zai():
     assert isinstance(provider, ZAIProvider)
 
 
-def test_factory_openrouter():
+def test_factory_openrouter(monkeypatch):
     """get_provider('openrouter') возвращает OpenRouterProvider."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     from providers import get_provider
     from providers.openrouter import OpenRouterProvider
     cfg = _make_config(active_provider="openrouter")
@@ -29,12 +28,15 @@ def test_factory_openrouter():
     assert isinstance(provider, OpenRouterProvider)
 
 
-def test_factory_unknown_raises():
-    """get_provider с неизвестным провайдером поднимает ValueError."""
+def test_factory_unknown_falls_back_to_ollama():
+    """get_provider с неизвестным провайдером → Config.__post_init__ исправляет на ollama."""
     from providers import get_provider
+    from providers.ollama import OllamaProvider
     cfg = _make_config(active_provider="unknown_provider_xyz")
-    with pytest.raises(ValueError, match="unknown_provider_xyz"):
-        get_provider(cfg)
+    # __post_init__ gracefully corrects to "ollama"
+    assert cfg.active_provider == "ollama"
+    provider = get_provider(cfg)
+    assert isinstance(provider, OllamaProvider)
 
 
 def test_openrouter_system_merge():
