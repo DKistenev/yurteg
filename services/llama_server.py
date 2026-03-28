@@ -309,4 +309,7 @@ class LlamaServerManager:
             with urllib.request.urlopen(_health_endpoint(self._port), timeout=2) as resp:  # noqa: S310
                 return resp.status == 200
         except Exception:
+            # Процесс мог умереть между poll() и health check
+            if self._process is not None and self._process.poll() is not None:
+                self._process = None
             return False

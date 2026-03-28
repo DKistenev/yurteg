@@ -6,6 +6,7 @@
 Не импортирует streamlit — вызывается из controller и main.py.
 """
 import io
+import json
 import logging
 import threading
 from typing import TYPE_CHECKING, Optional
@@ -79,13 +80,12 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def ensure_embedding(db: Database, contract_id: int, text: str) -> np.ndarray:
-    """Возвращает кэшированный вектор или вычисляет и сохраняет новый."""
+    """Возвращает кэшированный вектор или вычисляет и сохраняет новый. Thread-safe."""
     with db._lock:
         cached = _load_embedding(db.conn, contract_id)
-    if cached is not None:
-        return cached
-    vector = compute_embedding(text)
-    with db._lock:
+        if cached is not None:
+            return cached
+        vector = compute_embedding(text)
         _store_embedding(db.conn, contract_id, vector)
     return vector
 
@@ -129,38 +129,37 @@ def find_version_match(
     if not candidates:
         return None
 
-    import json
-
     best_sim = 0.0
     best_group_id = None
     number_match_group = None
 
-    for row in candidates:
-        cand_id, group_id, cand_number, cand_parties_json = row
+    with db._lock:
+        for row in candidates:
+            cand_id, group_id, cand_number, cand_parties_json = row
 
-        # Путь 1: номер совпал
-        if contract_number and cand_number and contract_number == cand_number:
-            logger.info(
-                "Версия по номеру: contract_id=%d → group_id=%d (номер=%s)",
-                contract_id, group_id, contract_number,
-            )
-            number_match_group = group_id
+            # Путь 1: номер совпал
+            if contract_number and cand_number and contract_number == cand_number:
+                logger.info(
+                    "Версия по номеру: contract_id=%d → group_id=%d (номер=%s)",
+                    contract_id, group_id, contract_number,
+                )
+                number_match_group = group_id
 
-        # Путь 2: стороны совпали → проверить embedding
-        if parties_set:
-            try:
-                cand_parties = set(json.loads(cand_parties_json)) if cand_parties_json else set()
-            except (json.JSONDecodeError, TypeError):
-                cand_parties = set()
+            # Путь 2: стороны совпали → проверить embedding
+            if parties_set:
+                try:
+                    cand_parties = set(json.loads(cand_parties_json)) if cand_parties_json else set()
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning("Не удалось разобрать parties для id=%d: %s", cand_id, e)
+                    cand_parties = set()
 
-            if cand_parties and parties_set == cand_parties:
-                with db._lock:
+                if cand_parties and parties_set == cand_parties:
                     cand_vector = _load_embedding(db.conn, cand_id)
-                if cand_vector is not None:
-                    sim = _cosine_sim(new_vector, cand_vector)
-                    if sim > best_sim:
-                        best_sim = sim
-                        best_group_id = group_id
+                    if cand_vector is not None:
+                        sim = _cosine_sim(new_vector, cand_vector)
+                        if sim > best_sim:
+                            best_sim = sim
+                            best_group_id = group_id
 
     # Путь 1 приоритетнее (точный)
     if number_match_group is not None:

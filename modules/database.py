@@ -326,7 +326,7 @@ class Database:
     def __init__(self, db_path: Path) -> None:
         """Создаёт/открывает БД. Автоматически создаёт таблицы если их нет."""
         self.db_path = db_path
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
@@ -348,11 +348,12 @@ class Database:
 
     def is_processed(self, file_hash: str) -> bool:
         """True если файл с таким хешем уже обработан (status=done)."""
-        cursor = self.conn.execute(
-            "SELECT 1 FROM contracts WHERE file_hash = ? AND status = 'done'",
-            (file_hash,),
-        )
-        return cursor.fetchone() is not None
+        with self._lock:
+            cursor = self.conn.execute(
+                "SELECT 1 FROM contracts WHERE file_hash = ? AND status = 'done'",
+                (file_hash,),
+            )
+            return cursor.fetchone() is not None
 
     def save_result(self, result: ProcessingResult) -> None:
         """Сохраняет результат обработки. Upsert по file_hash. Thread-safe."""
@@ -468,10 +469,11 @@ class Database:
     def get_all_results(self) -> list[dict]:
         """Возвращает все записи как list[dict] с десериализованными JSON-полями.
         Никогда не возвращает sqlite3.Row — safe для прямого использования в UI."""
-        cursor = self.conn.execute(
-            "SELECT * FROM contracts ORDER BY processed_at"
-        )
-        rows = cursor.fetchall()
+        with self._lock:
+            cursor = self.conn.execute(
+                "SELECT * FROM contracts ORDER BY processed_at"
+            )
+            rows = cursor.fetchall()
         results = []
         for row in rows:
             d = dict(row)
@@ -514,17 +516,18 @@ class Database:
 
     def get_stats(self) -> dict:
         """Статистика: {total, done, error, pending}."""
-        cursor = self.conn.execute(
-            """
-            SELECT
-                COUNT(*) as total,
-                SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done,
-                SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
-            FROM contracts
-            """
-        )
-        row = cursor.fetchone()
+        with self._lock:
+            cursor = self.conn.execute(
+                """
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as done,
+                    SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) as error,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+                FROM contracts
+                """
+            )
+            row = cursor.fetchone()
         return {
             "total": row["total"] or 0,
             "done": row["done"] or 0,
