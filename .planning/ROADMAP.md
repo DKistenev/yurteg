@@ -3,8 +3,7 @@
 ## Milestones
 
 - ✅ **v0.9 Backend Hardening** — Phases 28–31 (shipped 2026-03-27)
-- 🚧 **v1.0 Hackathon-Ready Frontend** — Phases 32–37 (VioletRiver)
-- 🚧 **v1.0 Hackathon-Ready Backend** — Phases 38–43 (CalmBridge)
+- 🚧 **v1.0 Hackathon-Ready** — Phases 32–43 (Frontend: VioletRiver, Backend: CalmBridge)
 
 ## Phases
 
@@ -20,7 +19,7 @@ Phases 28–31: v0.9 Backend Hardening
 
 </details>
 
-### 🚧 v1.0 Hackathon-Ready Frontend (In Progress)
+### 🚧 v1.0 Hackathon-Ready (In Progress)
 
 **Milestone Goal:** Устранить все баги из аудита и довести каждый экран до демо-качества — приложение должно быть стабильным для живой демонстрации на хакатоне.
 
