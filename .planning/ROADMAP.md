@@ -1,9 +1,10 @@
-# Roadmap: ЮрТэг — v1.0 Hackathon-Ready Frontend
+# Roadmap: ЮрТэг — v1.0 Hackathon-Ready
 
 ## Milestones
 
 - ✅ **v0.9 Backend Hardening** — Phases 28–31 (shipped 2026-03-27)
-- 🚧 **v1.0 Hackathon-Ready** — Phases 32–37 (in progress)
+- 🚧 **v1.0 Hackathon-Ready Frontend** — Phases 32–37 (VioletRiver)
+- 🚧 **v1.0 Hackathon-Ready Backend** — Phases 38–43 (CalmBridge)
 
 ## Phases
 
@@ -40,7 +41,9 @@ Phases 28–31: v0.9 Backend Hardening
   1. IBM Plex Sans шрифт отображается на всех экранах (не системный fallback)
   2. AG Grid таблица реестра работает без console errors (checkboxSelection через gridOptions)
   3. Виджет дедлайнов в реестре обновляется ровно один раз, нет двойных вызовов
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 32-01-PLAN.md — Три P0 фикса: static files, AG Grid rowSelection v32, дедлайн дубли
 **UI hint**: yes
 
 ### Phase 33: Code Quality & Error Resilience
@@ -101,13 +104,101 @@ Phases 28–31: v0.9 Backend Hardening
 **Plans**: TBD
 **UI hint**: yes
 
+### 🚧 v1.0 Hackathon-Ready Backend (In Progress — CalmBridge)
+
+**Milestone Goal:** Устранить 67 backend bugs из двойного аудита — thread safety, data integrity, config validation, provider cleanup, error handling, test coverage.
+
+- [ ] **Phase 38: Cross-Scope + Config Hardening** — Разблокировать VioletRiver (APP_VERSION, STATUS_LABELS, dict) + Config __post_init__ + atomic settings
+- [ ] **Phase 39: Provider Cleanup** — Timeout на все LLM провайдеры, get_logprobs контракт, API key validation, resource cleanup
+- [ ] **Phase 40: Data Integrity** — contract_number chain (models → migration v10 → SQL), деанонимизация всех полей, truncation flag, redline дата
+- [ ] **Phase 41: Thread Safety** — RLock первым, locks на все read-методы, атомарные операции в version_service, llama_server race fix
+- [ ] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation guards, GBNF fail-loud, cleanup
+- [ ] **Phase 43: Test Coverage** — 15 test gaps: concurrent writes, migrations v2-v9, payment edges, ai_extractor helpers
+
+## Phase Details (Backend)
+
+### Phase 38: Cross-Scope + Config Hardening
+**Goal**: Разблокировать VioletRiver Phase 36 и сделать Config безопасным
+**Depends on**: Nothing (first backend phase)
+**Requirements**: XSCOPE-04, XSCOPE-05, XSCOPE-06, CONF-01, CONF-02, CONF-03, CONF-04, CONF-05, CONF-06
+**Success Criteria** (what must be TRUE):
+  1. `from config import APP_VERSION` работает, footer показывает актуальную версию
+  2. `STATUS_LABELS["terminated"]` содержит 4-й элемент css_class (Tailwind classes)
+  3. `db.get_contract_by_id(id)` возвращает dict, не sqlite3.Row
+  4. `Config(llama_server_port=-1)` поднимает ValueError
+  5. `active_model` возвращает корректное имя модели для текущего provider
+**Plans**: TBD
+
+### Phase 39: Provider Cleanup
+**Goal**: LLM провайдеры не зависают, имеют явный контракт, валидируют ключи
+**Depends on**: Phase 38 (Config.ai_disable_thinking resolved)
+**Requirements**: PROV-01, PROV-02, PROV-03, PROV-04, PROV-05, PROV-06, PROV-07, PROV-08, PROV-09
+**Success Criteria** (what must be TRUE):
+  1. OllamaProvider timeout = 120s read (холодный старт не вызывает fallback)
+  2. ZAIProvider("") raises ValueError, не молча принимает пустой ключ
+  3. `LLMProvider.get_logprobs()` определён в base class с default `return {}`
+  4. `provider.close()` метод существует на всех провайдерах
+**Plans**: TBD
+
+### Phase 40: Data Integrity
+**Goal**: contract_number в БД, полная деанонимизация, truncation tracking
+**Depends on**: Phase 38 (Config ready)
+**Requirements**: DINT-01, DINT-02, DINT-03, DINT-04, DINT-05, DINT-06, DINT-07
+**Success Criteria** (what must be TRUE):
+  1. `SELECT contract_number FROM contracts` не крашится (миграция v10 применена)
+  2. Деанонимизация применяется ко всем строковым полям ContractMetadata (не только 4)
+  3. Redline DOCX содержит актуальную дату, не "2026-01-01"
+  4. Telegram sync: отсутствие ключа в item не крашит обработку
+**Plans**: TBD
+
+### Phase 41: Thread Safety
+**Goal**: 5 параллельных потоков работают без OperationalError и deadlock
+**Depends on**: Phase 40 (contract_number exists for version_service)
+**Requirements**: TSAFE-01, TSAFE-02, TSAFE-03, TSAFE-04, TSAFE-05, TSAFE-06, TSAFE-07, TSAFE-08
+**Success Criteria** (what must be TRUE):
+  1. `database.py` использует RLock (не Lock) — вложенные вызовы не deadlock'ят
+  2. `get_all_results()`, `get_stats()`, `is_processed()` обёрнуты в `with self._lock:`
+  3. `version_service.ensure_embedding()` атомарен (check-and-store под одним lock)
+  4. `save_setting()` атомарен (tempfile → os.replace под Lock)
+**Plans**: TBD
+
+### Phase 42: Error Handling
+**Goal**: Нет bare excepts, все публичные функции валидируют входы
+**Depends on**: Phase 41
+**Requirements**: ERRH-01 through ERRH-18
+**Success Criteria** (what must be TRUE):
+  1. `grep -r "except:" modules/ services/` возвращает 0 результатов (нет bare except)
+  2. `payment_service.unroll_payments(start, end, -100, "monthly")` raises ValueError
+  3. GBNF grammar file missing → FileNotFoundError (не silent None)
+  4. `_split_sentences(None)` возвращает [], не AttributeError
+  5. `import json` нет внутри функций (module-level only)
+**Plans**: TBD
+
+### Phase 43: Test Coverage
+**Goal**: 15 test gaps закрыты, все новые фиксы покрыты тестами
+**Depends on**: Phases 41 + 42
+**Requirements**: TEST-01 through TEST-15
+**Success Criteria** (what must be TRUE):
+  1. Concurrent write test: 5 потоков пишут в database.py одновременно — 0 OperationalError
+  2. Migration tests: каждая миграция v2-v9 тестируется независимо на свежей БД
+  3. Payment edge cases: start>end, amount=0, amount<0, max_iter — все проверены
+  4. `conftest.py` содержит autouse fixture для reset `version_service._model`
+  5. `pytest` проходит зелёным с новыми тестами
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 32. P0 Critical Fixes | v1.0 | 0/TBD | Not started | - |
-| 33. Code Quality & Error Resilience | v1.0 | 0/TBD | Not started | - |
-| 34. Registry & Document Card | v1.0 | 0/TBD | Not started | - |
-| 35. Templates, Settings & Onboarding | v1.0 | 0/TBD | Not started | - |
-| 36. Cross-Scope Integration | v1.0 | 0/TBD | Not started | - |
-| 37. Final Visual Pass | v1.0 | 0/TBD | Not started | - |
+| 32. P0 Critical Fixes | v1.0-FE | 0/1 | Planned | - |
+| 33. Code Quality & Error Resilience | v1.0-FE | 0/TBD | Not started | - |
+| 34. Registry & Document Card | v1.0-FE | 0/TBD | Not started | - |
+| 35. Templates, Settings & Onboarding | v1.0-FE | 0/TBD | Not started | - |
+| 36. Cross-Scope Integration | v1.0-FE | 0/TBD | Not started | - |
+| 37. Final Visual Pass | v1.0-FE | 0/TBD | Not started | - |
+| 38. Cross-Scope + Config Hardening | v1.0-BE | 0/TBD | Not started | - |
+| 39. Provider Cleanup | v1.0-BE | 0/TBD | Not started | - |
+| 40. Data Integrity | v1.0-BE | 0/TBD | Not started | - |
+| 41. Thread Safety | v1.0-BE | 0/TBD | Not started | - |
+| 42. Error Handling | v1.0-BE | 0/TBD | Not started | - |
+| 43. Test Coverage | v1.0-BE | 0/TBD | Not started | - |

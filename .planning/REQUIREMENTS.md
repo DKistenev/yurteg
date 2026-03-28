@@ -69,86 +69,163 @@
 
 # Backend (CalmBridge scope)
 
-## Cross-Scope Integration (блокеры фронтенда)
-- [ ] **XSCOPE-04**: APP_VERSION константа в config.py (VioletRiver подхватит в footer)
+## Cross-Scope (блокеры фронтенда)
+- [ ] **XSCOPE-04**: APP_VERSION константа в config.py
 - [ ] **XSCOPE-05**: STATUS_LABELS с 4-м элементом css_class в lifecycle_service.py
 - [ ] **XSCOPE-06**: database.py get_contract_by_id/get_all_results всегда возвращают dict
 
 ## Thread Safety
-- [ ] **TSAFE-01**: RLock вместо Lock в database.py (предотвращение deadlock при вложенных вызовах)
+- [ ] **TSAFE-01**: RLock вместо Lock в database.py
 - [ ] **TSAFE-02**: Locks на все read-методы database.py (is_processed, get_all_results, get_stats)
-- [ ] **TSAFE-03**: Атомарные операции в version_service.ensure_embedding (TOCTOU fix)
-- [ ] **TSAFE-04**: Атомарные find_version_match + link_versions (единая транзакция)
-- [ ] **TSAFE-05**: Lock в version_service.find_version_match вне цикла (не внутри)
-- [ ] **TSAFE-06**: Process state race condition fix в llama_server.is_running()
+- [ ] **TSAFE-03**: Атомарные операции в version_service.ensure_embedding
+- [ ] **TSAFE-04**: Атомарные find_version_match + link_versions
+- [ ] **TSAFE-05**: Lock в find_version_match вне цикла
+- [ ] **TSAFE-06**: llama_server.is_running() race condition fix
 - [ ] **TSAFE-07**: Атомарная запись settings.json (tempfile → os.replace)
-- [ ] **TSAFE-08**: threading.Lock на save_setting read-modify-write цикл
+- [ ] **TSAFE-08**: threading.Lock на save_setting read-modify-write
 
 ## Data Integrity
 - [ ] **DINT-01**: contract_number: поле в ContractMetadata + миграция v10 + save_result SQL
-- [ ] **DINT-02**: Деанонимизация ВСЕХ строковых полей ContractMetadata, не только 4
-- [ ] **DINT-03**: Флаг was_truncated при обрезке текста >30K — передача через pipeline
-- [ ] **DINT-04**: Hardcoded дата 2026-01-01 в redline_service → datetime.now(UTC)
-- [ ] **DINT-05**: Telegram sync: KeyError на item['id']/item['filename'] — валидация ключей
-- [ ] **DINT-06**: Telegram sync: write → delete race — атомарность
+- [ ] **DINT-02**: Деанонимизация ВСЕХ строковых полей ContractMetadata
+- [ ] **DINT-03**: Флаг was_truncated при обрезке текста >30K
+- [ ] **DINT-04**: redline_service дата → datetime.now(UTC)
+- [ ] **DINT-05**: Telegram sync: валидация ключей item['id']/item['filename']
+- [ ] **DINT-06**: Telegram sync: write → delete атомарность
 - [ ] **DINT-07**: JSON corruption в settings.json — бэкап + логирование
 
 ## Config Hardening
-- [ ] **CONF-01**: __post_init__() в Config — валидация: порт, воркеры, температура, токены, thresholds, file_size
-- [ ] **CONF-02**: active_model property — учитывать active_provider, не хардкод "glm-4.7"
-- [ ] **CONF-03**: telegram_chat_id: Optional[int] = None вместо int = 0
-- [ ] **CONF-04**: validation_mode через Literal["off","selective","full"] с проверкой
+- [ ] **CONF-01**: __post_init__() в Config — валидация всех числовых полей
+- [ ] **CONF-02**: active_model property — учитывать active_provider
+- [ ] **CONF-03**: telegram_chat_id: Optional[int] = None
+- [ ] **CONF-04**: validation_mode через Literal с проверкой
 - [ ] **CONF-05**: Bare except → except (json.JSONDecodeError, OSError) в load_settings
-- [ ] **CONF-06**: Non-atomic write fix (tempfile + os.replace) — см. TSAFE-07
-- [ ] **CONF-07**: settings.json chmod 0o600 на Unix
+- [ ] **CONF-06**: settings.json chmod 0o600 на Unix
 
 ## Provider Cleanup
-- [ ] **PROV-01**: timeout=httpx.Timeout(read=120) на всех провайдерах (120s для ollama, 60s для cloud)
-- [ ] **PROV-02**: close() метод + context manager для HTTP-клиентов
-- [ ] **PROV-03**: get_logprobs() default impl в LLMProvider base class (return {})
-- [ ] **PROV-04**: API key validation — raise ValueError при пустом ключе (zai, openrouter)
-- [ ] **PROV-05**: verify_key() — конкретные except (AuthenticationError, APIConnectionError)
-- [ ] **PROV-06**: Response choices[0] bounds check перед доступом
-- [ ] **PROV-07**: Defensive copy messages в openrouter._merge_system_into_user()
-- [ ] **PROV-08**: ai_disable_thinking — добавить в Config или убрать из zai.py
-- [ ] **PROV-09**: name property в реализациях вместо class attribute
+- [ ] **PROV-01**: timeout на всех провайдерах (120s ollama, 60s cloud)
+- [ ] **PROV-02**: close() метод для HTTP-клиентов
+- [ ] **PROV-03**: get_logprobs() default impl в LLMProvider base class
+- [ ] **PROV-04**: API key validation — raise ValueError при пустом ключе
+- [ ] **PROV-05**: verify_key() — конкретные except
+- [ ] **PROV-06**: Response choices[0] bounds check
+- [ ] **PROV-07**: Defensive copy messages в openrouter
+- [ ] **PROV-08**: ai_disable_thinking — добавить в Config или убрать
+- [ ] **PROV-09**: name property вместо class attribute
 
 ## Error Handling & Validation
 - [ ] **ERRH-01**: Bare except в extractor.py → except Exception
-- [ ] **ERRH-02**: GBNF grammar loading fail-loud (raise FileNotFoundError, не None)
-- [ ] **ERRH-03**: _split_sentences(None) guard в review_service
-- [ ] **ERRH-04**: generate_redline_docx(None, None) guard в redline_service
-- [ ] **ERRH-05**: Negative/zero amount validation в payment_service.unroll_payments
-- [ ] **ERRH-06**: Invalid frequency validation в payment_service (typo → ValueError)
-- [ ] **ERRH-07**: date_start > date_end validation в payment_service.save_payments
-- [ ] **ERRH-08**: warning_days validation (>0) в lifecycle_service
-- [ ] **ERRH-09**: counterparty=None guard в client_manager.find_client_by_counterparty
-- [ ] **ERRH-10**: Row unpacking bounds check в review_service + lifecycle_service
-- [ ] **ERRH-11**: _parse_date short string check в payment_service
-- [ ] **ERRH-12**: JSON parse failure logging в version_service (не молча set())
+- [ ] **ERRH-02**: GBNF grammar loading fail-loud
+- [ ] **ERRH-03**: _split_sentences(None) guard
+- [ ] **ERRH-04**: generate_redline_docx(None) guard
+- [ ] **ERRH-05**: Negative/zero amount validation в payment_service
+- [ ] **ERRH-06**: Invalid frequency validation
+- [ ] **ERRH-07**: date_start > date_end validation
+- [ ] **ERRH-08**: warning_days validation (>0)
+- [ ] **ERRH-09**: counterparty=None guard в client_manager
+- [ ] **ERRH-10**: Row unpacking bounds check
+- [ ] **ERRH-11**: _parse_date short string check
+- [ ] **ERRH-12**: JSON parse failure logging в version_service
 - [ ] **ERRH-13**: BytesIO context manager в redline_service
-- [ ] **ERRH-14**: Latin name regex — добавить дефисы (Mary-Jane) в anonymizer
+- [ ] **ERRH-14**: Latin name regex — добавить дефисы в anonymizer
 - [ ] **ERRH-15**: import json → module-level в version_service
 - [ ] **ERRH-16**: Удалить unused has_changes в redline_service
-- [ ] **ERRH-17**: db._lock → публичный интерфейс или документация в review_service
+- [ ] **ERRH-17**: db._lock → публичный интерфейс
 - [ ] **ERRH-18**: O(n²) path collision → set() в client_manager
 
 ## Test Coverage
-- [ ] **TEST-01**: Thread safety тесты для database.py save_result concurrent writes
-- [ ] **TEST-02**: version_service get_embedding_model concurrent initialization
+- [ ] **TEST-01**: Thread safety тесты для database.py concurrent writes
+- [ ] **TEST-02**: version_service concurrent initialization
 - [ ] **TEST-03**: payment_service edge cases (start>end, negative, zero, max_iter)
 - [ ] **TEST-04**: Database migrations v2-v9 independent tests
-- [ ] **TEST-05**: ai_extractor 8 helper functions (_translate_ru_months, _safe_float, etc.)
-- [ ] **TEST-06**: ai_extractor extract_metadata error paths (truncation, empty, provider fail)
-- [ ] **TEST-07**: payment_service save_payments all parameter combos
-- [ ] **TEST-08**: version_service find_version_match error cases + boundaries
-- [ ] **TEST-09**: lifecycle_service set_manual_status + clear_manual_status
-- [ ] **TEST-10**: payment_service get_calendar_events filtering + formatting
-- [ ] **TEST-11**: version_service diff_versions all field comparisons
-- [ ] **TEST-12**: postprocessor _protect/_restore_abbreviations edge cases
-- [ ] **TEST-13**: ai_extractor _normalize_date boundary cases (year range, malformed)
-- [ ] **TEST-14**: lifecycle_service get_attention_required edge cases (empty, manual_status)
-- [ ] **TEST-15**: conftest.py autouse fixture to reset version_service._model singleton
+- [ ] **TEST-05**: ai_extractor 8 helper functions
+- [ ] **TEST-06**: ai_extractor extract_metadata error paths
+- [ ] **TEST-07**: payment_service save_payments all combos
+- [ ] **TEST-08**: version_service find_version_match errors + boundaries
+- [ ] **TEST-09**: lifecycle_service set/clear_manual_status
+- [ ] **TEST-10**: payment_service get_calendar_events
+- [ ] **TEST-11**: version_service diff_versions
+- [ ] **TEST-12**: postprocessor _protect/_restore_abbreviations
+- [ ] **TEST-13**: ai_extractor _normalize_date boundaries
+- [ ] **TEST-14**: lifecycle_service get_attention_required edge cases
+- [ ] **TEST-15**: conftest.py autouse fixture to reset _model singleton
+
+---
+
+## Backend Traceability
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| XSCOPE-04 | Phase 38 | Pending |
+| XSCOPE-05 | Phase 38 | Pending |
+| XSCOPE-06 | Phase 38 | Pending |
+| CONF-01 | Phase 38 | Pending |
+| CONF-02 | Phase 38 | Pending |
+| CONF-03 | Phase 38 | Pending |
+| CONF-04 | Phase 38 | Pending |
+| CONF-05 | Phase 38 | Pending |
+| CONF-06 | Phase 38 | Pending |
+| PROV-01 | Phase 39 | Pending |
+| PROV-02 | Phase 39 | Pending |
+| PROV-03 | Phase 39 | Pending |
+| PROV-04 | Phase 39 | Pending |
+| PROV-05 | Phase 39 | Pending |
+| PROV-06 | Phase 39 | Pending |
+| PROV-07 | Phase 39 | Pending |
+| PROV-08 | Phase 39 | Pending |
+| PROV-09 | Phase 39 | Pending |
+| DINT-01 | Phase 40 | Pending |
+| DINT-02 | Phase 40 | Pending |
+| DINT-03 | Phase 40 | Pending |
+| DINT-04 | Phase 40 | Pending |
+| DINT-05 | Phase 40 | Pending |
+| DINT-06 | Phase 40 | Pending |
+| DINT-07 | Phase 40 | Pending |
+| TSAFE-01 | Phase 41 | Pending |
+| TSAFE-02 | Phase 41 | Pending |
+| TSAFE-03 | Phase 41 | Pending |
+| TSAFE-04 | Phase 41 | Pending |
+| TSAFE-05 | Phase 41 | Pending |
+| TSAFE-06 | Phase 41 | Pending |
+| TSAFE-07 | Phase 41 | Pending |
+| TSAFE-08 | Phase 41 | Pending |
+| ERRH-01 | Phase 42 | Pending |
+| ERRH-02 | Phase 42 | Pending |
+| ERRH-03 | Phase 42 | Pending |
+| ERRH-04 | Phase 42 | Pending |
+| ERRH-05 | Phase 42 | Pending |
+| ERRH-06 | Phase 42 | Pending |
+| ERRH-07 | Phase 42 | Pending |
+| ERRH-08 | Phase 42 | Pending |
+| ERRH-09 | Phase 42 | Pending |
+| ERRH-10 | Phase 42 | Pending |
+| ERRH-11 | Phase 42 | Pending |
+| ERRH-12 | Phase 42 | Pending |
+| ERRH-13 | Phase 42 | Pending |
+| ERRH-14 | Phase 42 | Pending |
+| ERRH-15 | Phase 42 | Pending |
+| ERRH-16 | Phase 42 | Pending |
+| ERRH-17 | Phase 42 | Pending |
+| ERRH-18 | Phase 42 | Pending |
+| TEST-01 | Phase 43 | Pending |
+| TEST-02 | Phase 43 | Pending |
+| TEST-03 | Phase 43 | Pending |
+| TEST-04 | Phase 43 | Pending |
+| TEST-05 | Phase 43 | Pending |
+| TEST-06 | Phase 43 | Pending |
+| TEST-07 | Phase 43 | Pending |
+| TEST-08 | Phase 43 | Pending |
+| TEST-09 | Phase 43 | Pending |
+| TEST-10 | Phase 43 | Pending |
+| TEST-11 | Phase 43 | Pending |
+| TEST-12 | Phase 43 | Pending |
+| TEST-13 | Phase 43 | Pending |
+| TEST-14 | Phase 43 | Pending |
+| TEST-15 | Phase 43 | Pending |
+
+**Backend Coverage:**
+- Backend requirements: 67 total
+- Mapped to phases: 67
+- Unmapped: 0 ✓
 
 ## Future Requirements
 - Responsive design (breakpoints, mobile) — deferred, desktop-only app
@@ -159,7 +236,5 @@
 ## Out of Scope
 - Frontend файлы (app/) — VioletRiver scope
 - Новые фичи не из аудита — v1.1+
-- WAL mode для SQLite — не нужен для single-writer desktop app
-- aiosqlite — добавляет сложности без пользы при текущей архитектуре
-- Connection pool — SQLite не нуждается
+- WAL mode, aiosqlite, connection pool — не нужны для desktop app
 - Retry logic в провайдерах — fallback chain уже есть
