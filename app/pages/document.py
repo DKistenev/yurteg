@@ -1,8 +1,9 @@
-"""Карточка документа — двухколоночный layout: 380px metadata left + dark preview right.
+"""Карточка документа — двухколоночный layout: metadata left (45%) + PDF preview right (55%).
 
-Per D-01: Two-column, left panel scrollable, right panel dark placeholder.
+Per D-01: Two-column, left panel scrollable, right panel dark with iframe.
 Per D-02: Header: breadcrumbs + prev/next + action buttons in left panel top.
 Per D-03: Prev/next navigate doc_id in URL.
+Per D-04: Dark bg (#1e293b) for preview panel, filename in toolbar.
 """
 import logging
 
@@ -14,6 +15,7 @@ from app.state import get_state
 from config import load_settings, save_setting
 from app.styles import (
     DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
+    DOC_LEFT_PANEL, DOC_PREVIEW_BG,
     BREADCRUMB_LINK, BREADCRUMB_CURRENT,
     VERSION_DOT, VERSION_LINE,
     ACTION_BTN, ACTION_BTN_PRIMARY,
@@ -129,15 +131,17 @@ async def build(doc_id: str = "") -> None:
     )
     computed_status = dict(status_row)["computed_status"] if status_row else "unknown"
 
-    # ── Single-column scrollable layout (full viewport below header) ────────────
-    with ui.column().classes("min-w-0").style(
-        "width: 100%; max-width: 720px; margin: 0 auto; height: calc(100vh - 56px); overflow-y: auto;"
+    # ── Two-column layout: metadata left (45%) + preview right (55%) ────────────
+    with ui.row(wrap=False).classes("w-full min-w-0").style(
+        "height: calc(100vh - 56px);"
     ):
 
         # ══════════════════════════════════════════════════════════════════
-        # MAIN CONTENT — centered, full-width cards
+        # LEFT PANEL — metadata (45%, scrollable)
         # ══════════════════════════════════════════════════════════════════
-        with ui.column().classes("bg-white px-6 py-4 gap-0 w-full"):
+        with ui.column().classes(DOC_LEFT_PANEL + " min-w-0").style(
+            "width: 45%; overflow-y: auto;"
+        ):
 
             # ── Top bar: breadcrumbs + prev/next + action buttons ──────
             with ui.row(wrap=False).classes("items-center gap-0 mb-4 w-full"):
@@ -473,6 +477,7 @@ async def build(doc_id: str = "") -> None:
                             contract.get("review_status", "not_reviewed"),
                             comment_text,
                         )
+                        ui.notify("Сохранено", type="positive")
                     except Exception:
                         logger.exception("Ошибка сохранения заметки")
                         ui.notify("Не удалось сохранить заметку.", type="negative")
@@ -514,4 +519,43 @@ async def build(doc_id: str = "") -> None:
             save_tmpl_btn = ui.button(
                 "Сохранить как шаблон", icon="bookmark_add", on_click=_save_as_template
             ).props("flat dense no-caps").classes(ACTION_BTN + " w-full justify-center")
+
+        # ══════════════════════════════════════════════════════════════════
+        # RIGHT PANEL — PDF/DOCX preview (55%, dark background)
+        # Per D-01, D-02, D-03, D-04
+        # ══════════════════════════════════════════════════════════════════
+        original_path = contract.get("original_path", "")
+        filename = _Path(original_path).name if original_path else "Документ"
+        is_pdf = original_path.lower().endswith(".pdf") if original_path else False
+
+        with ui.column().classes("min-w-0").style(
+            f"width: 55%; background: {DOC_PREVIEW_BG}; height: 100%;"
+        ):
+            # Toolbar with filename
+            with ui.element("div").classes("doc-preview-toolbar"):
+                ui.label(filename).classes("doc-preview-filename")
+                if original_path:
+                    ui.button(
+                        icon="open_in_new", on_click=_open_file
+                    ).props("flat dense round size=sm").style("color: #94a3b8;")
+
+            if is_pdf:
+                # PDF iframe — /download/{doc_id} route serves the file
+                ui.html(
+                    f'<iframe src="/download/{doc_id}" '
+                    f'style="width:100%; height:100%; border:none; background:white;" '
+                    f'title="PDF превью"></iframe>'
+                ).style("flex: 1; display: flex;")
+            else:
+                # DOCX or unknown — placeholder
+                with ui.column().classes("flex-1 items-center justify-center gap-4"):
+                    ui.icon("description").style("font-size: 64px; color: #475569;")
+                    ui.label("Превью недоступно для DOCX").style(
+                        "font-size: 14px; color: #94a3b8; font-weight: 500;"
+                    )
+                    ui.button(
+                        "Открыть файл", icon="open_in_new", on_click=_open_file
+                    ).props("flat no-caps").style(
+                        "color: #94a3b8; border: 1px solid #334155;"
+                    )
 
