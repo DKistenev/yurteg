@@ -42,16 +42,24 @@ def get_fallback_provider(config: Config) -> LLMProvider | None:
     """Создаёт запасной провайдер по config.fallback_provider.
 
     Returns:
-        Экземпляр LLMProvider или None если fallback не задан.
+        Экземпляр LLMProvider или None если fallback не задан или API-ключ отсутствует.
     """
     if not config.fallback_provider:
         return None
-    match config.fallback_provider:
-        case "openrouter":
-            return OpenRouterProvider(config)
-        case "ollama":
-            return OllamaProvider(config)
-        case "zai":
-            return ZAIProvider(config)
-        case _:
-            return None
+    try:
+        match config.fallback_provider:
+            case "openrouter":
+                return OpenRouterProvider(config)
+            case "ollama":
+                return OllamaProvider(config)
+            case "zai":
+                return ZAIProvider(config)
+            case _:
+                return None
+    except ValueError:
+        # API-ключ не задан — fallback недоступен, не крашим приложение
+        import logging
+        logging.getLogger(__name__).warning(
+            "Fallback провайдер %r недоступен (API-ключ не задан)", config.fallback_provider
+        )
+        return None

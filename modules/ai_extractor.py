@@ -140,6 +140,7 @@ USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста 
 - amount (string|null): сумма с валютой, пробелы-разделители (пример: "1 500 000 руб.")
 - special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии). Пустой массив [] если нет
 - parties (array of strings): все стороны документа. Пустой массив [] если не определены
+- contract_number (string|null): номер договора/документа (например "№ 123/2024" или "б/н") или null если нет
 - confidence (float): уверенность 0.0–1.0
 - is_template (bool): true если документ — шаблон/бланк с пустыми полями
 - payment_terms (string|null): текстовое описание порядка оплаты («ежемесячно до 5-го числа») или null
@@ -604,4 +605,5 @@ def _json_to_metadata(data: dict) -> ContractMetadata:
         payment_amount=_safe_float(data.get("payment_amount")),
         payment_frequency=data.get("payment_frequency"),
         payment_direction=data.get("payment_direction"),
+        contract_number=data.get("contract_number"),
     )
