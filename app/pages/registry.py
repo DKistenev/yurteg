@@ -840,12 +840,14 @@ def build() -> None:
         month_end = today.replace(day=28) + timedelta(days=4)
         month_end = month_end.replace(day=1)  # first day of next month
 
-        groups: dict[str, list] = {"today": [], "week": [], "month": [], "later": []}
+        groups: dict[str, list] = {"past": [], "today": [], "week": [], "month": [], "later": []}
         for ev in events:
             d = _parse_date_safe(ev["date"])
             if d is None:
                 continue
-            if d == today:
+            if d < today:
+                groups["past"].append(ev)
+            elif d == today:
                 groups["today"].append(ev)
             elif d <= week_end:
                 groups["week"].append(ev)
@@ -926,6 +928,38 @@ def build() -> None:
                                     ui.label(amt).classes("timeline-amount")
                         if cid:
                             card.on("click", lambda c=cid: ui.navigate.to(f"/document/{c}"))
+
+                    # Past events — collapsible "Просрочены" (REG-02)
+                    if groups["past"]:
+                        _past_expanded: dict = {"v": False}
+                        _past_icon_ref: list = []
+                        past_hdr = ui.row().classes("items-center gap-2 cursor-pointer w-full")
+                        with past_hdr:
+                            ui.icon("warning").style("font-size:16px;color:#dc2626;")
+                            ui.label(f"Просрочены \u2014 {len(groups['past'])}").classes(
+                                "timeline-group-title"
+                            ).style("color:#dc2626;margin:0;")
+                            _pi = ui.icon("expand_more").style(
+                                "color:#dc2626;font-size:18px;margin-left:auto;"
+                            )
+                            _past_icon_ref.append(_pi)
+                        past_items = ui.column().classes("w-full gap-0")
+                        past_items.set_visibility(False)
+                        with past_items:
+                            for ev in groups["past"]:
+                                _render_event_card(ev)
+
+                        def _toggle_past(
+                            _exp: dict = _past_expanded,
+                            _col: object = past_items,
+                            _icons: list = _past_icon_ref,
+                        ) -> None:
+                            _exp["v"] = not _exp["v"]
+                            _col.set_visibility(_exp["v"])
+                            if _icons:
+                                _icons[0].set_name("expand_less" if _exp["v"] else "expand_more")
+
+                        past_hdr.on("click", lambda: _toggle_past())
 
                     # Today group
                     _month_full_ru = [
