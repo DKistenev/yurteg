@@ -74,9 +74,24 @@ async def start_pipeline(
         stats dict от pipeline_service.process_archive
         (total, done, errors, skipped, output_dir, report_path)
     """
+    # Pre-flight: check if AI provider is reachable (ERRES-02)
+    config = Config()
+    if config.active_provider == "ollama":
+        try:
+            import httpx as _httpx
+            async with _httpx.AsyncClient(timeout=3) as _client:
+                _resp = await _client.get(f"http://localhost:{config.llama_server_port}/health")
+                if _resp.status_code != 200:
+                    raise ConnectionError("llama-server unhealthy")
+        except Exception:
+            ui.notify(
+                "AI-модель недоступна. Переключитесь на облачный провайдер в Настройках → Модель ИИ.",
+                type="warning",
+                timeout=10000,
+            )
+
     # Pitfall 5: использовать get_running_loop() внутри async-функции
     loop = asyncio.get_running_loop()
-    config = Config()
     error_entries: list[tuple[str, str]] = []
 
     # --- Старт: показать секцию, задизейблить кнопку ---
