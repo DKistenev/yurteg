@@ -8,6 +8,5 @@ yurteg.db
 .env
 .streamlit/secrets.toml
 .claude/
-.planning/
 .playwright-mcp/
 /*.png
