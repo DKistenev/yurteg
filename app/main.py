@@ -15,11 +15,13 @@ from nicegui import app, run, ui
 from app.components.header import render_header
 from app.pages import document, registry, settings, templates
 from app.state import get_state
-from config import APP_VERSION, load_runtime_config
+from config import APP_VERSION, load_runtime_config, load_settings, save_setting
 from runtime_paths import get_resource_path
 from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
+from services.log_setup import setup_logging
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 # Pattern: await run.io_bound(sync_function, args) — use for ALL blocking calls from UI
@@ -262,6 +264,19 @@ async def download_document(doc_id: int, client: str = ClientManager.DEFAULT_CLI
 # Note: ui.run() is at module level, NOT inside if __name__ == '__main__'.
 # native=True subprocess bypasses main guard (Research Pitfall 5).
 
+
+def _get_storage_secret() -> str:
+    """Return persistent storage_secret, generating on first run."""
+    import secrets as _secrets
+
+    s = load_settings()
+    secret = s.get("storage_secret")
+    if not secret:
+        secret = _secrets.token_hex(32)
+        save_setting("storage_secret", secret)
+    return secret
+
+
 ui.run(
     native=True,
     dark=False,
@@ -269,5 +284,5 @@ ui.run(
     host="127.0.0.1",
     title="ЮрТэг",
     window_size=(1400, 900),
-    storage_secret='yurteg-desktop-secret',
+    storage_secret=_get_storage_secret(),
 )
