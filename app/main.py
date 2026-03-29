@@ -19,6 +19,7 @@ from config import APP_VERSION, load_runtime_config, load_settings, save_setting
 from runtime_paths import get_resource_path
 from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
+from services.instance_lock import acquire_instance_lock
 from services.log_setup import setup_logging
 
 setup_logging()
@@ -276,6 +277,8 @@ def _get_storage_secret() -> str:
         save_setting("storage_secret", secret)
     return secret
 
+
+acquire_instance_lock()
 
 ui.run(
     native=True,
