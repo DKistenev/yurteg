@@ -194,7 +194,7 @@ Plans:
   4. В удалённых логах нет текста из юридических документов (только события INFO/WARNING/ERROR)
 **Plans**: 2 plans
 Plans:
-- [ ] 44-01-PLAN.md — File + BetterStack logging with rotation, machine_id, content filter
+- [x] 44-01-PLAN.md — File + BetterStack logging with rotation, machine_id, content filter
 - [ ] 44-02-PLAN.md — Single instance file lock (fcntl/msvcrt)
 
 ### Phase 45: Icon & Splash
@@ -254,7 +254,7 @@ Plans:
 | 41. Thread Safety | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 42. Error Handling | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 43. Test Coverage | v1.0-BE | 1/1 | Complete | 2026-03-29 |
-| 44. Logging & Single Instance | v1.2 | 0/2 | Not started | - |
+| 44. Logging & Single Instance | v1.2 | 1/2 | In Progress|  |
 | 45. Icon & Splash | v1.2 | 0/? | Not started | - |
 | 46. Offline & Disk Safety | v1.2 | 0/? | Not started | - |
 | 47. Runtime Safety | v1.2 | 0/? | Not started | - |
