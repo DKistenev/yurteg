@@ -107,12 +107,14 @@
 - [ ] Splash screen при старте PyInstaller
 - [ ] Offline first run — проверка интернета перед скачиванием моделей
 - [ ] Проверка места на диске перед скачиванием
-- [ ] Автообновление уровень 1 — проверка GitHub Releases + баннер
 - [ ] storage_secret — генерация при первом запуске
 - [ ] macOS quarantine — xattr на llama-server
 - [ ] freeze_support() в main.py
 - [ ] Hidden imports в .spec
 - [ ] runtime_paths.py для frozen-safe ресурсов (частично сделано)
+- [ ] Верификация: redline работает корректно
+- [ ] Верификация: предпросмотр документа работает
+- [ ] Верификация: кнопка «Гид» работает
 
 ### Out of Scope
 
