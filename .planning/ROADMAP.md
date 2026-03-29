@@ -19,22 +19,22 @@ Phases 28–31: v0.9 Backend Hardening
 
 </details>
 
-### 🚧 v1.0 Hackathon-Ready (In Progress)
+### ✅ v1.0 Hackathon-Ready (Shipped: 2026-03-29)
 
 **Milestone Goal:** Устранить все баги из аудита и довести каждый экран до демо-качества — приложение должно быть стабильным для живой демонстрации на хакатоне.
 
-- [ ] **Phase 32: P0 Critical Fixes** — Шрифты, AG Grid API, двойные вызовы — без этого приложение выглядит сломанным
-- [x] **Phase 33: Code Quality & Error Resilience** — P1 фиксы: inline colors → tokens, a11y, дублированный код, loading/error states
+- [x] **Phase 32: P0 Critical Fixes** — Шрифты, AG Grid API, двойные вызовы
+- [x] **Phase 33: Code Quality & Error Resilience** — P1 фиксы: inline colors → tokens, a11y, loading/error states
 - [x] **Phase 34: Registry & Document Card** — Поиск, календарь, превью файлов, feedback при сохранении
-- [x] **Phase 35: Templates, Settings & Onboarding** — Visual consistency вспомогательных экранов, wizard end-to-end
-- [ ] **Phase 36: Cross-Scope Integration** — Подключение STATUS_LABELS, APP_VERSION, убрать dict cast (ждёт CalmBridge)
-- [ ] **Phase 37: Final Visual Pass** — Spacing, typography, animations — консистентность по всем экранам перед хакатоном
-- [ ] **Phase 38: Cross-Scope + Config Hardening** — Разблокировать VioletRiver + Config __post_init__ + atomic settings
-- [ ] **Phase 39: Provider Cleanup** — Timeout, get_logprobs контракт, API key validation, resource cleanup
-- [ ] **Phase 40: Data Integrity** — contract_number chain, деанонимизация, truncation flag, redline дата
-- [ ] **Phase 41: Thread Safety** — RLock, locks на read-методы, атомарные операции, llama_server race fix
-- [ ] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation guards, GBNF fail-loud
-- [ ] **Phase 43: Test Coverage** — 15 test gaps: concurrent writes, migrations, payment edges, helpers
+- [x] **Phase 35: Templates, Settings & Onboarding** — Visual consistency, wizard end-to-end
+- [x] **Phase 36: Cross-Scope Integration** — STATUS_LABELS, APP_VERSION, убран dict cast
+- [x] **Phase 37: Final Visual Pass** — Spacing, typography, animations — консистентность
+- [x] **Phase 38: Cross-Scope + Config Hardening** — Config __post_init__ + atomic settings
+- [x] **Phase 39: Provider Cleanup** — Timeout, get_logprobs контракт, API key validation
+- [x] **Phase 40: Data Integrity** — contract_number chain, деанонимизация, redline дата
+- [x] **Phase 41: Thread Safety** — RLock, locks на read-методы, атомарные операции
+- [x] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation, GBNF fail-loud
+- [x] **Phase 43: Test Coverage** — 15 test gaps закрыты
 
 ## Phase Details
 
@@ -182,15 +182,15 @@ Plans:
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 32. P0 Critical Fixes | v1.0-FE | 0/1 | Planned | - |
+| 32. P0 Critical Fixes | v1.0-FE | 1/1 | Complete | 2026-03-29 |
 | 33. Code Quality & Error Resilience | v1.0-FE | 1/1 | Complete | 2026-03-28 |
 | 34. Registry & Document Card | v1.0-FE | 1/1 | Complete | 2026-03-28 |
 | 35. Templates, Settings & Onboarding | v1.0-FE | 1/1 | Complete | 2026-03-28 |
-| 36. Cross-Scope Integration | v1.0-FE | 0/TBD | Not started | - |
-| 37. Final Visual Pass | v1.0-FE | 0/TBD | Not started | - |
-| 38. Cross-Scope + Config Hardening | v1.0-BE | 0/2 | Planned | - |
-| 39. Provider Cleanup | v1.0-BE | 0/TBD | Not started | - |
-| 40. Data Integrity | v1.0-BE | 0/TBD | Not started | - |
-| 41. Thread Safety | v1.0-BE | 0/TBD | Not started | - |
-| 42. Error Handling | v1.0-BE | 0/TBD | Not started | - |
-| 43. Test Coverage | v1.0-BE | 0/TBD | Not started | - |
+| 36. Cross-Scope Integration | v1.0-FE | 1/1 | Complete | 2026-03-29 |
+| 37. Final Visual Pass | v1.0-FE | 1/1 | Complete | 2026-03-29 |
+| 38. Cross-Scope + Config Hardening | v1.0-BE | 2/2 | Complete | 2026-03-29 |
+| 39. Provider Cleanup | v1.0-BE | 1/1 | Complete | 2026-03-29 |
+| 40. Data Integrity | v1.0-BE | 1/1 | Complete | 2026-03-29 |
+| 41. Thread Safety | v1.0-BE | 1/1 | Complete | 2026-03-29 |
+| 42. Error Handling | v1.0-BE | 1/1 | Complete | 2026-03-29 |
+| 43. Test Coverage | v1.0-BE | 1/1 | Complete | 2026-03-29 |

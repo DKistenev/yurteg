@@ -1,5 +1,26 @@
 # Milestones
 
+## v1.0 Hackathon-Ready (Shipped: 2026-03-29)
+
+**Phases completed:** 12 phases (32–43)
+
+**Key accomplishments:**
+
+- P0 Critical Fixes: шрифты, AG Grid API, двойные вызовы дедлайнов
+- Code Quality: inline colors → tokens, a11y bulk actions, loading/error states
+- Registry & Document Card: поиск с иконкой, календарь, превью PDF/DOCX, feedback при сохранении
+- Templates, Settings & Onboarding: visual consistency, wizard end-to-end
+- Cross-Scope Integration: STATUS_LABELS, APP_VERSION, убран dict cast
+- Final Visual Pass: spacing, typography, animations — консистентность по всем экранам
+- Config Hardening: __post_init__ валидация, atomic settings, active_model fix
+- Provider Cleanup: timeout, get_logprobs контракт, API key validation
+- Data Integrity: contract_number миграция v10, деанонимизация всех полей, redline дата
+- Thread Safety: RLock, locks на read-методы, атомарные операции
+- Error Handling: bare excepts → конкретные, input validation, GBNF fail-loud
+- Test Coverage: 15 gaps закрыты — concurrent writes, migrations, payment edges
+
+---
+
 ## v0.9 Backend Hardening (Shipped: 2026-03-27)
 
 **Phases completed:** 4 phases, 11 plans, 9 tasks

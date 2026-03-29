@@ -1,32 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: Hackathon-Ready
-status: executing
-stopped_at: Completed 34-01-PLAN.md
-last_updated: "2026-03-28T18:58:00Z"
-last_activity: 2026-03-28 — Phase 34 Plan 01 completed (Registry & Document Card)
+milestone: v1.1
+milestone_name: Bug Sweep
+status: defining
+stopped_at: —
+last_updated: "2026-03-29T14:00:00Z"
+last_activity: 2026-03-29 — Milestone v1.1 started
 progress:
-  percent: 17
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-28)
+See: .planning/PROJECT.md (updated 2026-03-29)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения
-**Current focus:** Dual-track — Phase 32 (Frontend, VioletRiver) + Phase 38 (Backend, CalmBridge)
+**Current focus:** v1.1 Bug Sweep — 35 багов из аудита
 
 ## Current Position
 
-Phase: 35 of 43 (Frontend: Templates, Settings & Onboarding) / 38 of 43 (Backend: Cross-Scope + Config Hardening)
+Phase: Not started (defining requirements)
 Plan: —
-Status: Phase 34 complete, ready for Phase 35
-Last activity: 2026-03-28 — Phase 34 completed (5/5 tasks, 5 requirements)
+Status: Defining requirements
+Last activity: 2026-03-29 — Milestone v1.1 started
 
-Progress: [##░░░░░░░░] 17% (2/12 phases)
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 

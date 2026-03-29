@@ -8,15 +8,20 @@
 
 Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными — без ручного ввода, без обучения, без «проекта внедрения».
 
-## Current State (после v0.9)
+## Current State (после v1.0)
 
-**Shipped:** v0.9 Backend Hardening (2026-03-27)
-- Мёртвый код удалён: validator.py, reporter.py, deprecated AI functions
-- Confidence через logprobs llama-server (двухзапросный flow)
-- Word-level redline DOCX с track changes (w:ins/w:del)
-- Кэш embeddings шаблонов (миграции v8, v9)
-- UI: открытие файла, шаблоны, дедлайны, bulk delete
-- 252 теста зелёные, 0 failures
+**Shipped:** v1.0 Hackathon-Ready (2026-03-29)
+- P0 fixes: шрифты, AG Grid API, двойные вызовы
+- Code quality: tokens, a11y, error resilience
+- Registry & Document Card: поиск, календарь, превью, feedback
+- Templates, Settings, Onboarding: visual consistency, wizard
+- Cross-scope: STATUS_LABELS, APP_VERSION, dict-only DB
+- Config hardening: __post_init__, atomic settings, active_model
+- Provider cleanup: timeout, logprobs контракт, API key validation
+- Data integrity: contract_number, деанонимизация, redline дата
+- Thread safety: RLock, locks на reads, атомарные операции
+- Error handling: конкретные exceptions, input validation, GBNF fail-loud
+- Test coverage: 15 gaps закрыты
 
 <details>
 <summary>v0.8 Hardening & Cleanup (2026-03-25)</summary>
@@ -28,7 +33,7 @@
 - 315 тестов зелёные, офлайн-ресурсы бандлятся, зависимости пиннуты
 </details>
 
-**Next:** v0.8.1 UI Polish — полная переработка визуала по утверждённым мокапам
+**Next:** v1.1 Bug Sweep — 35 багов из аудита
 
 ## Codebase
 
@@ -100,35 +105,55 @@
 - ✓ Виджет дедлайнов в реестре — v0.9
 - ✓ Bulk delete с обновлением дедлайнов — v0.9
 
-## Current Milestone: v1.0 Hackathon-Ready
+## Current Milestone: v1.1 Bug Sweep
 
-**Goal:** Устранить все баги из двойного аудита и довести каждый экран до демо-качества — приложение должно быть стабильным для живой демонстрации на хакатоне.
+**Goal:** Устранить все 35 багов, найденных аудитом кодовой базы — от критичных (данные пишутся не в ту БД, утечка ПД в облако) до P2 (off-by-one, stale tests).
 
-### Backend (CalmBridge — config.py, modules/, services/, providers/)
-- [ ] Cross-scope фиксы: APP_VERSION, STATUS_LABELS с css_class, database → dict-only
-- [ ] Thread safety: locks на все read-методы database.py, атомарные операции version_service
-- [ ] Data integrity: contract_number миграция v10, атомарная запись settings, деанонимизация всех полей
-- [ ] Error handling: bare excepts → конкретные, timeout на HTTP, fail-loud GBNF, redline реальная дата
-- [ ] Config hardening: __post_init__() валидация, active_model fix, API key validation
-- [ ] Provider cleanup: timeout, resource cleanup, get_logprobs контракт в base class
-- [ ] Test coverage: 15 gaps — thread safety, миграции v2-v9, payment edges, ai_extractor helpers
+### P0 — Критичные (4)
+- [ ] Pipeline пишет в yurteg.db выходной папки, а не в клиентский реестр
+- [ ] Переобработка одного документа вызывает db.clear_all() и уничтожает весь реестр
+- [ ] Telegram REST API без request-level auth
+- [ ] При fallback на облако анонимизация пропускается — утечка ПД
 
-### Frontend (VioletRiver — app/)
-- [ ] P0 аудит-фиксы: шрифты 404 (add_static_files), AG Grid deprecated API, двойные вызовы
-- [ ] P1 аудит-фиксы: settings dead code, hardcoded colors → tokens, bulk actions a11y, hover preview keyboard
-- [ ] Cross-scope: единый STATUS_LABELS (после коммита CalmBridge), APP_VERSION в footer, убрать dict cast
-- [ ] Error resilience: loading states и error boundaries — graceful degradation при падении бэкенда
-- [ ] Реестр + split panel: доведение, поиск с иконкой, календарь
-- [ ] Карточка документа: превью PDF/DOCX, визуальная плотность, feedback при сохранении заметок
-- [ ] Шаблоны + Настройки: доведение карточек, visual consistency
-- [ ] Онбординг: wizard и гид-тур — проверить и починить
-- [ ] Финальный визуальный проход: spacing, typography, animations — консистентность
+### P1 — Важные (19)
+- [ ] Settings UI не влияют на runtime (Config не подмешивает load_settings)
+- [ ] Download/redline route игнорируют workspace
+- [ ] Переобработка карточки пишет не в БД текущего клиента
+- [ ] Проверка по шаблону и redline сравнивают subject, а не full_text
+- [ ] DELETE без ON DELETE CASCADE ломает versioned documents
+- [ ] ClientManager.add_client() — race condition при одном .db
+- [ ] Splash после ошибки загрузки показывает 100% и "готов"
+- [ ] Onboarding просит Telegram bot token, который не используется
+- [ ] "Проверить работу" всегда проверяет localhost:8080
+- [ ] Тумблер "Анонимизация" не влияет на pipeline
+- [ ] Платёжные события stale после переобработки
+- [ ] Бесконечное добавление в историю версий без защиты от дублей
+- [ ] Автосвязывание ломается для legacy-документов без embedding
+- [ ] Шаблон можно сохранить пустым/битым
+- [ ] Fallback на ZAI сломан (active_model от другого провайдера)
+- [ ] Отсутствие GBNF-файла валит extraction до retry
+- [ ] move_record_to_client() неатомарен
+- [ ] Telegram digest не включает просроченные документы
+- [ ] Telegram queue не очищает исходные файлы, TelegramSync перезаписывает
+
+### P2 — Улучшения (12)
+- [ ] Telegram health-check /health vs /api/health
+- [ ] UI завышает число обработанных (done + skipped)
+- [ ] Expiring расходится на границе today + warning_days
+- [ ] Ручной статус negotiation исключён из attention но не из counts/календаря
+- [ ] Дочерние строки версий не показывают expiring
+- [ ] days_until_expiry off-by-one (julianday)
+- [ ] Тесты закрепляют неправильный health-check контракт
+- [ ] model_used врёт при fallback
+- [ ] Облачные провайдеры игнорируют kwargs-контракт
+- [ ] Невалидный JSON от модели не ретраится
+- [ ] digest_hour хранится, но scheduler всегда 09:00 UTC
+- [ ] threshold_enabled хранится, но не используется
 
 ### Deferred
-
-- [ ] Сборка DMG для macOS через PyInstaller + NiceGUI native mode
+- [ ] Сборка DMG для macOS
 - [ ] Сборка EXE для Windows
-- [ ] Автообновление или уведомление о новых версиях
+- [ ] Автообновление
 
 ### Out of Scope
 
@@ -155,7 +180,7 @@
 | 4 | **Визуальный продукт** | ✅ Завершена (v0.7) — tokens.css, dark chrome, hero splash, visual density |
 | 5 | **Hardening & Cleanup** | ✅ Завершена (v0.8) — баги, чистка, 315 тестов |
 | 6 | **Backend Hardening** | ✅ Завершена (v0.9) — cleanup, AI pipeline, redline, vectors, UI wire-up |
-| 7 | **Hackathon-Ready** | Аудит-фиксы + UI Polish + error resilience (v1.0) |
+| 7 | **Hackathon-Ready** | ✅ Завершена (v1.0) — аудит-фиксы, UI polish, error resilience, thread safety, tests |
 | 8 | DMG/EXE сборка | Доставка конечным пользователям (v1.1) |
 
 ## Constraints
@@ -211,4 +236,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 — Milestone v1.0 Hackathon-Ready started (backend + frontend)*
+*Last updated: 2026-03-29 — Milestone v1.1 Bug Sweep started*
