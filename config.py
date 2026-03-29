@@ -5,7 +5,7 @@ import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class Config:
     ai_base_url: str = "https://api.z.ai/api/coding/paas/v4"
     # Запасной: OpenRouter (бесплатные модели)
     ai_fallback_base_url: str = "https://openrouter.ai/api/v1"
+    model_zai: str = "glm-4.7"
     model_fallback: str = "arcee-ai/trinity-large-preview:free"
     ai_max_retries: int = 2
     ai_temperature: float = 0
@@ -183,7 +184,7 @@ class Config:
             return "local"
         if self.active_provider == "openrouter":
             return self.model_fallback
-        return "glm-4.7"
+        return self.model_zai
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +193,19 @@ class Config:
 
 _SETTINGS_FILE = Path.home() / ".yurteg" / "settings.json"
 _settings_lock = threading.Lock()
+_CONFIG_SETTING_KEYS = {
+    "active_provider",
+    "fallback_provider",
+    "llama_server_port",
+    "max_workers",
+    "confidence_high",
+    "confidence_low",
+    "validation_mode",
+    "telegram_server_url",
+    "telegram_chat_id",
+    "model_zai",
+    "model_fallback",
+}
 
 
 def load_settings() -> dict:
@@ -217,3 +231,17 @@ def save_setting(key: str, value) -> None:
             os.chmod(_SETTINGS_FILE, 0o600)
         except OSError:
             pass  # Windows не поддерживает POSIX chmod
+
+
+def load_runtime_config(**overrides: Any) -> Config:
+    """Собирает Config из дефолтов, settings.json и явных overrides."""
+    settings = load_settings()
+    config_kwargs = {
+        key: settings[key]
+        for key in _CONFIG_SETTING_KEYS
+        if key in settings
+    }
+    if settings.get("anonymize_for_cloud", True) is False:
+        config_kwargs["anonymize_types"] = set()
+    config_kwargs.update(overrides)
+    return Config(**config_kwargs)

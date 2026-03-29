@@ -155,6 +155,15 @@ def find_version_match(
 
                 if cand_parties and parties_set == cand_parties:
                     cand_vector = _load_embedding(db.conn, cand_id)
+                    if cand_vector is None:
+                        doc = db.get_contract_by_id(cand_id) or {}
+                        full_text = doc.get("full_text") or doc.get("subject") or ""
+                        if full_text:
+                            try:
+                                ensure_embedding(db, cand_id, full_text)
+                                cand_vector = _load_embedding(db.conn, cand_id)
+                            except Exception:
+                                cand_vector = None
                     if cand_vector is not None:
                         sim = _cosine_sim(new_vector, cand_vector)
                         if sim > best_sim:
@@ -187,6 +196,12 @@ def link_versions(
     Returns: contract_group_id (существующий или новый)
     """
     with db.lock:
+        existing = db.conn.execute(
+            "SELECT contract_group_id FROM document_versions WHERE contract_id=?",
+            (contract_id,),
+        ).fetchone()
+        if existing is not None:
+            return existing[0]
         if group_id is None:
             # Новый договор — group_id = contract_id (convention)
             effective_group_id = contract_id

@@ -262,6 +262,7 @@ def extract_metadata(
     config: Config,
     provider: "LLMProvider | None" = None,
     fallback_provider: "LLMProvider | None" = None,
+    fallback_anonymized_text: str | None = None,
 ) -> ContractMetadata:
     """
     Отправляет анонимизированный текст в LLM, парсит JSON-ответ.
@@ -298,12 +299,24 @@ def extract_metadata(
         {"role": "user", "content": user_prompt},
     ]
 
+    def _annotate(
+        metadata: ContractMetadata,
+        provider_name: str,
+        model_name: str,
+    ) -> ContractMetadata:
+        setattr(metadata, "_provider_name", provider_name)
+        setattr(metadata, "_provider_model", model_name)
+        return metadata
+
     # Этап 1: Основная модель
     if provider is not None:
         # Для Ollama — передать GBNF грамматику в первый запрос
         grammar_content: str | None = None
         if config.active_provider == "ollama":
-            grammar_content = _load_grammar()
+            try:
+                grammar_content = _load_grammar()
+            except FileNotFoundError as exc:
+                logger.warning("GBNF грамматика недоступна, продолжаю без неё: %s", exc)
 
         # Маршрутизация через провайдер (OllamaProvider, ZAIProvider, etc.)
         try:
@@ -312,7 +325,11 @@ def extract_metadata(
                 **({"grammar": grammar_content} if grammar_content else {}),
             )
             json_data = _parse_json_response(raw_text)
-            result: ContractMetadata | Exception = _json_to_metadata(json_data)
+            result: ContractMetadata | Exception = _annotate(
+                _json_to_metadata(json_data),
+                provider.name,
+                getattr(config, f"model_{provider.name}", config.active_model),
+            )
         except Exception as e:
             result = e
     else:
@@ -356,7 +373,11 @@ def extract_metadata(
                 if config.active_provider == "ollama":
                     sanitized = sanitize_metadata(asdict(fb))
                     fb = _json_to_metadata(sanitized)
-                return fb
+                return _annotate(
+                    fb,
+                    provider.name,
+                    getattr(config, f"model_{provider.name}", config.active_model),
+                )
         return result
 
     last_error = result
@@ -365,10 +386,24 @@ def extract_metadata(
     if fallback_provider is not None:
         logger.info("Основной провайдер недоступен, пробую fallback_provider: %s", fallback_provider.name)
         try:
-            fallback_messages = _merge_system_into_user(messages)
+            fallback_text = fallback_anonymized_text or anonymized_text
+            fallback_messages = _merge_system_into_user([
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": USER_PROMPT_TEMPLATE.format(
+                        document_types=types_str,
+                        text=fallback_text[:30_000],
+                    ),
+                },
+            ])
             fb_raw = _try_provider(fallback_provider, fallback_messages, config.ai_max_retries)
             fb_json = _parse_json_response(fb_raw)
-            fallback_result: ContractMetadata | Exception = _json_to_metadata(fb_json)
+            fallback_result: ContractMetadata | Exception = _annotate(
+                _json_to_metadata(fb_json),
+                fallback_provider.name,
+                getattr(config, f"model_{fallback_provider.name}", config.model_fallback),
+            )
         except Exception as e:
             fallback_result = e
         if isinstance(fallback_result, ContractMetadata):

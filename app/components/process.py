@@ -16,7 +16,8 @@ from nicegui import app, run, ui
 
 import services.pipeline_service as pipeline_service
 from app.state import AppState
-from config import Config
+from config import load_runtime_config
+from services.client_manager import ClientManager
 
 
 async def pick_folder() -> Optional[Path]:
@@ -75,7 +76,7 @@ async def start_pipeline(
         (total, done, errors, skipped, output_dir, report_path)
     """
     # Pre-flight: check if AI provider is reachable (ERRES-02)
-    config = Config()
+    config = load_runtime_config()
     if config.active_provider == "ollama":
         try:
             import httpx as _httpx
@@ -182,6 +183,7 @@ async def start_pipeline(
         config,
         on_progress=on_progress,
         on_file_done=on_file_done,
+        db_path_override=ClientManager().get_db_path(state.current_client),
     )
 
     # --- Завершение: toast + лог ошибок ---

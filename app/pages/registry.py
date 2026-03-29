@@ -1193,7 +1193,7 @@ def build() -> None:
         if data.get("is_expanded"):
             _collapse_version_children(grid, contract_id)
         else:
-            await load_version_children(grid, db, contract_id)
+            await load_version_children(grid, db, contract_id, state.warning_days_threshold)
 
     # ── Cell click handler ────────────────────────────────────────────────────────
 
@@ -1226,8 +1226,7 @@ def build() -> None:
     async def _delete_bulk(doc_ids):
         db = _client_manager.get_db(state.current_client)
         for doc_id in doc_ids:
-            await run.io_bound(lambda did=doc_id: db.conn.execute("DELETE FROM contracts WHERE id = ?", (did,)))
-        await run.io_bound(lambda: db.conn.commit())
+            await run.io_bound(db.delete_contract, doc_id)
         _clear_bulk_selection()
         if grid_ref["grid"]:
             await load_table_data(grid_ref["grid"], state, active_segment["value"])

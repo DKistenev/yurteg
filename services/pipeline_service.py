@@ -18,6 +18,7 @@ def process_archive(
     on_progress: Optional[Callable[[int, int, str], None]] = None,
     on_file_done: Optional[Callable] = None,
     output_dir_override: Optional[Path] = None,
+    db_path_override: Optional[Path] = None,
 ) -> dict:
     """Единая точка входа для обработки архива документов.
 
@@ -42,6 +43,7 @@ def process_archive(
             on_progress=on_progress,
             on_file_done=on_file_done,
             output_dir_override=output_dir_override,
+            db_path_override=db_path_override,
         )
     finally:
         ctrl.close()

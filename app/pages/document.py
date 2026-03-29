@@ -12,7 +12,7 @@ from pathlib import Path as _Path
 from nicegui import run, ui
 
 from app.state import get_state
-from config import load_settings, save_setting
+from config import load_runtime_config, load_settings, save_setting
 from app.styles import (
     DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
     DOC_LEFT_PANEL, DOC_PREVIEW_BG,
@@ -215,11 +215,10 @@ async def build(doc_id: str = "") -> None:
                         except OSError:
                             import shutil
                             shutil.copy2(original_path, link)
-                        from config import Config
                         from controller import Controller
                         cm = ClientManager()
                         db_path = cm.get_db_path(state.current_client)
-                        ctrl = Controller(Config())
+                        ctrl = Controller(load_runtime_config())
                         ui.notify("Переобработка запущена...", type="info")
                         stats = await run.io_bound(
                             ctrl.process_archive,
@@ -229,6 +228,7 @@ async def build(doc_id: str = "") -> None:
                             None,
                             None,
                             db_path.parent,
+                            db_path,
                         )
                         errors = stats.get("errors", 0)
                         if errors:
@@ -317,7 +317,10 @@ async def build(doc_id: str = "") -> None:
                         _db = _client_manager.get_db(state.current_client)
                         try:
                             template = await run.io_bound(
-                                match_template, _db, contract.get("subject", ""), contract.get("contract_type")
+                                match_template,
+                                _db,
+                                contract.get("full_text") or contract.get("subject", ""),
+                                contract.get("contract_type"),
                             )
                         except Exception:
                             logger.exception("Ошибка подбора шаблона")
@@ -368,7 +371,9 @@ async def build(doc_id: str = "") -> None:
                         ui.spinner("dots").classes("text-amber-500")
                     try:
                         deviations = await run.io_bound(
-                            review_against_template, template_text, contract.get("subject", "")
+                            review_against_template,
+                            template_text,
+                            contract.get("full_text") or contract.get("subject", ""),
                         )
                     except Exception:
                         logger.exception("Ошибка проверки по шаблону")
@@ -439,7 +444,7 @@ async def build(doc_id: str = "") -> None:
                                             ui.button("Сравнить", on_click=_show_diff).props("flat dense no-caps").classes("text-xs text-indigo-600")
                                             ui.link(
                                                 "Скачать с правками",
-                                                f"/download/redline/{doc_id}/{v.contract_id}"
+                                                f"/download/redline/{doc_id}/{v.contract_id}?client={state.current_client}"
                                             ).classes("text-xs text-indigo-600 underline")
 
             # ══════════════════════════════════════════════════════════════
@@ -542,7 +547,7 @@ async def build(doc_id: str = "") -> None:
             if is_pdf:
                 # PDF iframe — /download/{doc_id} route serves the file
                 ui.html(
-                    f'<iframe src="/download/{doc_id}" '
+                    f'<iframe src="/download/{doc_id}?client={state.current_client}" '
                     f'style="width:100%; height:100%; border:none; background:white;" '
                     f'title="PDF превью"></iframe>'
                 ).style("flex: 1; display: flex;")
@@ -558,4 +563,3 @@ async def build(doc_id: str = "") -> None:
                     ).props("flat no-caps").style(
                         "color: #94a3b8; border: 1px solid #334155;"
                     )
-
