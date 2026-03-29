@@ -1,3 +1,0 @@
-[    1255ms] [WARNING] AG Grid: As of version 32.2.1, using `rowSelection` with the values "single" or "multiple" has been deprecated. Use the object value instead. @ http://127.0.0.1:8000/_nicegui/3.9.0/esm/c410277d8ceb8cebcbb70bed199bffe0/index.js:0
-[    2416ms] [WARNING] AG Grid: warning #29 tried to call sizeColumnsToFit() but the grid is coming back with zero width, maybe the grid is not visible yet on the screen? 
-See https://www.ag-grid.com/javascript-data-grid/errors/29?_version_=34.2.0 @ http://127.0.0.1:8000/_nicegui/3.9.0/esm/c410277d8ceb8cebcbb70bed199bffe0/index.js:0

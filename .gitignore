@@ -7,3 +7,7 @@ yurteg.db
 ЮрТэг_Результат/
 .env
 .streamlit/secrets.toml
+.claude/
+.planning/
+.playwright-mcp/
+/*.png
