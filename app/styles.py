@@ -135,3 +135,10 @@ CONFIDENCE_TRACK = "h-1.5 w-full rounded-full bg-slate-200 overflow-hidden"
 # ── Grouped card (UI Overhaul) ───────────────────────────────────────────────
 GROUP_CARD = "border border-slate-200 rounded-xl p-4 bg-white"
 GROUP_CARD_TITLE = "text-sm font-semibold text-slate-800 flex items-center gap-2"
+
+# ── Document card two-column layout ─────────────────────────────────────────
+DOC_LEFT_PANEL = "bg-white border-r border-slate-200 px-5 py-4 gap-0"
+DOC_PREVIEW_BG = "#1e293b"
+DOC_SECTION_TITLE = PANEL_SEC_TITLE  # reuse: 10px uppercase tracking
+DOC_FIELD_LABEL = PANEL_FIELD_LABEL  # reuse: 11px slate-400 no uppercase
+DOC_FIELD_VALUE = PANEL_FIELD_VALUE  # reuse: 13px slate-900

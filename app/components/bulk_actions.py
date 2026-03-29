@@ -55,7 +55,7 @@ def show_bulk_status_dialog(selected_ids: list[int], on_confirm: Callable) -> No
             f"Для {len(selected_ids)} документов"
         ).classes("text-sm text-slate-500 mb-4")
 
-        for key, (icon, label, color) in STATUS_LABELS.items():
+        for key, (icon, label, color, _css) in STATUS_LABELS.items():
             async def _apply(s=key):
                 await on_confirm(selected_ids, s)
                 dialog.close()

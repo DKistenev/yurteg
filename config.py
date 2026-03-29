@@ -9,7 +9,7 @@ from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-APP_VERSION = "1.0.0-beta"
+APP_VERSION = "1.0.0"
 
 
 @dataclass

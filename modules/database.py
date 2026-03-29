@@ -294,6 +294,20 @@ def _table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return row is not None
 
 
+def _migrate_v11_was_truncated(conn: sqlite3.Connection) -> None:
+    """v11: Добавить was_truncated в contracts."""
+    if _is_migration_applied(conn, 11):
+        return
+    try:
+        conn.execute(
+            "ALTER TABLE contracts ADD COLUMN was_truncated INTEGER DEFAULT 0"
+        )
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
+    _mark_migration_applied(conn, 11)
+
+
 def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     """Запускает все ожидающие миграции по порядку.
     Вызывается из Database.__init__ после создания основной схемы.
@@ -318,6 +332,7 @@ def _run_migrations(db_path: Path, conn: sqlite3.Connection) -> None:
     _migrate_v8_template_embeddings(conn)
     _migrate_v9_full_text(conn)
     _migrate_v10_contract_number(conn)
+    _migrate_v11_was_truncated(conn)
 
 
 class Database:
@@ -326,7 +341,7 @@ class Database:
     def __init__(self, db_path: Path) -> None:
         """Создаёт/открывает БД. Автоматически создаёт таблицы если их нет."""
         self.db_path = db_path
-        self._lock = threading.RLock()
+        self.lock = threading.RLock()
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
@@ -348,7 +363,7 @@ class Database:
 
     def is_processed(self, file_hash: str) -> bool:
         """True если файл с таким хешем уже обработан (status=done)."""
-        with self._lock:
+        with self.lock:
             cursor = self.conn.execute(
                 "SELECT 1 FROM contracts WHERE file_hash = ? AND status = 'done'",
                 (file_hash,),
@@ -387,9 +402,10 @@ class Database:
             m.payment_direction if m else None,
             result.full_text,
             m.contract_number if m else None,
+            1 if (result.text and result.text.was_truncated) else 0,
         )
 
-        with self._lock:
+        with self.lock:
             self.conn.execute(
                 """
                 INSERT INTO contracts
@@ -399,8 +415,8 @@ class Database:
                  validation_status, validation_warnings, validation_score,
                  organized_path, model_used,
                  payment_terms, payment_amount, payment_frequency, payment_direction,
-                 full_text, contract_number)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 full_text, contract_number, was_truncated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_hash) DO UPDATE SET
                   original_path = excluded.original_path,
                   filename = excluded.filename,
@@ -427,6 +443,7 @@ class Database:
                   payment_direction = excluded.payment_direction,
                   full_text = excluded.full_text,
                   contract_number = excluded.contract_number,
+                  was_truncated = excluded.was_truncated,
                   processed_at = CURRENT_TIMESTAMP
                 """,
                 data,
@@ -436,7 +453,7 @@ class Database:
 
     def get_contract_by_id(self, contract_id: int) -> dict | None:
         """Возвращает один контракт по ID с десериализованными JSON-полями."""
-        with self._lock:
+        with self.lock:
             row = self.conn.execute(
                 "SELECT * FROM contracts WHERE id = ?", (contract_id,)
             ).fetchone()
@@ -460,7 +477,7 @@ class Database:
 
     def get_contract_id_by_hash(self, file_hash: str) -> int | None:
         """Возвращает ID контракта по хешу файла."""
-        with self._lock:
+        with self.lock:
             row = self.conn.execute(
                 "SELECT id FROM contracts WHERE file_hash = ?", (file_hash,)
             ).fetchone()
@@ -469,7 +486,7 @@ class Database:
     def get_all_results(self) -> list[dict]:
         """Возвращает все записи как list[dict] с десериализованными JSON-полями.
         Никогда не возвращает sqlite3.Row — safe для прямого использования в UI."""
-        with self._lock:
+        with self.lock:
             cursor = self.conn.execute(
                 "SELECT * FROM contracts ORDER BY processed_at"
             )
@@ -496,7 +513,7 @@ class Database:
 
     def clear_all(self) -> None:
         """Удаляет все записи. Используется при принудительной переобработке."""
-        with self._lock:
+        with self.lock:
             self.conn.execute("DELETE FROM payments")
             self.conn.execute("DELETE FROM document_versions")
             self.conn.execute("DELETE FROM embeddings")
@@ -506,7 +523,7 @@ class Database:
 
     def update_review(self, file_hash: str, review_status: str, comment: str) -> None:
         """Обновляет пометку юриста для файла."""
-        with self._lock:
+        with self.lock:
             self.conn.execute(
                 "UPDATE contracts SET review_status=?, lawyer_comment=? WHERE file_hash=?",
                 (review_status, comment, file_hash),
@@ -516,7 +533,7 @@ class Database:
 
     def get_stats(self) -> dict:
         """Статистика: {total, done, error, pending}."""
-        with self._lock:
+        with self.lock:
             cursor = self.conn.execute(
                 """
                 SELECT

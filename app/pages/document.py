@@ -293,8 +293,8 @@ async def build(doc_id: str = "") -> None:
             with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
                 _section_title("СТАТУС")
 
-                icon, label_text, _color = STATUS_LABELS.get(
-                    computed_status, ("?", computed_status, "#9ca3af")
+                icon, label_text, _color, _css = STATUS_LABELS.get(
+                    computed_status, ("?", computed_status, "#9ca3af", "")
                 )
                 status_css_class = f"status-{computed_status}"
                 ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')

@@ -30,6 +30,7 @@ from app.components.registry_table import (
     render_registry_table,
     _client_manager,
     _collapse_version_children,
+    _fetch_counts,
 )
 from app.components.split_panel import render_split_panel
 from app.components.bulk_actions import (
@@ -696,6 +697,19 @@ def build() -> None:
             b.classes(remove=SEG_ACTIVE + " " + SEG_INACTIVE)
             b.classes(SEG_ACTIVE if k == active_key else SEG_INACTIVE)
 
+    async def _update_segment_counts() -> None:
+        """Update segment button labels with document counts."""
+        counts = await run.io_bound(
+            _fetch_counts, state.current_client, state.warning_days_threshold
+        )
+        labels = {
+            "all": f"Все · {counts['total']}" if counts["total"] else "Все",
+            "expiring": f"Истекают · {counts['expiring']}" if counts["expiring"] else "Истекают",
+            "attention": f"Внимания · {counts['attention']}" if counts["attention"] else "Требуют внимания",
+        }
+        for k, b in seg_buttons.items():
+            b.text = labels.get(k, b.text)
+
     def _sum_row(dot_color: str, label: str, count: str) -> None:
         """Render a summary row with colored dot, label, and count."""
         with ui.row().classes("cal-sum-row"):
@@ -1297,6 +1311,7 @@ def build() -> None:
 
     async def _init() -> None:
         await _refresh_deadline_widget()
+        await _update_segment_counts()
         skeleton_container.set_visibility(False)
         grid_container.set_visibility(True)
         with grid_container:

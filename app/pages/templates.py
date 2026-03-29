@@ -121,9 +121,6 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                                     "Стороны пришли к соглашению о нижеследующем..."
                                 ).classes("text-slate-400 mt-2 line-clamp-2").style("font-size:11px")
                                 ui.label("12 января 2025").classes("text-slate-300 mt-1").style("font-size:11px")
-                ui.label("После добавления шаблона карточка станет интерактивной").classes(
-                    "text-xs text-slate-400 text-center mt-1"
-                )
             return
 
         # Group templates by contract_type
@@ -410,7 +407,10 @@ def build() -> None:
             ui.button(
                 "+ Добавить шаблон",
                 on_click=_on_add,
-            ).props("flat no-caps color=primary")
+            ).props("unelevated no-caps").classes(
+                "px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm"
+                " hover:bg-indigo-700 transition-colors duration-150"
+            )
 
         # Контейнер для карточек
         cards_container = ui.column().classes("w-full")

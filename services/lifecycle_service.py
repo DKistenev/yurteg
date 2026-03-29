@@ -53,7 +53,7 @@ def set_manual_status(db: Database, contract_id: int, status: str) -> None:
     """Устанавливает ручной статус договора. status должен быть из MANUAL_STATUSES."""
     if status not in MANUAL_STATUSES:
         raise ValueError(f"Недопустимый статус: {status!r}. Допустимые: {MANUAL_STATUSES}")
-    with db._lock:
+    with db.lock:
         db.conn.execute(
             "UPDATE contracts SET manual_status = ? WHERE id = ?",
             (status, contract_id)
@@ -64,7 +64,7 @@ def set_manual_status(db: Database, contract_id: int, status: str) -> None:
 
 def clear_manual_status(db: Database, contract_id: int) -> None:
     """Сбрасывает ручной статус — договор возвращается к автоматическому."""
-    with db._lock:
+    with db.lock:
         db.conn.execute(
             "UPDATE contracts SET manual_status = NULL WHERE id = ?",
             (contract_id,)

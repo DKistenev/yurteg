@@ -34,11 +34,14 @@ def process_archive(
         output_dir_override: принудительная выходная папка (облачный режим)
     """
     ctrl = Controller(config)
-    return ctrl.process_archive(
-        source_dir=source_dir,
-        grouping=grouping,
-        force_reprocess=force_reprocess,
-        on_progress=on_progress,
-        on_file_done=on_file_done,
-        output_dir_override=output_dir_override,
-    )
+    try:
+        return ctrl.process_archive(
+            source_dir=source_dir,
+            grouping=grouping,
+            force_reprocess=force_reprocess,
+            on_progress=on_progress,
+            on_file_done=on_file_done,
+            output_dir_override=output_dir_override,
+        )
+    finally:
+        ctrl.close()

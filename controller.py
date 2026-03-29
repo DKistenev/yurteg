@@ -38,6 +38,12 @@ class Controller:
         self._provider = get_provider(config)
         self._fallback_provider = get_fallback_provider(config)
 
+    def close(self) -> None:
+        """Закрывает HTTP-соединения провайдеров."""
+        self._provider.close()
+        if self._fallback_provider:
+            self._fallback_provider.close()
+
     def process_archive(
         self,
         source_dir: Path,

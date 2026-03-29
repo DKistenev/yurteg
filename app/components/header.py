@@ -81,14 +81,14 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             on_click=_restart_tour,
         ).props('flat round dense id=tour-guide-btn aria-label="Запустить тур по приложению"').classes(
             "text-slate-400 hover:text-slate-200 transition-colors duration-150"
-        )
+        ).tooltip("Пройти гид-тур")
 
         # Right: client dropdown (D-20)
         with ui.row().classes("shrink-0 items-center gap-1").props("data-tour=workspace"):
             profile_btn = ui.button(
                 f"{state.current_client}",
                 on_click=lambda: client_menu.open(),
-            ).props('flat no-caps aria-label="Рабочее пространство"').classes(
+            ).props('flat no-caps icon-right="expand_more" aria-label="Рабочее пространство"').classes(
                 "text-sm text-slate-400 hover:text-slate-200 transition-colors duration-150"
             )
 
@@ -142,48 +142,117 @@ def _switch_client(state: AppState, name: str, btn, menu) -> None:
     """Переключает активного клиента и перезагружает реестр (D-21)."""
     state.current_client = name
     state.filter_search = ""  # сброс фильтров при переключении
-    btn.text = f"📁 {name}"
+    btn.text = name
     if menu:
         menu.close()
     ui.navigate.to("/")  # перезагрузить реестр с данными нового клиента
 
 
+_WORKSPACE_COLORS = [
+    ("#4f46e5", "indigo"), ("#0891b2", "cyan"), ("#059669", "green"), ("#d97706", "amber"),
+    ("#dc2626", "red"), ("#7c3aed", "violet"), ("#db2777", "pink"), ("#64748b", "slate"),
+]
+
+
 def _show_add_dialog(state: AppState, cm: ClientManager, btn, menu) -> None:
-    """Диалог добавления нового клиента."""
+    """Диалог добавления нового клиента — редизайн по спеке 2026-03-25."""
     menu.close()
 
+    selected_color = {"hex": "#4f46e5"}  # default indigo
+
     with ui.dialog().props("no-backdrop-dismiss") as dlg, ui.card().classes(
-        "min-w-[420px] max-w-[520px] p-0 overflow-hidden rounded-xl shadow-xl"
-    ).style("max-height:90vh;"):
-        # Indigo header band
-        with ui.element("div").classes("bg-indigo-600 px-6 py-4"):
-            with ui.element("p").style("color:white;font-size:1rem;font-weight:600;margin:0;"):
-                ui.html("Новое рабочее пространство")
-            with ui.element("p").style("color:#c7d2fe;font-size:0.8rem;margin:4px 0 0;"):
-                ui.html("Создайте отдельный реестр для клиента или проекта")
+        "p-0 overflow-hidden rounded-xl shadow-xl"
+    ).style("width:520px; max-height:90vh;"):
+        # White header with close button
+        with ui.element("div").classes("px-6 pt-5 pb-2"):
+            with ui.row().classes("w-full justify-between items-start"):
+                with ui.column().classes("gap-0"):
+                    ui.html('<span style="font-size:1.1rem;font-weight:600;color:#1e293b;">Новое пространство</span>')
+                    ui.html('<span style="font-size:0.8rem;color:#94a3b8;margin-top:2px;">Создайте отдельный реестр для клиента или проекта</span>')
+                ui.button(icon="close", on_click=dlg.close).props("flat dense round").style(
+                    "color:#94a3b8; min-width:32px; min-height:32px;"
+                )
 
-        # Content area
-        with ui.column().classes("px-6 py-5 gap-4"):
+        # Feature cards (CSS Grid for equal height)
+        with ui.element("div").classes("px-6 py-3"):
+            with ui.element("div").style(
+                "display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; width:100%;"
+            ):
+                for icon, title, desc in [
+                    ("folder", "Свой реестр", "Документы не смешиваются"),
+                    ("notifications", "Свои сроки", "Напоминания отдельно"),
+                    ("description", "Свои шаблоны", "Набор под тип клиента"),
+                ]:
+                    with ui.element("div").style(
+                        "background:#f8fafc; border-radius:8px; padding:12px;"
+                        " display:flex; flex-direction:column; gap:4px;"
+                    ):
+                        ui.icon(icon).style("font-size:20px; color:#4f46e5;")
+                        ui.html(f'<span style="font-size:0.8rem;font-weight:600;color:#1e293b;">{title}</span>')
+                        ui.html(f'<span style="font-size:0.7rem;color:#94a3b8;">{desc}</span>')
+
+        # Name input
+        with ui.column().classes("px-6 py-2 gap-3"):
             name_input = ui.input(
-                placeholder="Например: ООО Ромашка"
-            ).props('outlined dense label="Название пространства" aria-label="Название рабочего пространства"').classes("w-full").style("font-size:0.875rem;")
+                placeholder="Например: ООО «Ромашка»"
+            ).props('outlined dense label="Название" aria-label="Название рабочего пространства"').classes("w-full").style("font-size:0.875rem;")
 
-            with ui.row().classes("gap-2 justify-end w-full"):
-                ui.button("Отмена", on_click=dlg.close).props("flat no-caps").classes(
-                    "text-slate-500 text-sm"
+            # Color picker
+            ui.html('<span style="font-size:0.75rem;font-weight:500;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">Цвет в меню</span>')
+            color_dots = ui.row().classes("gap-2")
+            preview_dot = None
+            preview_name = None
+
+            def _select_color(hex_val: str, dot_elements: list):
+                selected_color["hex"] = hex_val
+                for d, h in dot_elements:
+                    if h == hex_val:
+                        d.style(f"background:{h}; width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid #1e293b; transition:all 150ms;")
+                    else:
+                        d.style(f"background:{h}; width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 150ms;")
+                if preview_dot:
+                    preview_dot.style(f"width:10px; height:10px; border-radius:50%; background:{hex_val};")
+
+            dot_elements = []
+            with color_dots:
+                for hex_val, _name in _WORKSPACE_COLORS:
+                    border = "2px solid #1e293b" if hex_val == selected_color["hex"] else "2px solid transparent"
+                    dot = ui.element("div").style(
+                        f"background:{hex_val}; width:28px; height:28px; border-radius:50%;"
+                        f" cursor:pointer; border:{border}; transition:all 150ms;"
+                    )
+                    dot_elements.append((dot, hex_val))
+                    dot.on("click", lambda _, h=hex_val: _select_color(h, dot_elements))
+
+            # Preview
+            with ui.element("div").style(
+                "background:#f8fafc; border-radius:8px; padding:10px 14px;"
+                " display:flex; align-items:center; gap:8px; margin-top:4px;"
+            ):
+                ui.html('<span style="font-size:0.7rem;color:#94a3b8;">Так будет в меню:</span>')
+                preview_dot = ui.element("div").style(
+                    f"width:10px; height:10px; border-radius:50%; background:{selected_color['hex']};"
                 )
+                preview_name = ui.label("Новое пространство").style("font-size:0.8rem; color:#1e293b; font-weight:500;")
+                name_input.on("change", lambda e: preview_name.set_text(e.value.strip() or "Новое пространство"))
 
-                async def _add() -> None:
-                    n = name_input.value.strip()
-                    if n:
-                        await run.io_bound(cm.add_client, n)
-                        _switch_client(state, n, btn, None)
-                        dlg.close()
+        # Actions
+        with ui.row().classes("px-6 py-4 gap-2 justify-end w-full"):
+            ui.button("Отмена", on_click=dlg.close).props("flat no-caps").classes(
+                "text-slate-500 text-sm"
+            )
 
-                ui.button("Создать", on_click=_add).props("no-caps").classes(
-                    "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
-                    " hover:bg-indigo-700 transition-colors duration-150"
-                )
+            async def _add() -> None:
+                n = name_input.value.strip()
+                if n:
+                    await run.io_bound(cm.add_client, n)
+                    _switch_client(state, n, btn, None)
+                    dlg.close()
+
+            ui.button("Создать", on_click=_add).props("no-caps").classes(
+                "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
+                " hover:bg-indigo-700 transition-colors duration-150"
+            )
 
     dlg.open()
 

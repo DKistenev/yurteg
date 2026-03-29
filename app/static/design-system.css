@@ -219,10 +219,7 @@ p, li, label { line-height: 1.5; }
 .status-expiring,
 .status-expired,
 .status-unknown,
-.status-terminated,
-.status-extended,
-.status-negotiation,
-.status-suspended {
+.status-negotiation {
   display: inline-block;
   padding: 2px 10px;
   font-size: 11px;
@@ -235,10 +232,7 @@ p, li, label { line-height: 1.5; }
 .status-expiring    { background:#fef9c3; color:#a16207; }
 .status-expired     { background:#fee2e2; color:#b91c1c; }
 .status-unknown     { background:#f1f5f9; color:#64748b; }
-.status-terminated  { background:#f1f5f9; color:#475569; }
-.status-extended    { background:#dbeafe; color:#1d4ed8; }
 .status-negotiation { background:#ede9fe; color:#6d28d9; }
-.status-suspended   { background:#f3f4f6; color:#4b5563; }
 
 /* ── Skeleton loader (ANIM-04) ─────────────────────────────────────────────── */
 /* deprecated: use .yt-skeleton-pulse for new code */

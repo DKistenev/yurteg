@@ -125,7 +125,7 @@ COLUMN_DEFS = [
         "minWidth": 150,
         "sortable": True,
         "filter": "agTextColumnFilter",
-        "cellStyle": {"fontVariantNumeric": "tabular-nums"},
+        "cellStyle": {"fontVariantNumeric": "tabular-nums", "textAlign": "right"},
     },
     # Actions column removed — context menu handles actions (D-12)
     # Скрытые колонки (D-02)
@@ -466,5 +466,8 @@ async def load_table_data(grid, state: "AppState", segment: str = "all") -> None
     state.filtered_doc_ids = [r['id'] for r in rows if not r.get('is_child')]
 
     grid.options["rowData"] = rows
+    # Hide pagination when all rows fit on one page
+    page_size = grid.options.get("paginationPageSize", 50)
+    grid.options["suppressPaginationPanel"] = len(rows) <= page_size
     grid.update()
     logger.debug("Загружено %d строк реестра (сегмент=%s)", len(rows), segment)

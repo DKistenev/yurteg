@@ -31,7 +31,7 @@ def add_template(
     original_path: Optional[str] = None,
 ) -> int:
     """Добавляет шаблон-эталон в библиотеку. Возвращает id нового шаблона."""
-    with db._lock:
+    with db.lock:
         cursor = db.conn.execute(
             """INSERT INTO templates (contract_type, name, original_path, content_text)
                VALUES (?, ?, ?, ?)""",
@@ -54,7 +54,7 @@ def mark_contract_as_template(
     Сохраняет embedding в template_embeddings для кэша.
     Returns: template id или None если contract не найден.
     """
-    with db._lock:
+    with db.lock:
         row = db.conn.execute(
             "SELECT contract_type, filename, subject, original_path, full_text FROM contracts WHERE id=?",
             (contract_id,),
@@ -80,7 +80,7 @@ def mark_contract_as_template(
         buf = _io.BytesIO()
         _np.save(buf, vector)
         file_hash = ""  # нет file_hash у шаблона из реестра — пустая строка как sentinel
-        with db._lock:
+        with db.lock:
             db.conn.execute(
                 """INSERT OR REPLACE INTO template_embeddings
                    (template_id, file_hash, vector, model_version)
@@ -102,7 +102,7 @@ def list_templates(db: Database, contract_type: Optional[str] = None) -> list[Te
         params.append(contract_type)
     sql += " ORDER BY contract_type, name"
 
-    with db._lock:
+    with db.lock:
         rows = db.conn.execute(sql, params).fetchall()
     return [
         Template(
@@ -116,7 +116,7 @@ def list_templates(db: Database, contract_type: Optional[str] = None) -> list[Te
 
 def delete_template(db: Database, template_id: int) -> bool:
     """Мягкое удаление шаблона (is_active=0). Возвращает True если шаблон найден."""
-    with db._lock:
+    with db.lock:
         cursor = db.conn.execute(
             "UPDATE templates SET is_active=0 WHERE id=? AND is_active=1",
             (template_id,),
@@ -130,7 +130,7 @@ def delete_template(db: Database, template_id: int) -> bool:
 
 def update_template(db: Database, template_id: int, name: str, contract_type: str) -> bool:
     """Обновляет name и contract_type шаблона. Возвращает True если шаблон найден."""
-    with db._lock:
+    with db.lock:
         cursor = db.conn.execute(
             "UPDATE templates SET name=?, contract_type=? WHERE id=? AND is_active=1",
             (name, contract_type, template_id),
@@ -173,7 +173,7 @@ def match_template(
 
     # Загрузить кэшированные embeddings для всех шаблонов
     cached_vectors: dict[int, _np.ndarray] = {}
-    with db._lock:
+    with db.lock:
         rows = db.conn.execute(
             "SELECT template_id, vector, model_version FROM template_embeddings"
         ).fetchall()
@@ -285,7 +285,7 @@ def get_redline_for_template(
     Извлекает тексты из БД (templates.content_text, contracts.full_text).
     Возвращает bytes .docx с word-level track changes или None если данные не найдены.
     """
-    with db._lock:
+    with db.lock:
         tmpl_row = db.conn.execute(
             "SELECT content_text, name FROM templates WHERE id=? AND is_active=1",
             (template_id,),

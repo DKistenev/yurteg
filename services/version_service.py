@@ -64,7 +64,7 @@ def _load_embedding(conn, contract_id: int) -> Optional[np.ndarray]:
         "SELECT vector, model_version FROM embeddings WHERE contract_id=?",
         (contract_id,),
     ).fetchone()
-    if row is None:
+    if row is None or len(row) < 2:
         return None
     # Если модель изменилась — вернуть None для пересчёта
     if row[1] != EMBEDDING_MODEL:
@@ -81,7 +81,7 @@ def _cosine_sim(a: np.ndarray, b: np.ndarray) -> float:
 
 def ensure_embedding(db: Database, contract_id: int, text: str) -> np.ndarray:
     """Возвращает кэшированный вектор или вычисляет и сохраняет новый. Thread-safe."""
-    with db._lock:
+    with db.lock:
         cached = _load_embedding(db.conn, contract_id)
         if cached is not None:
             return cached
@@ -115,7 +115,7 @@ def find_version_match(
     parties_set = set(parties) if parties else set()
 
     # Загрузить всех кандидатов (с версиями) один раз
-    with db._lock:
+    with db.lock:
         candidates = db.conn.execute(
             """
             SELECT c.id, dv.contract_group_id, c.contract_number, c.parties
@@ -133,7 +133,7 @@ def find_version_match(
     best_group_id = None
     number_match_group = None
 
-    with db._lock:
+    with db.lock:
         for row in candidates:
             cand_id, group_id, cand_number, cand_parties_json = row
 
@@ -186,7 +186,7 @@ def link_versions(
 
     Returns: contract_group_id (существующий или новый)
     """
-    with db._lock:
+    with db.lock:
         if group_id is None:
             # Новый договор — group_id = contract_id (convention)
             effective_group_id = contract_id
@@ -258,7 +258,7 @@ def diff_versions(
 
 def get_version_group(db: Database, contract_id: int) -> list[DocumentVersion]:
     """Возвращает все версии договора из той же группы, отсортированные по version_number."""
-    with db._lock:
+    with db.lock:
         # Найти group_id для этого contract_id
         row = db.conn.execute(
             "SELECT contract_group_id FROM document_versions WHERE contract_id=?",

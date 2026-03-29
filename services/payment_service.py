@@ -124,7 +124,7 @@ def save_payments(
     direction = meta.payment_direction or "expense"
     events = unroll_payments(start, end, meta.payment_amount, meta.payment_frequency, direction)
 
-    with db._lock:
+    with db.lock:
         # Удалить старые записи (идемпотентность при повторной обработке)
         db.conn.execute("DELETE FROM payments WHERE contract_id=?", (contract_id,))
         db.conn.executemany(
@@ -180,7 +180,7 @@ def get_calendar_events(
         params.append(end_date.isoformat())
     sql += " ORDER BY p.payment_date ASC"
 
-    with db._lock:
+    with db.lock:
         rows = db.conn.execute(sql, params).fetchall()
 
     events = []
