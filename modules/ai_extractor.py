@@ -15,7 +15,6 @@ import logging
 import re
 import time
 from dataclasses import asdict
-from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from dateutil import parser as dateutil_parser
@@ -25,6 +24,7 @@ from config import Config
 from modules.models import ContractMetadata
 from modules.postprocessor import sanitize_metadata
 from providers.openrouter import _merge_system_into_user
+from runtime_paths import get_resource_path
 
 if TYPE_CHECKING:
     from providers.base import LLMProvider
@@ -40,7 +40,7 @@ _LOGPROB_THRESHOLD = -2.0  # порог из CONTEXT.md: ниже этого →
 
 def _load_grammar() -> str:
     """Загружает GBNF грамматику из data/contract.gbnf. Raises FileNotFoundError."""
-    grammar_path = Path(__file__).parent.parent / "data" / "contract.gbnf"
+    grammar_path = get_resource_path("data", "contract.gbnf")
     if not grammar_path.exists():
         raise FileNotFoundError(f"GBNF грамматика не найдена: {grammar_path}")
     return grammar_path.read_text(encoding="utf-8")

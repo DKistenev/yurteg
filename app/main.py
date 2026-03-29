@@ -9,7 +9,6 @@ Per D-16: ui.run с native=True, dark=False, reload=False, window_size=(1400, 90
 """
 import atexit
 import logging
-from pathlib import Path as _Path
 
 from nicegui import app, run, ui
 
@@ -17,6 +16,7 @@ from app.components.header import render_header
 from app.pages import document, registry, settings, templates
 from app.state import get_state
 from config import APP_VERSION, load_runtime_config
+from runtime_paths import get_resource_path
 from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
 
@@ -84,7 +84,7 @@ app.colors(
 # ── Global design system ──────────────────────────────────────────────────────
 # CSS/JS extracted to app/static/ for maintainability. Load order matters: font first.
 
-_STATIC = _Path(__file__).parent / "static"
+_STATIC = get_resource_path("app", "static")
 app.add_static_files("/static", str(_STATIC))
 
 # Font (must load before any rendered element) — served locally, no CDN

@@ -7,6 +7,8 @@
 import re
 import logging
 from pathlib import Path
+
+from runtime_paths import get_resource_path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -226,4 +228,4 @@ def get_grammar_path() -> Path:
     Returns:
         Path к data/contract.gbnf относительно корня проекта.
     """
-    return Path(__file__).parent.parent / "data" / "contract.gbnf"
+    return get_resource_path("data", "contract.gbnf")

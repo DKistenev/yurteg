@@ -111,7 +111,6 @@ def find_version_match(
 
     Returns: contract_group_id существующей группы или None (новый документ)
     """
-    new_vector = ensure_embedding(db, contract_id, text)
     parties_set = set(parties) if parties else set()
 
     # Загрузить всех кандидатов (с версиями) один раз
@@ -128,6 +127,9 @@ def find_version_match(
 
     if not candidates:
         return None
+
+    need_embedding_check = bool(parties_set)
+    new_vector = ensure_embedding(db, contract_id, text) if need_embedding_check else None
 
     best_sim = 0.0
     best_group_id = None
@@ -146,7 +148,7 @@ def find_version_match(
                 number_match_group = group_id
 
             # Путь 2: стороны совпали → проверить embedding
-            if parties_set:
+            if parties_set and new_vector is not None:
                 try:
                     cand_parties = set(json.loads(cand_parties_json)) if cand_parties_json else set()
                 except (json.JSONDecodeError, TypeError) as e:
