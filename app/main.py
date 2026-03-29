@@ -159,6 +159,96 @@ ui.add_head_html("""
 </style>
 """, shared=True)
 
+# ── Startup loading overlay (DUX-02) ─────────────────────────────────────────
+# Shows branded splash during PyInstaller cold start (3-5 sec).
+# Pure CSS — visible immediately, hidden by JS once NiceGUI mounts.
+ui.add_head_html("""
+<style>
+  #loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    transition: opacity 0.4s ease;
+  }
+  #loading-overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #loading-overlay .logo-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    background: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #loading-overlay .logo-letter {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 40px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+  }
+  #loading-overlay .app-name {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    letter-spacing: 0.02em;
+  }
+  #loading-overlay .loader-dots {
+    display: flex;
+    gap: 6px;
+  }
+  #loading-overlay .loader-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4f46e5;
+    animation: dot-pulse 1.2s infinite ease-in-out;
+  }
+  #loading-overlay .loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+  #loading-overlay .loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-pulse {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+  }
+</style>
+<div id="loading-overlay">
+  <div class="logo-circle">
+    <span class="logo-letter">\u042e</span>
+  </div>
+  <span class="app-name">\u042e\u0440\u0422\u044d\u0433</span>
+  <div class="loader-dots">
+    <span></span><span></span><span></span>
+  </div>
+</div>
+<script>
+  function _hideLoadingOverlay() {
+    var el = document.getElementById('loading-overlay');
+    if (el) {
+      el.classList.add('fade-out');
+      setTimeout(function() { el.remove(); }, 500);
+    }
+  }
+  var _obs = new MutationObserver(function(mutations) {
+    if (document.querySelector('.nicegui-content')) {
+      _obs.disconnect();
+      setTimeout(_hideLoadingOverlay, 300);
+    }
+  });
+  _obs.observe(document.body, { childList: true, subtree: true });
+  setTimeout(_hideLoadingOverlay, 8000);
+</script>
+""", shared=True)
+
 # ── UI root ────────────────────────────────────────────────────────────────────
 
 
