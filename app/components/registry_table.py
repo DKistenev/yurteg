@@ -183,7 +183,8 @@ def _fetch_counts(client_name: str, warning_days: int) -> dict:
             SELECT COUNT(*) FROM contracts
             WHERE status = 'done'
             AND date_end IS NOT NULL
-            AND date_end > date('now')
+            AND (manual_status IS NULL OR manual_status NOT IN ('negotiation'))
+            AND date_end >= date('now')
             AND date_end <= date('now', '+' || :warning_days || ' days')
         """
         exp_row = db.conn.execute(expiring_sql, {"warning_days": warning_days}).fetchone()
@@ -251,7 +252,7 @@ def build_version_rows(base_rows: list[dict], db) -> list[dict]:
     return result
 
 
-async def load_version_children(grid, db, parent_id: int) -> None:
+async def load_version_children(grid, db, parent_id: int, warning_days: int = 30) -> None:
     """Загружает и вставляет дочерние строки версий после родительской строки.
 
     Per D-15, D-17: вызывается при клике ▶ на строке с has_children=True.
@@ -277,6 +278,7 @@ async def load_version_children(grid, db, parent_id: int) -> None:
             f"CASE WHEN manual_status IS NOT NULL THEN manual_status "
             f"WHEN date_end IS NULL THEN 'unknown' "
             f"WHEN date_end < date('now') THEN 'expired' "
+            f"WHEN date_end <= date('now', '+' || {int(max(warning_days, 1))} || ' days') THEN 'expiring' "
             f"ELSE 'active' END AS computed_status "
             f"FROM contracts WHERE id IN ({placeholders}))",
             child_ids,

@@ -104,6 +104,10 @@ def save_payments(
     Удаляет существующие записи перед записью (идемпотентно).
     Returns: количество сохранённых записей.
     """
+    with db.lock:
+        db.conn.execute("DELETE FROM payments WHERE contract_id=?", (contract_id,))
+        db.conn.commit()
+
     if meta.payment_amount is None:
         return 0
 
@@ -125,8 +129,6 @@ def save_payments(
     events = unroll_payments(start, end, meta.payment_amount, meta.payment_frequency, direction)
 
     with db.lock:
-        # Удалить старые записи (идемпотентность при повторной обработке)
-        db.conn.execute("DELETE FROM payments WHERE contract_id=?", (contract_id,))
         db.conn.executemany(
             """INSERT INTO payments (contract_id, payment_date, amount, direction,
                                      is_periodic, frequency)

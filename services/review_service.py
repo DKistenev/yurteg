@@ -31,6 +31,8 @@ def add_template(
     original_path: Optional[str] = None,
 ) -> int:
     """Добавляет шаблон-эталон в библиотеку. Возвращает id нового шаблона."""
+    if not content_text or not content_text.strip():
+        raise ValueError("Нельзя сохранить пустой шаблон")
     with db.lock:
         cursor = db.conn.execute(
             """INSERT INTO templates (contract_type, name, original_path, content_text)

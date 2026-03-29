@@ -16,7 +16,7 @@ import logging
 from nicegui import run, ui
 
 from app.styles import TEXT_HERO, TEXT_HERO_SUB, TEXT_EYEBROW, BTN_ACCENT_FILLED
-from config import Config, save_setting
+from config import load_runtime_config, save_setting
 from services.llama_server import LlamaServerManager
 
 logger = logging.getLogger(__name__)
@@ -143,10 +143,8 @@ def render_splash() -> None:
                 save_setting('first_run_completed', True)
                 ui.navigate.to('/')
 
-            def _save_and_finish(token_input: ui.input) -> None:
-                """Сохраняет Telegram-токен если введён, завершает onboarding."""
-                if token_input.value and token_input.value.strip():
-                    save_setting('bot_token', token_input.value.strip())
+            def _save_and_finish() -> None:
+                """Завершает onboarding без сохранения неиспользуемых токенов."""
                 _finish()
 
             def _show_step_2() -> None:
@@ -163,9 +161,9 @@ def render_splash() -> None:
                         ui.html(
                             'Получайте уведомления об истекающих документах прямо в мессенджер.'
                         )
-                    token_input = ui.input(
-                        placeholder='110201543:AAHdqTcvCH1vGWJxfSeofSs0K'
-                    ).props('outlined dense dark').classes('w-full')
+                    ui.label(
+                        'Уведомления через Telegram появятся позже. Сейчас можно просто завершить запуск.'
+                    ).classes('text-slate-300 text-sm')
                     with ui.row().classes('w-full justify-between items-center'):
                         ui.button('Пропустить').props('flat no-caps').classes(
                             'text-slate-400 text-sm hover:text-slate-200'
@@ -174,10 +172,10 @@ def render_splash() -> None:
                             BTN_ACCENT_FILLED
                         )
 
-                        def _on_save_click(btn=save_btn, ti=token_input) -> None:
+                        def _on_save_click(btn=save_btn) -> None:
                             btn.disable()
                             try:
-                                _save_and_finish(ti)
+                                _save_and_finish()
                             finally:
                                 btn.enable()
 
@@ -203,7 +201,7 @@ def render_splash() -> None:
                   модель может быть уже скачана (early return без вызова on_progress).
                 """
                 loop = asyncio.get_running_loop()
-                config = Config()
+                config = load_runtime_config()
                 manager = LlamaServerManager(port=config.llama_server_port)
 
                 def on_progress(fraction: float, msg: str) -> None:
@@ -215,28 +213,27 @@ def render_splash() -> None:
 
                 try:
                     await run.io_bound(manager.ensure_model, on_progress)
-                except Exception as exc:
-                    logger.warning('ensure_model завершился с ошибкой: %s', exc)
-                    ui.notify(
-                        'Не удалось загрузить ИИ-помощника. Проверьте интернет-соединение '
-                        'и попробуйте снова.',
-                        type='negative',
-                        timeout=10000,
-                    )
-
-                # Pitfall 1 guard: гарантируем 1.0 даже если ensure_model не вызвал on_progress
-                loop.call_soon_threadsafe(progress_bar.set_value, 1.0)
-                loop.call_soon_threadsafe(
-                    progress_label.set_text,
-                    f'ИИ-помощник готов ({_MODEL_SIZE_MB}/{_MODEL_SIZE_MB} МБ)',
-                )
-
-                try:
                     await run.io_bound(manager.ensure_server_binary)
                     await run.io_bound(manager.start)
                     logger.info('llama-server запущен через splash screen')
                 except Exception as exc:
                     logger.warning('llama-server не запустился из splash: %s', exc)
+                    ui.notify(
+                        'Не удалось подготовить ИИ-помощника. Проверьте модель или интернет-соединение.',
+                        type='negative',
+                        timeout=10000,
+                    )
+                    loop.call_soon_threadsafe(
+                        progress_label.set_text,
+                        'ИИ-помощник недоступен — продолжить можно, но локальная модель не готова',
+                    )
+                    return
+
+                loop.call_soon_threadsafe(progress_bar.set_value, 1.0)
+                loop.call_soon_threadsafe(
+                    progress_label.set_text,
+                    f'ИИ-помощник готов ({_MODEL_SIZE_MB}/{_MODEL_SIZE_MB} МБ)',
+                )
 
             # Запускаем загрузку через таймер (once=True — один вызов)
             ui.timer(0, _run_model_download, once=True)

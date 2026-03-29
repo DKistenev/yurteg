@@ -521,6 +521,23 @@ class Database:
             self.conn.commit()
         logger.info("БД очищена для переобработки")
 
+    def delete_contract(self, contract_id: int) -> bool:
+        """Удаляет договор и связанные записи в derived-таблицах."""
+        with self.lock:
+            exists = self.conn.execute(
+                "SELECT 1 FROM contracts WHERE id = ?",
+                (contract_id,),
+            ).fetchone()
+            if exists is None:
+                return False
+            self.conn.execute("DELETE FROM payments WHERE contract_id = ?", (contract_id,))
+            self.conn.execute("DELETE FROM document_versions WHERE contract_id = ?", (contract_id,))
+            self.conn.execute("DELETE FROM embeddings WHERE contract_id = ?", (contract_id,))
+            self.conn.execute("DELETE FROM contracts WHERE id = ?", (contract_id,))
+            self.conn.commit()
+        logger.info("Удалён договор id=%d и связанные записи", contract_id)
+        return True
+
     def update_review(self, file_hash: str, review_status: str, comment: str) -> None:
         """Обновляет пометку юриста для файла."""
         with self.lock:
