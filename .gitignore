@@ -7,3 +7,58 @@ yurteg.db
 ЮрТэг_Результат/
 .env
 .streamlit/secrets.toml
+
+# Local MCP and AI tooling runtime
+.mcp.json
+.codex/
+.gemini/
+.cursor/
+.antigravity/
+.windsurf/
+.opencode/
+opencode.json
+.junie/
+.agent/
+.agents/
+.playwright-mcp/
+.superpowers/
+.understand-anything/
+
+# Local IDE/editor state
+.vscode/
+
+# Claude local runtime; tracked docs/skills remain allowed
+.claude/launch.json
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
+
+# Local screenshots and throwaway visual audits in repo root
+/audit-*.png
+/auto-*.png
+/check-*.png
+/critique-*.png
+/current-*.png
+/debug-*.png
+/final*.png
+/fix*.png
+/fixed-*.png
+/gsd-*.png
+/hackathon-*.png
+/screenshot-*.png
+/show-*.png
+/ugly-*.png
+/v07*.png
+/v071-*.png
+/verify*.png
+
+# Local skill bundles and generated notes
+/skills/
+/skills-lock.json
+/summary.txt
+
+# Tool-generated planning/docs that are local to one workstation
+/docs/superpowers/
+
+# Dataset outputs: keep scripts/configs trackable, ignore generated corpora
+/dataset/training/*.jsonl
