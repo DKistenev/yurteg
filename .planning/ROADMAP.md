@@ -36,7 +36,7 @@ Phases 28–31: v0.9 Backend Hardening
 - [x] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation, GBNF fail-loud
 - [x] **Phase 43: Test Coverage** — 15 test gaps закрыты
 - [x] **Phase 44: Logging & Single Instance** — Файловые логи, BetterStack Logtail, file lock (completed 2026-03-29)
-- [ ] **Phase 45: Icon & Splash** — Иконка «Ю» .icns/.ico, splash screen
+- [x] **Phase 45: Icon & Splash** — Иконка «Ю» .icns/.ico, splash screen (completed 2026-03-29)
 - [ ] **Phase 46: Offline & Disk Safety** — Offline first run, проверка места на диске
 - [ ] **Phase 47: Runtime Safety** — storage_secret, quarantine, freeze_support, hidden imports
 - [ ] **Phase 48: Feature Verification** — Redline, document preview, Guide button
@@ -205,7 +205,9 @@ Plans:
   1. Иконка «Ю» в индиго отображается в macOS Dock и Finder (все размеры 16–512px в .icns)
   2. При запуске PyInstaller-бандла отображается splash с логотипом — пустого экрана нет
   3. .ico файл для Windows содержит все стандартные размеры (16/32/128/256px)
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [x] 45-01-PLAN.md — Icon generation (Ю .icns/.ico) + startup loading overlay
 
 ### Phase 46: Offline & Disk Safety
 **Goal**: Приложение не крашится при первом запуске без интернета и предупреждает о нехватке места
@@ -254,8 +256,8 @@ Plans:
 | 41. Thread Safety | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 42. Error Handling | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 43. Test Coverage | v1.0-BE | 1/1 | Complete | 2026-03-29 |
-| 44. Logging & Single Instance | v1.2 | 2/2 | Complete   | 2026-03-29 |
-| 45. Icon & Splash | v1.2 | 0/? | Not started | - |
+| 44. Logging & Single Instance | v1.2 | 2/2 | Complete    | 2026-03-29 |
+| 45. Icon & Splash | v1.2 | 1/1 | Complete   | 2026-03-29 |
 | 46. Offline & Disk Safety | v1.2 | 0/? | Not started | - |
 | 47. Runtime Safety | v1.2 | 0/? | Not started | - |
 | 48. Feature Verification | v1.2 | 0/? | Not started | - |
