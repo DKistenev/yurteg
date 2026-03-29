@@ -11,7 +11,7 @@
 - [x] **LOG-02**: Логи отправляются на BetterStack Logtail для удалённого мониторинга бета-тестеров
 - [x] **LOG-03**: Каждый тестер идентифицируется через machine_id в логах
 - [x] **LOG-04**: Содержимое юридических документов не попадает в удалённые логи
-- [ ] **LOG-05**: Приложение не запускается дважды — file lock ~/.yurteg/app.lock с сообщением «ЮрТэг уже запущен»
+- [x] **LOG-05**: Приложение не запускается дважды — file lock ~/.yurteg/app.lock с сообщением «ЮрТэг уже запущен»
 
 ### Desktop UX (DUX)
 
@@ -64,7 +64,7 @@
 | LOG-02 | Phase 44 | Complete |
 | LOG-03 | Phase 44 | Complete |
 | LOG-04 | Phase 44 | Complete |
-| LOG-05 | Phase 44 | Pending |
+| LOG-05 | Phase 44 | Complete |
 | DUX-01 | Phase 45 | Pending |
 | DUX-02 | Phase 45 | Pending |
 | DUX-03 | Phase 46 | Pending |

@@ -35,7 +35,7 @@ Phases 28–31: v0.9 Backend Hardening
 - [x] **Phase 41: Thread Safety** — RLock, locks на read-методы, атомарные операции
 - [x] **Phase 42: Error Handling** — Bare excepts → конкретные, input validation, GBNF fail-loud
 - [x] **Phase 43: Test Coverage** — 15 test gaps закрыты
-- [ ] **Phase 44: Logging & Single Instance** — Файловые логи, BetterStack Logtail, file lock
+- [x] **Phase 44: Logging & Single Instance** — Файловые логи, BetterStack Logtail, file lock (completed 2026-03-29)
 - [ ] **Phase 45: Icon & Splash** — Иконка «Ю» .icns/.ico, splash screen
 - [ ] **Phase 46: Offline & Disk Safety** — Offline first run, проверка места на диске
 - [ ] **Phase 47: Runtime Safety** — storage_secret, quarantine, freeze_support, hidden imports
@@ -195,7 +195,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 44-01-PLAN.md — File + BetterStack logging with rotation, machine_id, content filter
-- [ ] 44-02-PLAN.md — Single instance file lock (fcntl/msvcrt)
+- [x] 44-02-PLAN.md — Single instance file lock (fcntl/msvcrt)
 
 ### Phase 45: Icon & Splash
 **Goal**: Приложение визуально идентифицировано — иконка «Ю» в Dock/Taskbar, splash вместо пустоты при запуске
@@ -254,7 +254,7 @@ Plans:
 | 41. Thread Safety | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 42. Error Handling | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 43. Test Coverage | v1.0-BE | 1/1 | Complete | 2026-03-29 |
-| 44. Logging & Single Instance | v1.2 | 1/2 | In Progress|  |
+| 44. Logging & Single Instance | v1.2 | 2/2 | Complete   | 2026-03-29 |
 | 45. Icon & Splash | v1.2 | 0/? | Not started | - |
 | 46. Offline & Disk Safety | v1.2 | 0/? | Not started | - |
 | 47. Runtime Safety | v1.2 | 0/? | Not started | - |

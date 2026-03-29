@@ -6,6 +6,7 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 datas = [
     ("app/static", "app/static"),
     ("data", "data"),
+    ("assets/icon_512.png", "assets"),
 ]
 datas += collect_data_files("natasha")
 datas += collect_data_files("pymorphy2")
@@ -50,6 +51,6 @@ exe = EXE(
 app = BUNDLE(
     exe,
     name="YurTag.app",
-    icon=None,
+    icon='assets/icon.icns',
     bundle_identifier="com.yurteg.desktop",
 )
