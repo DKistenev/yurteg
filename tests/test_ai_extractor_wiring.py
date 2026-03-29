@@ -158,3 +158,34 @@ def test_fallback_provider_used_on_failure():
 
     assert fallback.complete.called, "fallback_provider.complete() должен быть вызван при сбое основного"
     assert isinstance(result, ContractMetadata)
+
+
+def test_fallback_uses_anonymized_text_when_provided():
+    """Cloud fallback должен получать masked text, а не исходный текст."""
+    from modules.ai_extractor import extract_metadata
+
+    primary = _make_provider(name="ollama")
+    primary.complete.side_effect = RuntimeError("primary failed")
+    captured_messages = {}
+
+    def _fallback_complete(messages, **kwargs):
+        captured_messages["messages"] = messages
+        return _VALID_JSON
+
+    fallback = _make_provider(name="zai")
+    fallback.complete.side_effect = _fallback_complete
+    cfg = _make_config()
+
+    extract_metadata(
+        "Иванов Иван Иванович",
+        cfg,
+        provider=primary,
+        fallback_provider=fallback,
+        fallback_anonymized_text="[ФИО_1]",
+    )
+
+    user_message = next(m for m in captured_messages["messages"] if m["role"] == "user")
+    content = user_message["content"]
+    assert "[ФИО_1]" in content
+    assert "Текст документа:\n[ФИО_1]" in content
+    assert "Текст документа:\nИванов Иван Иванович" not in content

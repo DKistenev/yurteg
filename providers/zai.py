@@ -32,9 +32,9 @@ class ZAIProvider(LLMProvider):
     def complete(self, messages: list[dict], **kwargs) -> str:
         """Вызов ZAI API."""
         response = self._client.chat.completions.create(
-            model=self._config.active_model,
-            temperature=self._config.ai_temperature,
-            max_tokens=self._config.ai_max_tokens,
+            model=self._config.model_zai,
+            temperature=kwargs.get("temperature", self._config.ai_temperature),
+            max_tokens=kwargs.get("max_tokens", self._config.ai_max_tokens),
             messages=messages,
         )
         if not response.choices:

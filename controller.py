@@ -52,6 +52,7 @@ class Controller:
         on_progress: Optional[Callable[[int, int, str], None]] = None,
         on_file_done: Optional[Callable[[ProcessingResult], None]] = None,
         output_dir_override: Optional[Path] = None,
+        db_path_override: Optional[Path] = None,
     ) -> dict:
         """Обрабатывает весь архив.
 
@@ -76,7 +77,7 @@ class Controller:
         _notify(on_progress, 0, 0, f"Выходная папка: {output_dir}")
 
         # 2. Инициализировать БД
-        db = Database(output_dir / "yurteg.db")
+        db = Database(db_path_override or (output_dir / "yurteg.db"))
 
         try:
             stats = self._run_pipeline(
@@ -119,7 +120,6 @@ class Controller:
 
         # 4. Отфильтровать уже обработанные (или переобработать все)
         if force_reprocess:
-            db.clear_all()
             new_files = files
             skipped = 0
             _notify(on_progress, 0, total, "Режим переобработки: все файлы")
@@ -135,7 +135,7 @@ class Controller:
         errors = 0
 
         # ── Этап A: извлечение текста + анонимизация (последовательно) ──
-        prepared = []  # (result, anonymized_text)
+        prepared = []  # (result, primary_anonymized, fallback_anonymized)
         for file_info in new_files:
             result = ProcessingResult(file_info=file_info, status="processing")
             try:
@@ -163,6 +163,7 @@ class Controller:
                     errors += 1
                     continue
 
+                fallback_anonymized = None
                 if self.config.active_provider == "ollama":
                     # Локальная модель — ПД не покидают машину, анонимизация не нужна
                     anonymized = AnonymizedText(
@@ -170,10 +171,12 @@ class Controller:
                         replacements={},
                         stats={},
                     )
+                    if self._fallback_provider and self._fallback_provider.name != "ollama":
+                        fallback_anonymized = anonymize(text.text, self.config.anonymize_types)
                 else:
                     anonymized = anonymize(text.text, self.config.anonymize_types)
                 result.anonymized = anonymized
-                prepared.append((result, anonymized))
+                prepared.append((result, anonymized, fallback_anonymized))
             except Exception as e:
                 logger.error("Этап A ошибка: %s — %s", file_info.filename, e, exc_info=True)
                 result.status = "error"
@@ -189,23 +192,32 @@ class Controller:
         completed_count = skipped + errors  # уже посчитанные
 
         def _ai_task(item):
-            result, anonymized = item
+            result, anonymized, fallback_anonymized = item
             metadata = extract_metadata(
                 anonymized.text, self.config,
                 provider=self._provider,
                 fallback_provider=self._fallback_provider,
+                fallback_anonymized_text=(
+                    fallback_anonymized.text if fallback_anonymized is not None else None
+                ),
             )
-            return result, anonymized, metadata
+            used_anonymized = anonymized
+            if (
+                getattr(metadata, "_provider_name", self._provider.name) != self._provider.name
+                and fallback_anonymized is not None
+            ):
+                used_anonymized = fallback_anonymized
+            return result, used_anonymized, metadata
 
         with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
             futures = {executor.submit(_ai_task, item): item for item in prepared}
             for future in as_completed(futures):
                 item = futures[future]
-                result, anonymized = item
+                result = item[0]
                 try:
                     result, anonymized, metadata = future.result()
                     result.metadata = metadata
-                    result.model_used = self.config.active_model
+                    result.model_used = getattr(metadata, "_provider_model", self.config.active_model)
                     if result.text and len(anonymized.text) > 30_000:
                         result.text.was_truncated = True
 
@@ -260,7 +272,7 @@ class Controller:
                         )
 
                 # Платёжный календарь: сохраняем платежи если есть сумма (non-blocking)
-                if result.status == "done" and result.metadata and result.metadata.payment_amount is not None:
+                if result.status == "done" and result.metadata:
                     try:
                         cid = db.get_contract_id_by_hash(result.file_info.file_hash)
                         if cid:
@@ -282,7 +294,7 @@ class Controller:
 
         stats = {
             "total": total,
-            "done": done + skipped,
+            "done": done,
             "errors": errors,
             "skipped": skipped,
             "output_dir": output_dir,
@@ -347,32 +359,46 @@ def move_record_to_client(
     Returns:
         True если запись скопирована и удалена, False если запись не найдена.
     """
-    row = from_db.conn.execute(
-        "SELECT * FROM contracts WHERE id = ?", (record_id,)
-    ).fetchone()
-    if not row:
-        logger.warning("move_record_to_client: запись %d не найдена", record_id)
-        return False
-
-    cols = row.keys()
-    # Exclude 'id' to let the target DB assign a new primary key
-    data = {k: row[k] for k in cols if k != "id"}
-    placeholders = ", ".join(["?"] * len(data))
-    columns = ", ".join(data.keys())
     try:
+        row = from_db.conn.execute(
+            "SELECT * FROM contracts WHERE id = ?", (record_id,)
+        ).fetchone()
+        if not row:
+            logger.warning("move_record_to_client: запись %d не найдена", record_id)
+            return False
+        cols = row.keys()
+        data = {k: row[k] for k in cols if k != "id"}
+        placeholders = ", ".join(["?"] * len(data))
+        columns = ", ".join(data.keys())
+        to_db.conn.execute("BEGIN")
         to_db.conn.execute(
             f"INSERT OR IGNORE INTO contracts ({columns}) VALUES ({placeholders})",
             list(data.values()),
         )
-        to_db.conn.commit()
+        inserted = to_db.conn.execute(
+            "SELECT id FROM contracts WHERE file_hash = ?",
+            (data["file_hash"],),
+        ).fetchone()
+        if inserted is None:
+            raise RuntimeError("Не удалось записать запись в целевую БД")
+        from_db.conn.execute("BEGIN")
         from_db.conn.execute("DELETE FROM contracts WHERE id = ?", (record_id,))
         from_db.conn.commit()
+        to_db.conn.commit()
         logger.info(
             "Запись %d перемещена из %s в %s",
             record_id, from_db.db_path.name, to_db.db_path.name,
         )
         return True
     except Exception as exc:
+        try:
+            from_db.conn.rollback()
+        except Exception:
+            pass
+        try:
+            to_db.conn.rollback()
+        except Exception:
+            pass
         logger.error("move_record_to_client ошибка: %s", exc, exc_info=True)
         return False
 

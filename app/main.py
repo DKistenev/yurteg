@@ -9,13 +9,15 @@ Per D-16: ui.run с native=True, dark=False, reload=False, window_size=(1400, 90
 """
 import atexit
 import logging
+from pathlib import Path as _Path
 
 from nicegui import app, run, ui
 
 from app.components.header import render_header
 from app.pages import document, registry, settings, templates
 from app.state import get_state
-from config import Config
+from config import APP_VERSION, load_runtime_config
+from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,7 @@ _llama_manager: LlamaServerManager | None = None
 async def _start_llama() -> None:
     """Start llama-server if active_provider is 'ollama'. Called via app.on_startup."""
     global _llama_manager
-    config = Config()
+    config = load_runtime_config()
     if config.active_provider != "ollama":
         logger.info("Провайдер '%s' — llama-server не запускается.", config.active_provider)
         return
@@ -81,8 +83,6 @@ app.colors(
 
 # ── Global design system ──────────────────────────────────────────────────────
 # CSS/JS extracted to app/static/ for maintainability. Load order matters: font first.
-
-from pathlib import Path as _Path
 
 _STATIC = _Path(__file__).parent / "static"
 app.add_static_files("/static", str(_STATIC))
@@ -193,7 +193,6 @@ def root() -> None:
     with ui.element('footer').classes(
         "w-full py-3 px-8 flex justify-center items-center border-t border-slate-200 bg-white shrink-0"
     ):
-        from config import APP_VERSION
         ui.label(f"ЮрТэг v{APP_VERSION}").classes("text-xs text-slate-400")
 
 
@@ -203,19 +202,19 @@ from fastapi.responses import Response as FastAPIResponse
 
 
 @app.get('/download/redline/{contract_id}/{other_id}')
-async def download_redline(contract_id: int, other_id: int):
+async def download_redline(contract_id: int, other_id: int, client: str = ClientManager.DEFAULT_CLIENT):
     """Скачивает redline .docx сравнивая два документа-версии."""
     from services.version_service import generate_redline_docx as _gen_redline
     from services.client_manager import ClientManager as _CM
 
     cm = _CM()
-    db = cm.get_db("Основной реестр")
+    db = cm.get_db(client)
     c1 = await run.io_bound(db.get_contract_by_id, contract_id)
     c2 = await run.io_bound(db.get_contract_by_id, other_id)
     if c1 is None or c2 is None:
         return FastAPIResponse(content="Документ не найден", status_code=404)
-    text_old = c1.get('subject', '') or ''
-    text_new = c2.get('subject', '') or ''
+    text_old = c1.get('full_text') or c1.get('subject', '') or ''
+    text_new = c2.get('full_text') or c2.get('subject', '') or ''
     title = f"Redline: {c1.get('contract_type', '')} vs {c2.get('contract_type', '')}"
     docx_bytes = await run.io_bound(_gen_redline, text_old, text_new, title)
     return FastAPIResponse(
@@ -227,13 +226,13 @@ async def download_redline(contract_id: int, other_id: int):
 
 # ── Document download route (UIFIX-02) ────────────────────────────────────────
 @app.get('/download/{doc_id}')
-async def download_document(doc_id: int):
+async def download_document(doc_id: int, client: str = ClientManager.DEFAULT_CLIENT):
     """Скачивает оригинальный файл документа."""
     from pathlib import Path as _Path
     from services.client_manager import ClientManager as _CM
 
     cm = _CM()
-    db = cm.get_db("Основной реестр")
+    db = cm.get_db(client)
     doc = await run.io_bound(db.get_contract_by_id, doc_id)
     if doc is None:
         return FastAPIResponse(content="Документ не найден", status_code=404)

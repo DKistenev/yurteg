@@ -58,7 +58,7 @@ class ClientManager:
         # Avoid path collisions
         existing_paths = {str(p) for p in self._clients.values()}
         counter = 1
-        while path.exists() and str(path) not in existing_paths:
+        while path.exists() or str(path) in existing_paths:
             path = self._data_dir / f"client_{slug}_{counter}.db"
             counter += 1
         self._clients[name] = path

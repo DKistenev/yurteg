@@ -13,7 +13,7 @@ from app.styles import (
     TEXT_HEADING, TEXT_SECONDARY,
     APPLE_CARD_COMPACT,
 )
-from config import Config, load_settings, save_setting
+from config import load_runtime_config, load_settings, save_setting
 from services.telegram_sync import TelegramSync
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _settings_row(label: str, description: str = "", *, control_fn=None) -> None
 def _render_summary_cards(settings: dict, switch_fn, card_refs: dict) -> None:
     """Рендерит компактные summary-карточки над sidebar layout."""
     # --- AI summary ---
-    cfg = Config()
+    cfg = load_runtime_config()
     model_path = Path.home() / ".yurteg" / cfg.llama_model_filename
     model_exists = model_path.exists()
     model_size = f"{model_path.stat().st_size / 1024 / 1024:.0f}MB" if model_exists else ""
@@ -161,7 +161,7 @@ def build() -> None:
 
             # Model status
             def _model_status():
-                cfg = Config()
+                cfg = load_runtime_config()
                 model_path = Path.home() / ".yurteg" / cfg.llama_model_filename
                 exists = model_path.exists()
                 size_mb = f"{model_path.stat().st_size / 1024 / 1024:.0f} MB" if exists else ""
@@ -183,8 +183,15 @@ def build() -> None:
                     check_btn.props(add="loading")
                     result_label.set_text("")
                     try:
+                        cfg = load_runtime_config()
+                        provider = settings.get("active_provider", cfg.active_provider)
                         async with _httpx.AsyncClient(timeout=3) as client:
-                            resp = await client.get("http://localhost:8080/health")
+                            if provider == "ollama":
+                                resp = await client.get(f"http://localhost:{cfg.llama_server_port}/health")
+                            else:
+                                result_label.set_text("Ключ и облачный провайдер настроены отдельно")
+                                result_label.classes(remove="text-red-500", add="text-slate-500")
+                                return
                         if resp.status_code == 200:
                             result_label.set_text("Работает")
                             result_label.classes(remove="text-red-500", add="text-green-600")

@@ -164,6 +164,40 @@ class TestMigrations:
         for v in range(1, 11):
             assert v in applied, f"Migration v{v} not applied"
 
+    def test_delete_contract_removes_derived_rows(self, tmp_path: Path) -> None:
+        db = Database(tmp_path / "delete.db")
+        fi = FileInfo(
+            path=tmp_path / "d.pdf", filename="d.pdf",
+            extension=".pdf", size_bytes=100, file_hash="delete_hash",
+        )
+        meta = ContractMetadata(
+            date_start="2026-01-01",
+            date_end="2026-12-31",
+            payment_amount=1000,
+            payment_frequency="monthly",
+        )
+        r = ProcessingResult(file_info=fi, status="done", metadata=meta, full_text="Полный текст")
+        db.save_result(r)
+        cid = db.get_contract_id_by_hash("delete_hash")
+        assert cid is not None
+        db.conn.execute(
+            "INSERT INTO document_versions (contract_group_id, contract_id, version_number, link_method) VALUES (?, ?, ?, ?)",
+            (cid, cid, 1, "auto_embedding"),
+        )
+        db.conn.execute(
+            "INSERT INTO embeddings (contract_id, vector, model_version) VALUES (?, ?, ?)",
+            (cid, b'123', 'test'),
+        )
+        db.conn.commit()
+        from services.payment_service import save_payments
+        save_payments(db, cid, meta)
+
+        assert db.delete_contract(cid) is True
+        assert db.conn.execute("SELECT 1 FROM contracts WHERE id = ?", (cid,)).fetchone() is None
+        assert db.conn.execute("SELECT 1 FROM document_versions WHERE contract_id = ?", (cid,)).fetchone() is None
+        assert db.conn.execute("SELECT 1 FROM embeddings WHERE contract_id = ?", (cid,)).fetchone() is None
+        assert db.conn.execute("SELECT 1 FROM payments WHERE contract_id = ?", (cid,)).fetchone() is None
+
 
 # ---------------------------------------------------------------------------
 # TEST-05: ai_extractor helper functions

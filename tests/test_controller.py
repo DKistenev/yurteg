@@ -193,7 +193,7 @@ def test_process_archive_progress_callback(
 def test_process_archive_force_reprocess(
     cfg, tmp_path, sample_file_info, sample_text, sample_metadata
 ):
-    """force_reprocess=True вызывает db.clear_all() и обрабатывает все файлы."""
+    """force_reprocess=True обрабатывает все файлы без глобальной очистки БД."""
     source = tmp_path / "source"
     source.mkdir()
     output = tmp_path / "output"
@@ -218,7 +218,7 @@ def test_process_archive_force_reprocess(
             source, output_dir_override=output, force_reprocess=True
         )
 
-    # clear_all должен был быть вызван при force_reprocess
-    mock_db.clear_all.assert_called_once()
+    # Глобальная очистка БД больше не должна вызываться при reprocess одного набора файлов
+    mock_db.clear_all.assert_not_called()
     # Файл обработан несмотря на is_processed=True
     assert result["total"] == 1

@@ -43,7 +43,7 @@ def get_computed_status_sql(warning_days: int) -> str:
             WHEN manual_status IS NOT NULL THEN manual_status
             WHEN date_end IS NULL          THEN 'unknown'
             WHEN date_end < date('now')    THEN 'expired'
-            WHEN date_end < date('now', '+' || :warning_days || ' days') THEN 'expiring'
+            WHEN date_end <= date('now', '+' || :warning_days || ' days') THEN 'expiring'
             ELSE 'active'
         END
     """.strip()
@@ -83,13 +83,13 @@ def get_attention_required(db: Database, warning_days: int) -> list[DeadlineAler
     sql = f"""
         SELECT
             id, filename, counterparty, contract_type, date_end,
-            CAST(julianday(date_end) - julianday('now') AS INTEGER) AS days_until_expiry,
+            CAST(julianday(date_end) - julianday(date('now')) AS INTEGER) AS days_until_expiry,
             {get_computed_status_sql(warning_days)} AS computed_status,
             validation_status
         FROM contracts
-        WHERE manual_status IS NULL
+        WHERE (manual_status IS NULL OR manual_status NOT IN ('negotiation'))
           AND date_end IS NOT NULL
-          AND date_end < date('now', '+' || :warning_days || ' days')
+          AND date_end <= date('now', '+' || :warning_days || ' days')
           AND status = 'done'
         ORDER BY date_end ASC
     """
