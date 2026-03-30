@@ -11,3 +11,6 @@ yurteg.db
 .planning/
 .playwright-mcp/
 /*.png
+build/
+dist/
+llama-server
