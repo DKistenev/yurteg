@@ -14,6 +14,25 @@ _LOCK_PATH = Path.home() / ".yurteg" / "app.lock"
 _lock_fd: int | None = None
 
 
+def _show_already_running_message() -> None:
+    """Show a visible message in packaged GUI builds; fallback to stderr."""
+    message = "ЮрТэг уже запущен.\nПереключитесь в открытое окно приложения."
+    try:
+        import tkinter
+        from tkinter import messagebox
+
+        root = tkinter.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        messagebox.showinfo("ЮрТэг", message, parent=root)
+        root.destroy()
+        return
+    except Exception as exc:
+        logger.debug("Не удалось показать GUI-сообщение о повторном запуске: %s", exc)
+
+    print(message, file=sys.stderr)
+
+
 def acquire_instance_lock() -> None:
     """Acquire exclusive file lock or exit with user-friendly message.
 
@@ -38,7 +57,7 @@ def acquire_instance_lock() -> None:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except (OSError, IOError):
         os.close(fd)
-        print("ЮрТэг уже запущен.", file=sys.stderr)
+        _show_already_running_message()
         logger.warning("Попытка повторного запуска заблокирована (lock busy)")
         sys.exit(1)
 
