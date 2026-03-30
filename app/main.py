@@ -17,6 +17,7 @@ from app.pages import document, registry, settings, templates
 from app.state import get_state
 from config import APP_VERSION, load_runtime_config
 from runtime_paths import get_resource_path
+from services.app_boot import should_start_llama_on_startup
 from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
 
@@ -32,6 +33,10 @@ _llama_manager: LlamaServerManager | None = None
 async def _start_llama() -> None:
     """Start llama-server if active_provider is 'ollama'. Called via app.on_startup."""
     global _llama_manager
+    if not should_start_llama_on_startup(load_settings()):
+        logger.info("Первый запуск ещё не завершён — llama-server будет подготовлен через splash")
+        return
+
     config = load_runtime_config()
     if config.active_provider != "ollama":
         logger.info("Провайдер '%s' — llama-server не запускается.", config.active_provider)
