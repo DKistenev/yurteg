@@ -3,7 +3,7 @@
 Использует sentence-transformers MiniLM-L12-v2 для семантического
 сравнения текстов договоров. Вектора кэшируются в SQLite (embeddings table).
 
-Не импортирует streamlit — вызывается из controller и main.py.
+Не зависит от UI-слоя — вызывается из controller и main.py.
 """
 import io
 import json
