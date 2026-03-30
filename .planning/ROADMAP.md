@@ -44,7 +44,7 @@ Plans:
   3. Приложение полностью запускается из собранного .app: реестр открывается, документ обрабатывается
 **Plans**: 1 plan
 Plans:
-- [ ] 49-01-PLAN.md — Rewrite spec to onedir + COLLECT + BUNDLE, add NiceGUI/pywebview, torch excludes, llama-server
+- [x] 50-01-PLAN.md — Add bundled binary resolution to LlamaServerManager (dual-mode: frozen vs source)
 
 #### Phase 51: GitHub Actions CI/CD
 **Goal**: Push тега автоматически создаёт DMG и публикует его в GitHub Releases
@@ -57,7 +57,7 @@ Plans:
   4. Файл в релизе называется YurTag-{version}.dmg (версия из тега)
 **Plans**: 1 plan
 Plans:
-- [ ] 49-01-PLAN.md — Rewrite spec to onedir + COLLECT + BUNDLE, add NiceGUI/pywebview, torch excludes, llama-server
+- [ ] 51-01-PLAN.md — [to be planned]
 **UI hint**: no
 
 #### Phase 52: Docs + DMG Polish
@@ -70,13 +70,13 @@ Plans:
   3. GitHub Release содержит заполненные release notes по шаблону
 **Plans**: 1 plan
 Plans:
-- [ ] 49-01-PLAN.md — Rewrite spec to onedir + COLLECT + BUNDLE, add NiceGUI/pywebview, torch excludes, llama-server
+- [ ] 52-01-PLAN.md — [to be planned]
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete   | 2026-03-30 |
-| 50. Runtime Path Integration | v1.3 | 0/? | Not started | - |
+| 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete    | 2026-03-30 |
+| 50. Runtime Path Integration | v1.3 | 1/1 | Complete   | 2026-03-30 |
 | 51. GitHub Actions CI/CD | v1.3 | 0/? | Not started | - |
 | 52. Docs + DMG Polish | v1.3 | 0/? | Not started | - |

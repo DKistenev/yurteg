@@ -11,8 +11,8 @@
 - [x] **BUILD-02**: NiceGUI static files и pywebview включены в spec (collect_data_files + collect_submodules)
 - [x] **BUILD-03**: torch.cuda и torch.distributed исключены из бандла для уменьшения размера
 - [x] **BUILD-04**: llama-server бинарник бандлится в .app через binaries в spec
-- [ ] **BUILD-05**: llama_server.py проверяет бандленный бинарник (sys._MEIPASS) перед скачиванием
-- [ ] **BUILD-06**: Локальная сборка .app проходит успешно и приложение запускается
+- [x] **BUILD-05**: llama_server.py проверяет бандленный бинарник (sys._MEIPASS) перед скачиванием
+- [x] **BUILD-06**: Локальная сборка .app проходит успешно и приложение запускается
 
 ### CI/CD
 
@@ -58,8 +58,8 @@
 | BUILD-02 | Phase 49 | Complete |
 | BUILD-03 | Phase 49 | Complete |
 | BUILD-04 | Phase 49 | Complete |
-| BUILD-05 | Phase 50 | Pending |
-| BUILD-06 | Phase 50 | Pending |
+| BUILD-05 | Phase 50 | Complete |
+| BUILD-06 | Phase 50 | Complete |
 | CICD-01 | Phase 51 | Pending |
 | CICD-02 | Phase 51 | Pending |
 | CICD-03 | Phase 51 | Pending |

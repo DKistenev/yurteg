@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Desktop Distribution
 status: verifying
-stopped_at: Completed 49-01-PLAN.md
-last_updated: "2026-03-30T22:57:54.366Z"
+stopped_at: Completed 50-01-PLAN.md
+last_updated: "2026-03-30T23:44:21.348Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
   percent: 90
 ---
 
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными
-**Current focus:** Phase 49 — PyInstaller Spec + Bundling
+**Current focus:** Phase 50 — Runtime Path Integration
 
 ## Current Position
 
-Phase: 49 (PyInstaller Spec + Bundling) — EXECUTING
+Phase: 50 (Runtime Path Integration) — EXECUTING
 Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-03-30
@@ -57,6 +57,7 @@ Progress: [████████████████████░░] 9
 - [Phase 49]: onedir mode via COLLECT+BUNDLE for fast .app startup
 - [Phase 49]: PyInstaller 6.x: binaries in Contents/Frameworks/, not Contents/MacOS/
 - [Phase 49]: Only torch.cuda/distributed excluded; _inductor/_dynamo deferred to Phase 50
+- [Phase 50]: Lazy import of get_bundle_root inside _get_bundled_binary for frozen-only code path
 
 ### Pending Todos
 
@@ -69,6 +70,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T22:57:54.361Z
-Stopped at: Completed 49-01-PLAN.md
+Last session: 2026-03-30T23:44:21.344Z
+Stopped at: Completed 50-01-PLAN.md
 Resume file: None
