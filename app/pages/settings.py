@@ -184,7 +184,7 @@ def build() -> None:
                     result_label.set_text("")
                     try:
                         cfg = load_runtime_config()
-                        provider = settings.get("active_provider", cfg.active_provider)
+                        provider = cfg.active_provider
                         async with _httpx.AsyncClient(timeout=3) as client:
                             if provider == "ollama":
                                 resp = await client.get(f"http://localhost:{cfg.llama_server_port}/health")

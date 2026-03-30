@@ -1,7 +1,9 @@
 """Управление мультиклиентскими реестрами. Каждый клиент = отдельный .db файл."""
+import atexit
 import json
 import logging
 import re
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -14,12 +16,18 @@ class ClientManager:
     """Управление мультиклиентскими реестрами. Каждый клиент = отдельный .db файл."""
 
     DEFAULT_CLIENT = "Основной реестр"
+    _db_cache: dict[Path, Database] = {}
+    _db_cache_lock = threading.Lock()
+    _atexit_registered = False
 
     def __init__(self, data_dir: Optional[Path] = None):
         self._data_dir = data_dir or (Path.home() / ".yurteg")
         self._data_dir.mkdir(parents=True, exist_ok=True)
         self._meta_file = self._data_dir / "clients.json"
         self._clients: dict[str, Path] = self._load()
+        if not ClientManager._atexit_registered:
+            atexit.register(ClientManager.close_all)
+            ClientManager._atexit_registered = True
 
     def _load(self) -> dict[str, Path]:
         if self._meta_file.exists():
@@ -45,7 +53,21 @@ class ClientManager:
         return self._clients[name]
 
     def get_db(self, name: str) -> Database:
-        return Database(self.get_db_path(name))
+        db_path = self.get_db_path(name)
+        with self._db_cache_lock:
+            db = self._db_cache.get(db_path)
+            if db is None:
+                db = Database(db_path)
+                self._db_cache[db_path] = db
+            return db
+
+    @classmethod
+    def close_all(cls) -> None:
+        """Закрывает все кэшированные sqlite-соединения."""
+        with cls._db_cache_lock:
+            for db in cls._db_cache.values():
+                db.close()
+            cls._db_cache.clear()
 
     def add_client(self, name: str) -> Path:
         if name in self._clients:
