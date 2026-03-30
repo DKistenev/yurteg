@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: Hackathon-Ready
 status: verifying
-stopped_at: Completed 45-01-PLAN.md
-last_updated: "2026-03-29T22:35:57.186Z"
+stopped_at: Completed 46-01-PLAN.md
+last_updated: "2026-03-29T22:45:31.571Z"
 last_activity: 2026-03-29
 progress:
   total_phases: 17
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 0
 ---
 
@@ -21,11 +21,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр — без ручного ввода, без обучения
-**Current focus:** Phase 45 — Icon & Splash
+**Current focus:** Phase 46 — Offline & Disk Safety
 
 ## Current Position
 
-Phase: 45 (Icon & Splash) — EXECUTING
+Phase: 46 (Offline & Disk Safety) — EXECUTING
 Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-03-29
@@ -46,6 +46,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 44]: storage_secret generated via secrets.token_hex(32), persisted in settings.json
 - [Phase 44]: OS file descriptor lock (fcntl/msvcrt) instead of PID file — auto-releases on crash
 - [Phase 45-icon-splash]: Arial Bold for icon (woff2 incompatible with Pillow), MutationObserver+8s fallback for overlay removal
+- [Phase 46]: HEAD requests to huggingface.co/github.com with 5s timeout for internet check; 1.5 GB disk threshold; persistent ui.notify warnings
 
 ### Notes Reference
 
@@ -68,6 +69,6 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Session Continuity
 
-Last session: 2026-03-29T22:35:57.182Z
-Stopped at: Completed 45-01-PLAN.md
+Last session: 2026-03-29T22:45:31.567Z
+Stopped at: Completed 46-01-PLAN.md
 Resume file: None

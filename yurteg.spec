@@ -12,12 +12,15 @@ datas += collect_data_files("natasha")
 datas += collect_data_files("pymorphy2")
 datas += collect_data_files("pymorphy2_dicts_ru")
 datas += collect_data_files("sentence_transformers")
+datas += collect_data_files("pdfplumber")
 
 hiddenimports = []
 hiddenimports += collect_submodules("natasha")
 hiddenimports += collect_submodules("pymorphy2")
 hiddenimports += collect_submodules("sentence_transformers")
 hiddenimports += collect_submodules("huggingface_hub")
+hiddenimports += collect_submodules("pdfplumber")
+hiddenimports += collect_submodules("logtail")
 
 
 a = Analysis(

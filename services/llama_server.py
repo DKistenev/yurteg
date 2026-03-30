@@ -185,6 +185,14 @@ class LlamaServerManager:
         if system != "Windows":
             binary_path.chmod(binary_path.stat().st_mode | 0o111)
 
+        # macOS: снимаем quarantine флаг, иначе Gatekeeper блокирует запуск
+        if system == "Darwin":
+            subprocess.run(
+                ["xattr", "-dr", "com.apple.quarantine", str(binary_path)],
+                capture_output=True,
+            )
+            logger.info("Quarantine флаг снят: %s", binary_path)
+
         if on_progress:
             on_progress(1.0, "llama-server готов")
 
