@@ -1,0 +1,63 @@
+name: Build DMG
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller==6.19.0
+
+      - name: Download llama-server
+        run: |
+          mkdir -p ~/.yurteg
+          curl -L -o /tmp/llama.zip "https://github.com/ggerganov/llama.cpp/releases/download/b5606/llama-b5606-bin-macos-arm64.zip"
+          unzip -o /tmp/llama.zip -d /tmp/llama
+          LLAMA_BIN=$(find /tmp/llama -name llama-server -type f | head -1)
+          if [ -z "$LLAMA_BIN" ]; then
+            echo "ERROR: llama-server not found in archive"
+            exit 1
+          fi
+          cp "$LLAMA_BIN" ~/.yurteg/llama-server
+          chmod +x ~/.yurteg/llama-server
+          ls -la ~/.yurteg/llama-server
+
+      - name: Build .app
+        run: pyinstaller yurteg.spec --noconfirm
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          VERSION=${GITHUB_REF_NAME#v}
+          create-dmg \
+            --volname "YurTag" \
+            --volicon "assets/icon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "YurTag.app" 150 200 \
+            --app-drop-link 450 200 \
+            --no-internet-enable \
+            "YurTag-${VERSION}.dmg" \
+            "dist/YurTag.app" \
+          || true
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: YurTag-*.dmg
