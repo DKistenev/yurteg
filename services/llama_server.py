@@ -2,6 +2,7 @@
 import atexit
 import logging
 import platform
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -77,6 +78,18 @@ class LlamaServerManager:
         self._yurteg_dir = YURTEG_DIR
         self._yurteg_dir.mkdir(parents=True, exist_ok=True)
 
+    # ── Bundled binary resolution ───────────────────────────────────────────
+
+    def _get_bundled_binary(self) -> Optional[Path]:
+        """Return path to bundled llama-server if running frozen, else None."""
+        if not getattr(sys, "frozen", False):
+            return None
+        from runtime_paths import get_bundle_root
+        candidate = get_bundle_root() / _BINARY_NAME
+        if candidate.exists() and candidate.is_file():
+            return candidate
+        return None
+
     # ── Публичные свойства ───────────────────────────────────────────────────
 
     @property
@@ -87,8 +100,11 @@ class LlamaServerManager:
     def has_local_runtime_assets(self) -> bool:
         """True when both model and llama-server binary are already available locally."""
         model_path = self._yurteg_dir / MODEL_FILENAME
-        binary_path = self._yurteg_dir / _BINARY_NAME
-        return model_path.exists() and binary_path.exists()
+        binary_available = (
+            self._get_bundled_binary() is not None
+            or (self._yurteg_dir / _BINARY_NAME).exists()
+        )
+        return model_path.exists() and binary_available
 
     # ── Скачивание модели ────────────────────────────────────────────────────
 
@@ -142,6 +158,12 @@ class LlamaServerManager:
         Returns:
             Path к бинарнику.
         """
+        # Check bundled binary first (PyInstaller .app)
+        bundled = self._get_bundled_binary()
+        if bundled is not None:
+            logger.info("Using bundled llama-server: %s", bundled)
+            return bundled
+
         binary_path = self._yurteg_dir / _BINARY_NAME
         if binary_path.exists():
             logger.info("llama-server бинарник уже скачан: %s", binary_path)
@@ -221,7 +243,7 @@ class LlamaServerManager:
 
         try:
             model_path = self._yurteg_dir / MODEL_FILENAME
-            binary_path = self._yurteg_dir / _BINARY_NAME
+            binary_path = self._get_bundled_binary() or (self._yurteg_dir / _BINARY_NAME)
         except Exception as exc:
             logger.warning("Ошибка при подготовке путей llama-server: %s", exc)
             return
@@ -233,6 +255,16 @@ class LlamaServerManager:
         if not binary_path.exists():
             logger.warning("Бинарник не найден: %s — llama-server не запущен", binary_path)
             return
+
+        # Ensure execute permission (defensive — bundled binary may lose +x)
+        if platform.system() != "Windows":
+            binary_path.chmod(binary_path.stat().st_mode | 0o111)
+        # macOS: remove quarantine if present
+        if platform.system() == "Darwin":
+            subprocess.run(
+                ["xattr", "-dr", "com.apple.quarantine", str(binary_path)],
+                capture_output=True,
+            )
 
         cmd_base = [
             str(binary_path),
