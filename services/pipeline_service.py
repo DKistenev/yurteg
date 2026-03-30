@@ -1,6 +1,6 @@
 """Сервис обработки архива документов.
 
-# NO import streamlit — этот файл должен работать без UI.
+# Этот файл должен работать без зависимости от конкретного UI.
 # Намеренное ограничение: вызывается Telegram-ботом, CLI, тестами.
 """
 from pathlib import Path
@@ -22,7 +22,7 @@ def process_archive(
 ) -> dict:
     """Единая точка входа для обработки архива документов.
 
-    Вызывается Streamlit UI, Telegram-ботом, CLI и тестами.
+    Вызывается desktop UI, Telegram-ботом, CLI и тестами.
     Возвращает: dict(total, done, errors, skipped, output_dir, report_path)
 
     Args:

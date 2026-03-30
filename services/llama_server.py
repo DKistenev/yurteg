@@ -84,6 +84,12 @@ class LlamaServerManager:
         """OpenAI-совместимый endpoint llama-server."""
         return f"http://localhost:{self._port}/v1"
 
+    def has_local_runtime_assets(self) -> bool:
+        """True when both model and llama-server binary are already available locally."""
+        model_path = self._yurteg_dir / MODEL_FILENAME
+        binary_path = self._yurteg_dir / _BINARY_NAME
+        return model_path.exists() and binary_path.exists()
+
     # ── Скачивание модели ────────────────────────────────────────────────────
 
     def ensure_model(

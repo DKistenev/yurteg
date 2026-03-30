@@ -32,6 +32,7 @@ from modules.models import FileInfo
 from services.client_manager import ClientManager
 
 logger = logging.getLogger(__name__)
+_client_manager = ClientManager()
 
 
 async def _pick_file() -> Optional[Path]:
@@ -62,7 +63,7 @@ async def _pick_file() -> Optional[Path]:
 def _render_cards(container: ui.column, on_add: callable = None) -> None:
     """Рендерит карточки шаблонов в двухколоночной сетке."""
     state = get_state()
-    db = ClientManager().get_db(state.current_client)
+    db = _client_manager.get_db(state.current_client)
     templates = review_service.list_templates(db)
 
     container.clear()
@@ -226,7 +227,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None)
             save_btn.disable()
             try:
                 state = get_state()
-                db = ClientManager().get_db(state.current_client)
+                db = _client_manager.get_db(state.current_client)
                 try:
                     await run.io_bound(
                         review_service.update_template, db, tmpl.id, new_name, new_type
@@ -255,7 +256,7 @@ def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: callable = Non
 
     async def _do_delete():
         state = get_state()
-        db = ClientManager().get_db(state.current_client)
+        db = _client_manager.get_db(state.current_client)
         try:
             await run.io_bound(review_service.delete_template, db, tmpl.id)
         except Exception:
@@ -330,7 +331,7 @@ async def _add_template_flow(cards_container: ui.column, on_add: callable = None
                     return
 
                 state = get_state()
-                db = ClientManager().get_db(state.current_client)
+                db = _client_manager.get_db(state.current_client)
                 doc_type = type_select.value or "Прочее"
 
                 try:

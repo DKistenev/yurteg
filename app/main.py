@@ -301,7 +301,10 @@ def root() -> None:
 
 # ── Redline download route (Phase 9, D-18) ────────────────────────────────────
 # FastAPI route вместо ui.download — не блокирует event loop (Pitfall 1 from RESEARCH)
-from fastapi.responses import Response as FastAPIResponse
+from fastapi.responses import FileResponse, Response as FastAPIResponse
+
+
+_client_manager = ClientManager()
 
 
 @app.get('/download/redline/{contract_id}/{other_id}')
@@ -310,8 +313,7 @@ async def download_redline(contract_id: int, other_id: int, client: str = Client
     from services.version_service import generate_redline_docx as _gen_redline
     from services.client_manager import ClientManager as _CM
 
-    cm = _CM()
-    db = cm.get_db(client)
+    db = _client_manager.get_db(client)
     c1 = await run.io_bound(db.get_contract_by_id, contract_id)
     c2 = await run.io_bound(db.get_contract_by_id, other_id)
     if c1 is None or c2 is None:
@@ -332,10 +334,8 @@ async def download_redline(contract_id: int, other_id: int, client: str = Client
 async def download_document(doc_id: int, client: str = ClientManager.DEFAULT_CLIENT):
     """Скачивает оригинальный файл документа."""
     from pathlib import Path as _Path
-    from services.client_manager import ClientManager as _CM
 
-    cm = _CM()
-    db = cm.get_db(client)
+    db = _client_manager.get_db(client)
     doc = await run.io_bound(db.get_contract_by_id, doc_id)
     if doc is None:
         return FastAPIResponse(content="Документ не найден", status_code=404)
@@ -346,7 +346,6 @@ async def download_document(doc_id: int, client: str = ClientManager.DEFAULT_CLI
             content=f"Файл не найден: {original_path.name}", status_code=404
         )
 
-    content_bytes = original_path.read_bytes()
     suffix = original_path.suffix.lower()
     media_type = {
         ".pdf": "application/pdf",
@@ -354,10 +353,10 @@ async def download_document(doc_id: int, client: str = ClientManager.DEFAULT_CLI
         ".doc": "application/msword",
     }.get(suffix, "application/octet-stream")
 
-    return FastAPIResponse(
-        content=content_bytes,
+    return FileResponse(
+        path=original_path,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{original_path.name}"'},
+        filename=original_path.name,
     )
 
 

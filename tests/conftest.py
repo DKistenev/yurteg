@@ -25,3 +25,15 @@ def _clear_proxy_env():
     saved = {k: os.environ.pop(k) for k in proxy_vars if k in os.environ}
     yield
     os.environ.update(saved)
+
+
+@pytest.fixture(autouse=True)
+def _close_cached_client_dbs():
+    """Isolate tests from shared ClientManager DB cache."""
+    yield
+    try:
+        from services.client_manager import ClientManager
+
+        ClientManager.close_all()
+    except Exception:
+        pass
