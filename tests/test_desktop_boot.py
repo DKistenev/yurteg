@@ -21,6 +21,20 @@ def test_should_not_start_llama_during_first_run():
     assert should_start_llama_on_startup({"first_run_completed": False}) is False
 
 
+def test_llama_runtime_ready_when_model_and_binary_exist(tmp_path, monkeypatch):
+    """Offline onboarding should proceed when local runtime assets are already installed."""
+    import services.llama_server as llama_server
+
+    monkeypatch.setattr(llama_server, "YURTEG_DIR", tmp_path)
+    manager = llama_server.LlamaServerManager()
+
+    (tmp_path / llama_server.MODEL_FILENAME).write_text("model")
+    binary_name = "llama-server.exe" if sys.platform == "win32" else "llama-server"
+    (tmp_path / binary_name).write_text("bin")
+
+    assert manager.has_local_runtime_assets() is True
+
+
 def test_show_already_running_message_uses_gui_when_available(monkeypatch):
     """Packaged desktop build should show a visible message box."""
     from services import instance_lock

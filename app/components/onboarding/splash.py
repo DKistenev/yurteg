@@ -211,6 +211,38 @@ def render_splash() -> None:
                     loop.call_soon_threadsafe(progress_bar.set_value, fraction)
                     loop.call_soon_threadsafe(progress_label.set_text, label_text)
 
+                # --- Pre-download safety checks (DUX-03, DUX-04) ---
+                runtime_ready = await run.io_bound(manager.has_local_runtime_assets)
+                if not runtime_ready:
+                    has_internet = await run.io_bound(check_internet)
+                    if not has_internet:
+                        loop.call_soon_threadsafe(
+                            progress_label.set_text,
+                            'Нет подключения к интернету',
+                        )
+                        loop.call_soon_threadsafe(progress_bar.set_value, 0)
+                        ui.notify(
+                            'Подключитесь к интернету для первой настройки — '
+                            'нужно скачать ИИ-модель (~1.5 ГБ)',
+                            type='warning',
+                            timeout=0,
+                        )
+                        return
+
+                    disk_ok, free_gb = await run.io_bound(check_disk_space, YURTEG_DIR)
+                    if not disk_ok:
+                        loop.call_soon_threadsafe(
+                            progress_label.set_text,
+                            f'Недостаточно места на диске ({free_gb:.1f} ГБ свободно)',
+                        )
+                        loop.call_soon_threadsafe(progress_bar.set_value, 0)
+                        ui.notify(
+                            f'Для работы нужно ~{REQUIRED_SPACE_GB} ГБ свободного места. '
+                            f'Сейчас доступно {free_gb:.1f} ГБ. Освободите место и перезапустите.',
+                            type='warning',
+                            timeout=0,
+                        )
+                        return
                 try:
                     await run.io_bound(manager.ensure_model, on_progress)
                     await run.io_bound(manager.ensure_server_binary)

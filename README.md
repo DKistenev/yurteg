@@ -13,5 +13,5 @@ pip install -r requirements.txt
 ## Запуск
 
 ```bash
-streamlit run main.py
+python app/main.py
 ```

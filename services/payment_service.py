@@ -1,9 +1,9 @@
 """Сервис платёжного календаря.
 
 Разворачивает периодические платежи из ContractMetadata в конкретные даты
-и сохраняет в SQLite таблицу payments. Формирует события для streamlit-calendar.
+i сохраняет в SQLite таблицу payments. Формирует события в формате FullCalendar.
 
-Не импортирует streamlit — вызывается из pipeline_service и main.py.
+Не зависит от UI-слоя — вызывается из pipeline_service и main.py.
 """
 import logging
 from datetime import date, datetime
@@ -160,7 +160,7 @@ def get_calendar_events(
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
 ) -> list[dict]:
-    """Возвращает события для streamlit-calendar в формате FullCalendar.
+    """Возвращает события календаря в формате FullCalendar.
 
     Если start_date/end_date заданы — фильтрует по диапазону.
     Каждое событие: title, start, end, backgroundColor, extendedProps.
