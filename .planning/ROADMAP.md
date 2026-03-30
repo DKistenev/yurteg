@@ -57,7 +57,7 @@ Plans:
   4. Файл в релизе называется YurTag-{version}.dmg (версия из тега)
 **Plans**: 1 plan
 Plans:
-- [ ] 51-01-PLAN.md — [to be planned]
+- [x] 51-01-PLAN.md — GitHub Actions workflow: tag-triggered DMG build and release
 **UI hint**: no
 
 #### Phase 52: Docs + DMG Polish
@@ -77,6 +77,6 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete    | 2026-03-30 |
-| 50. Runtime Path Integration | v1.3 | 1/1 | Complete   | 2026-03-30 |
-| 51. GitHub Actions CI/CD | v1.3 | 0/? | Not started | - |
+| 50. Runtime Path Integration | v1.3 | 1/1 | Complete    | 2026-03-30 |
+| 51. GitHub Actions CI/CD | v1.3 | 1/1 | Complete   | 2026-03-30 |
 | 52. Docs + DMG Polish | v1.3 | 0/? | Not started | - |

@@ -16,11 +16,11 @@
 
 ### CI/CD
 
-- [ ] **CICD-01**: GitHub Actions workflow срабатывает на push тега v*
-- [ ] **CICD-02**: CI собирает .app через PyInstaller на macos-14 runner
-- [ ] **CICD-03**: CI создаёт DMG через create-dmg с drag-to-Applications
-- [ ] **CICD-04**: DMG загружается как asset в GitHub Release с версией в имени (YurTag-1.3.0.dmg)
-- [ ] **CICD-05**: pip cache настроен для экономии CI минут
+- [x] **CICD-01**: GitHub Actions workflow срабатывает на push тега v*
+- [x] **CICD-02**: CI собирает .app через PyInstaller на macos-14 runner
+- [x] **CICD-03**: CI создаёт DMG через create-dmg с drag-to-Applications
+- [x] **CICD-04**: DMG загружается как asset в GitHub Release с версией в имени (YurTag-1.3.0.dmg)
+- [x] **CICD-05**: pip cache настроен для экономии CI минут
 
 ### Документация (Docs)
 
@@ -60,11 +60,11 @@
 | BUILD-04 | Phase 49 | Complete |
 | BUILD-05 | Phase 50 | Complete |
 | BUILD-06 | Phase 50 | Complete |
-| CICD-01 | Phase 51 | Pending |
-| CICD-02 | Phase 51 | Pending |
-| CICD-03 | Phase 51 | Pending |
-| CICD-04 | Phase 51 | Pending |
-| CICD-05 | Phase 51 | Pending |
+| CICD-01 | Phase 51 | Complete |
+| CICD-02 | Phase 51 | Complete |
+| CICD-03 | Phase 51 | Complete |
+| CICD-04 | Phase 51 | Complete |
+| CICD-05 | Phase 51 | Complete |
 | DOCS-01 | Phase 52 | Pending |
 | DOCS-02 | Phase 52 | Pending |
 | DOCS-03 | Phase 52 | Pending |
