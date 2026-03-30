@@ -129,3 +129,30 @@ def test_switch_client(client_dir):
     assert "клиент_x" in str(db_x.db_path).lower() or "client_" in str(db_x.db_path).lower(), (
         "Путь к БД клиента X должен отличаться от клиента Y"
     )
+
+
+def test_get_db_reuses_cached_connection(client_dir):
+    """Повторный get_db для одного пути должен возвращать тот же Database."""
+    from services.client_manager import ClientManager
+
+    manager = ClientManager(client_dir)
+    manager.add_client("Клиент Cache")
+
+    db1 = manager.get_db("Клиент Cache")
+    db2 = manager.get_db("Клиент Cache")
+
+    assert db1 is db2
+
+
+def test_close_all_clears_cached_connections(client_dir):
+    """close_all должен сбрасывать кэш соединений между тестами/сессиями."""
+    from services.client_manager import ClientManager
+
+    manager = ClientManager(client_dir)
+    manager.add_client("Клиент Cleanup")
+
+    db1 = manager.get_db("Клиент Cleanup")
+    ClientManager.close_all()
+    db2 = manager.get_db("Клиент Cleanup")
+
+    assert db1 is not db2

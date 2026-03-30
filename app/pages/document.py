@@ -216,20 +216,22 @@ async def build(doc_id: str = "") -> None:
                             import shutil
                             shutil.copy2(original_path, link)
                         from controller import Controller
-                        cm = ClientManager()
-                        db_path = cm.get_db_path(state.current_client)
+                        db_path = _client_manager.get_db_path(state.current_client)
                         ctrl = Controller(load_runtime_config())
                         ui.notify("Переобработка запущена...", type="info")
-                        stats = await run.io_bound(
-                            ctrl.process_archive,
-                            tmp_path,
-                            "both",
-                            True,
-                            None,
-                            None,
-                            db_path.parent,
-                            db_path,
-                        )
+                        try:
+                            stats = await run.io_bound(
+                                ctrl.process_archive,
+                                tmp_path,
+                                "both",
+                                True,
+                                None,
+                                None,
+                                db_path.parent,
+                                db_path,
+                            )
+                        finally:
+                            ctrl.close()
                         errors = stats.get("errors", 0)
                         if errors:
                             ui.notify(f"Переобработка завершена с ошибками: {errors}", type="warning")
