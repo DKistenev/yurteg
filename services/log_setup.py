@@ -89,13 +89,17 @@ def setup_logging() -> None:
         from logtail import LogtailHandler
 
         machine_id = format(uuid.getnode(), "x")
-        logtail_handler = LogtailHandler(
-            source_token=token,
-            context={
-                "machine_id": machine_id,
-                "app_version": APP_VERSION,
-            },
-        )
+        logtail_handler = LogtailHandler(source_token=token)
+
+        class _ContextInjector(logging.Filter):
+            """Inject machine_id and app_version into every log record."""
+
+            def filter(self, record: logging.LogRecord) -> bool:
+                record.machine_id = machine_id  # type: ignore[attr-defined]
+                record.app_version = APP_VERSION  # type: ignore[attr-defined]
+                return True
+
+        logtail_handler.addFilter(_ContextInjector())
         logtail_handler.setLevel(logging.INFO)
         logtail_handler.addFilter(_ContentFilter())
         root.addHandler(logtail_handler)
