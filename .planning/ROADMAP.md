@@ -70,7 +70,7 @@ Plans:
   3. GitHub Release содержит заполненные release notes по шаблону
 **Plans**: 1 plan
 Plans:
-- [ ] 52-01-PLAN.md — [to be planned]
+- [x] 52-01-PLAN.md — INSTALL.md + DMG background + release notes template
 
 ## Progress
 
@@ -78,5 +78,5 @@ Plans:
 |-------|-----------|----------------|--------|-----------|
 | 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete    | 2026-03-30 |
 | 50. Runtime Path Integration | v1.3 | 1/1 | Complete    | 2026-03-30 |
-| 51. GitHub Actions CI/CD | v1.3 | 1/1 | Complete   | 2026-03-30 |
-| 52. Docs + DMG Polish | v1.3 | 0/? | Not started | - |
+| 51. GitHub Actions CI/CD | v1.3 | 1/1 | Complete    | 2026-03-31 |
+| 52. Docs + DMG Polish | v1.3 | 1/1 | Complete   | 2026-03-31 |

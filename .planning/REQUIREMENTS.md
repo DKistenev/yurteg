@@ -24,9 +24,9 @@
 
 ### Документация (Docs)
 
-- [ ] **DOCS-01**: INSTALL.md с инструкцией установки и обхода Gatekeeper (GUI + терминал)
-- [ ] **DOCS-02**: DMG имеет фоновую картинку с брендингом ЮрТэг
-- [ ] **DOCS-03**: Release notes template для описания изменений
+- [x] **DOCS-01**: INSTALL.md с инструкцией установки и обхода Gatekeeper (GUI + терминал)
+- [x] **DOCS-02**: DMG имеет фоновую картинку с брендингом ЮрТэг
+- [x] **DOCS-03**: Release notes template для описания изменений
 
 ## Future Requirements
 
@@ -65,9 +65,9 @@
 | CICD-03 | Phase 51 | Complete |
 | CICD-04 | Phase 51 | Complete |
 | CICD-05 | Phase 51 | Complete |
-| DOCS-01 | Phase 52 | Pending |
-| DOCS-02 | Phase 52 | Pending |
-| DOCS-03 | Phase 52 | Pending |
+| DOCS-01 | Phase 52 | Complete |
+| DOCS-02 | Phase 52 | Complete |
+| DOCS-03 | Phase 52 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 14 total

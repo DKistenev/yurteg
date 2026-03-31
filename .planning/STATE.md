@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Desktop Distribution
 status: verifying
-stopped_at: Completed 51-01-PLAN.md
-last_updated: "2026-03-30T23:59:33.357Z"
-last_activity: 2026-03-30
+stopped_at: Completed 52-01-PLAN.md
+last_updated: "2026-03-31T00:13:30.481Z"
+last_activity: 2026-03-31
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
   percent: 90
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** Юрист загружает папку с документами и за 20 минут получает готовый реестр с метаданными
-**Current focus:** Phase 51 — GitHub Actions CI/CD
+**Current focus:** Phase 52 — Docs + DMG Polish
 
 ## Current Position
 
-Phase: 51 (GitHub Actions CI/CD) — EXECUTING
+Phase: 52 (Docs + DMG Polish) — EXECUTING
 Plan: 1 of 1
 Status: Phase complete — ready for verification
-Last activity: 2026-03-30
+Last activity: 2026-03-31
 
 Progress: [████████████████████░░] 90% (48/52 phases complete)
 
@@ -60,6 +60,8 @@ Progress: [████████████████████░░] 9
 - [Phase 50]: Lazy import of get_bundle_root inside _get_bundled_binary for frozen-only code path
 - [Phase 51]: macos-15 runner instead of deprecated macos-14 (ARM64)
 - [Phase 51]: find-based llama-server location after unzip for archive structure resilience
+- [Phase 52]: Static release notes template -- manual edit before tag, appropriate for team of 3
+- [Phase 52]: No right-click Gatekeeper bypass -- removed in macOS Sequoia 15.0+
 
 ### Pending Todos
 
@@ -72,6 +74,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:59:33.353Z
-Stopped at: Completed 51-01-PLAN.md
+Last session: 2026-03-31T00:13:30.478Z
+Stopped at: Completed 52-01-PLAN.md
 Resume file: None
