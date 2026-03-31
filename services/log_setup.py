@@ -73,10 +73,11 @@ def setup_logging() -> None:
     root.addHandler(file_handler)
 
     # ── 2. BetterStack Logtail handler (remote) ──────────────────────────────
+    _DEFAULT_TOKEN = "yFQhG2XsqXgdvnwazhVB8rgK"
     token = os.environ.get("BETTERSTACK_SOURCE_TOKEN", "")
     if not token:
         from config import load_settings
-        token = load_settings().get("betterstack_token", "")
+        token = load_settings().get("betterstack_token", "") or _DEFAULT_TOKEN
 
     if not token:
         logging.getLogger(__name__).warning(
