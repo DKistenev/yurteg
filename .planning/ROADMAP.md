@@ -6,7 +6,7 @@
 - ✅ **v1.0 Hackathon-Ready** - Phases 32–43 (shipped 2026-03-29)
 - ✅ **v1.1 Bug Sweep** - Phase 43.1 (shipped 2026-03-29)
 - ✅ **v1.2 Desktop Build** - Phases 44–48 (shipped 2026-03-30)
-- 🚧 **v1.3 Desktop Distribution** - Phases 49–52 (in progress)
+- ✅ **v1.3 Desktop Distribution** - Phases 49–52 (shipped 2026-03-31)
 
 ## Phases
 
@@ -17,66 +17,21 @@ Earlier milestones shipped in phases 1–48. See MILESTONES.md for full history.
 
 </details>
 
-### 🚧 v1.3 Desktop Distribution (In Progress)
+<details>
+<summary>✅ v1.3 Desktop Distribution (Phases 49–52) - SHIPPED 2026-03-31</summary>
 
-**Milestone Goal:** Собрать macOS DMG через PyInstaller + GitHub Actions и раздать тестерам через GitHub Releases.
+- [x] Phase 49: PyInstaller Spec + Bundling (1/1 plans) — completed 2026-03-30
+- [x] Phase 50: Runtime Path Integration (1/1 plans) — completed 2026-03-30
+- [x] Phase 51: GitHub Actions CI/CD (1/1 plans) — completed 2026-03-31
+- [x] Phase 52: Docs + DMG Polish (1/1 plans) — completed 2026-03-31
 
-#### Phase 49: PyInstaller Spec + Bundling
-**Goal**: Приложение собирается в корректный .app бандл с llama-server внутри
-**Depends on**: Phase 48
-**Requirements**: BUILD-01, BUILD-02, BUILD-03, BUILD-04
-**Success Criteria** (what must be TRUE):
-  1. `pyinstaller yurteg.spec` завершается без ошибок на машине разработчика
-  2. .app бандл запускается на чистой macOS без установленного Python
-  3. Размер бандла не содержит CUDA/distributed слоёв torch (нет папок cuda/distributed в dist/)
-  4. llama-server бинарник присутствует внутри .app/Contents/MacOS/ с правами +x
-**Plans**: 1 plan
-Plans:
-- [x] 49-01-PLAN.md — Rewrite spec to onedir + COLLECT + BUNDLE, add NiceGUI/pywebview, torch excludes, llama-server
-
-#### Phase 50: Runtime Path Integration
-**Goal**: Приложение использует бандленный llama-server вместо скачивания
-**Depends on**: Phase 49
-**Requirements**: BUILD-05, BUILD-06
-**Success Criteria** (what must be TRUE):
-  1. При запуске из .app бандла llama-server стартует без скачивания с GitHub
-  2. При запуске из исходников (python main.py) поведение не изменилось — llama-server скачивается как раньше
-  3. Приложение полностью запускается из собранного .app: реестр открывается, документ обрабатывается
-**Plans**: 1 plan
-Plans:
-- [x] 50-01-PLAN.md — Add bundled binary resolution to LlamaServerManager (dual-mode: frozen vs source)
-
-#### Phase 51: GitHub Actions CI/CD
-**Goal**: Push тега автоматически создаёт DMG и публикует его в GitHub Releases
-**Depends on**: Phase 50
-**Requirements**: CICD-01, CICD-02, CICD-03, CICD-04, CICD-05
-**Success Criteria** (what must be TRUE):
-  1. `git push origin v1.3.0` запускает workflow и через ~15 минут в GitHub Releases появляется YurTag-1.3.0.dmg
-  2. DMG содержит drag-to-Applications интерфейс с иконкой приложения
-  3. CI workflow использует pip cache — повторные запуски проходят быстрее первого
-  4. Файл в релизе называется YurTag-{version}.dmg (версия из тега)
-**Plans**: 1 plan
-Plans:
-- [x] 51-01-PLAN.md — GitHub Actions workflow: tag-triggered DMG build and release
-**UI hint**: no
-
-#### Phase 52: Docs + DMG Polish
-**Goal**: Тестер может скачать DMG, установить и запустить приложение без вопросов
-**Depends on**: Phase 51
-**Requirements**: DOCS-01, DOCS-02, DOCS-03
-**Success Criteria** (what must be TRUE):
-  1. INSTALL.md объясняет обход Gatekeeper через UI (Settings → Privacy → Open Anyway) и через терминал
-  2. DMG окно при открытии показывает фоновую картинку с брендингом ЮрТэг
-  3. GitHub Release содержит заполненные release notes по шаблону
-**Plans**: 1 plan
-Plans:
-- [x] 52-01-PLAN.md — INSTALL.md + DMG background + release notes template
+</details>
 
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete    | 2026-03-30 |
-| 50. Runtime Path Integration | v1.3 | 1/1 | Complete    | 2026-03-30 |
-| 51. GitHub Actions CI/CD | v1.3 | 1/1 | Complete    | 2026-03-31 |
-| 52. Docs + DMG Polish | v1.3 | 1/1 | Complete   | 2026-03-31 |
+| 49. PyInstaller Spec + Bundling | v1.3 | 1/1 | Complete | 2026-03-30 |
+| 50. Runtime Path Integration | v1.3 | 1/1 | Complete | 2026-03-30 |
+| 51. GitHub Actions CI/CD | v1.3 | 1/1 | Complete | 2026-03-31 |
+| 52. Docs + DMG Polish | v1.3 | 1/1 | Complete | 2026-03-31 |
