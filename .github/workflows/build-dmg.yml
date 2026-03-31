@@ -62,3 +62,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: YurTag-*.dmg
+          body_path: .github/RELEASE_TEMPLATE.md
+          generate_release_notes: false
