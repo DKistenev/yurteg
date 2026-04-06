@@ -231,7 +231,7 @@ def sanitize_metadata(raw: dict, source_text: str = "") -> dict:
 
     # Нормализация ИП в counterparty и parties
     _IP_PREFIX = re.compile(
-        r"^[Ии]ндивидуальный\s+предприниматель\s+",
+        r"^[Ии]ндивидуальный\s+[Пп]редприниматель\s+",
     )
     cp = result.get("counterparty")
     if cp and _IP_PREFIX.match(cp):

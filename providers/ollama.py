@@ -51,7 +51,7 @@ class OllamaProvider(LLMProvider):
         response = self._client.chat.completions.create(
             model="local",  # llama-server загружает модель при старте, имя игнорируется
             temperature=kwargs.get("temperature", 0.05),
-            max_tokens=kwargs.get("max_tokens", 1500),
+            max_tokens=kwargs.get("max_tokens", 1024),
             messages=messages,
             extra_body=extra_body if extra_body else None,
         )

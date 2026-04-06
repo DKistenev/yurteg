@@ -158,12 +158,13 @@ USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста 
 - contract_number (string|null): номер договора/документа (например "№ 123/2024" или "б/н") или null если нет
 - confidence (float): уверенность 0.0–1.0
 - is_template (bool): true если документ — шаблон/бланк с пустыми полями
+- payment_terms (string|null): текстовое описание порядка оплаты («ежемесячно до 5-го числа») или null
 - payment_amount (number|null): сумма одного платежа — только числовое значение без валюты или null
 - payment_frequency (string|null): периодичность платежей — "monthly", "quarterly", "yearly", "once" или null
 - payment_direction (string|null): "income" если деньги поступают от контрагента, "expense" если платим мы, или null
 
 Пример ответа:
-{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "ИП Иванов Иван Иванович"], "confidence": 0.92, "is_template": false, "payment_amount": 50000, "payment_frequency": "monthly", "payment_direction": "income"}}
+{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "ИП Иванов Иван Иванович"], "confidence": 0.92, "is_template": false, "payment_terms": "ежемесячно до 5-го числа", "payment_amount": 50000, "payment_frequency": "monthly", "payment_direction": "income"}}
 
 Текст документа:
 {text}"""
@@ -290,6 +291,19 @@ def extract_metadata(
     Raises:
         RuntimeError: если все попытки исчерпаны
     """
+    # Убрать реквизиты (ИНН, адреса, банковские) — шумят и сбивают модель
+    import re as _re
+    _REQ_PAT = _re.compile(
+        r"(?:^|\|)\s*(?:ИНН\s*\d|КПП\s*\d|ОГРН(?:ИП)?\s*\d|БИК\s*\d|"
+        r"[РрPp]/[СсCc]\s*\d|[КкKk]/[СсCc]\s*\d|"
+        r"Банковские реквизиты|Расчетный счет|Корреспондентский счет|"
+        r"Адрес:\s|Юридический адрес|Фактический адрес|Почтовый адрес)",
+        _re.IGNORECASE,
+    )
+    anonymized_text = "\n".join(
+        line for line in anonymized_text.split("\n") if not _REQ_PAT.search(line)
+    )
+
     # Обрезать текст если слишком длинный (30K достаточно для 95% документов)
     original_len = len(anonymized_text)
     text = anonymized_text[:30_000]

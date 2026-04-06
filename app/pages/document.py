@@ -431,6 +431,25 @@ async def build(doc_id: str = "") -> None:
                             ui.notify("Не удалось выполнить проверку.", type="negative")
                         return
                     _render_deviations(review_container, deviations)
+                    if deviations:
+                        with review_container:
+                            async def _download_redline(tmpl_text: str = template_text) -> None:
+                                import subprocess
+                                from services.redline_service import generate_redline_docx
+                                doc_text = contract.get("full_text") or ""
+                                title = f"Redline: {contract.get('contract_type', 'Документ')}"
+                                docx_bytes = await run.io_bound(
+                                    generate_redline_docx, tmpl_text, doc_text, title,
+                                )
+                                out_path = _Path.home() / "Downloads" / f"redline_{doc_id}.docx"
+                                out_path.write_bytes(docx_bytes)
+                                ui.notify(f"Сохранено: {out_path.name}", type="positive")
+                                subprocess.Popen(["open", str(out_path)])
+
+                            ui.button(
+                                "Скачать DOCX с правками", icon="download",
+                                on_click=_download_redline,
+                            ).props("flat no-caps").classes(ACTION_BTN + " mt-2")
 
                 with ui.row().classes("gap-2"):
                     review_btn = ui.button("Найти шаблон", on_click=_run_review).props("flat no-caps").classes(ACTION_BTN_PRIMARY)

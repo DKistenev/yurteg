@@ -10,6 +10,7 @@ Per D-16: run.io_bound() для extract_text (blocking I/O).
 import logging
 from itertools import groupby
 from pathlib import Path
+from collections.abc import Callable
 from typing import Optional
 
 from nicegui import app, run, ui
@@ -38,29 +39,42 @@ _client_manager = ClientManager()
 async def _pick_file() -> Optional[Path]:
     """Открывает нативный OS file picker для PDF/DOCX.
 
-    Pitfall 5: всегда проверять `if result` перед использованием.
-    RBST-01: graceful fallback в web mode.
+    Использует тот же подход, что и pick_folder() в process.py.
     """
+    import asyncio as _aio
+
     try:
-        import webview  # noqa: PLC0415 — local import guard for web mode
-        result = await app.native.main_window.create_file_dialog(
-            dialog_type=webview.OPEN_DIALOG,
-            file_types=("PDF файлы (*.pdf)", "Word документы (*.docx)"),
-        )
-        if not result:
-            return None
-        return Path(result[0])
-    except (ImportError, AttributeError):
-        # Web mode: pywebview недоступен или app.native не инициализирован
-        ui.notify(
-            "Выбор файла недоступен в веб-режиме.",
-            type="warning",
-            timeout=4000,
-        )
+        import webview  # noqa: PLC0415
+    except ImportError:
+        ui.notify("Нативные диалоги недоступны в веб-режиме.", type="warning")
         return None
 
+    dialog_type = webview.FileDialog.OPEN if hasattr(webview, 'FileDialog') else webview.OPEN_DIALOG
 
-def _render_cards(container: ui.column, on_add: callable = None) -> None:
+    try:
+        _dialog_fn = getattr(app.native.main_window, "create_file_dialog")
+        result = await _aio.wait_for(
+            _dialog_fn(
+                dialog_type=dialog_type,
+                directory=str(Path.home()),
+                allow_multiple=False,
+                file_types=("Документы (*.pdf;*.docx;*.doc)",),
+            ),
+            timeout=120,
+        )
+    except _aio.TimeoutError:
+        return None
+    except Exception as exc:
+        logger.warning("File dialog error: %s", exc)
+        ui.notify("Не удалось открыть диалог выбора файла.", type="warning")
+        return None
+
+    if not result:
+        return None
+    return Path(result[0])
+
+
+def _render_cards(container: ui.column, on_add: Optional[Callable] = None) -> None:
     """Рендерит карточки шаблонов в двухколоночной сетке."""
     state = get_state()
     db = _client_manager.get_db(state.current_client)
@@ -148,7 +162,7 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                             _render_card(tmpl, container, on_add=on_add)
 
 
-def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
+def _render_card(tmpl, cards_container: ui.column, on_add: Optional[Callable] = None) -> None:
     """Рендерит одну карточку шаблона в Apple-like стиле."""
     colors = TMPL_TYPE_COLORS.get(tmpl.contract_type, TMPL_TYPE_DEFAULT)
     preview = (tmpl.content_text or "")[:100]
@@ -202,7 +216,7 @@ def _render_card(tmpl, cards_container: ui.column, on_add: callable = None) -> N
                     ).props("flat no-caps dense color=negative").classes("text-xs")
 
 
-def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
+def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: Optional[Callable] = None) -> None:
     """Диалог редактирования имени и типа шаблона."""
     with ui.dialog() as dlg, ui.card().classes("p-6 min-w-[400px]"):
         ui.label("Изменить шаблон").classes("text-lg font-semibold text-slate-900 mb-4")
@@ -251,7 +265,7 @@ def _open_edit_dialog(tmpl, cards_container: ui.column, on_add: callable = None)
     dlg.open()
 
 
-def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: callable = None) -> None:
+def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: Optional[Callable] = None) -> None:
     """Диалог подтверждения удаления шаблона."""
 
     async def _do_delete():
@@ -272,7 +286,7 @@ def _open_delete_dialog(tmpl, cards_container: ui.column, on_add: callable = Non
     )
 
 
-async def _add_template_flow(cards_container: ui.column, on_add: callable = None) -> None:
+async def _add_template_flow(cards_container: ui.column, on_add: Optional[Callable] = None) -> None:
     """Поток добавления шаблона: file picker → диалог имени+типа → extract → save.
 
     Per D-14, D-16:
@@ -394,8 +408,8 @@ def build() -> None:
         cards_ref: list[ui.column] = []
 
         # on_add: общий callback для кнопки в заголовке и CTA в empty state
-        def _on_add() -> None:
-            _add_template_flow(cards_ref[0], on_add=_on_add)
+        async def _on_add() -> None:
+            await _add_template_flow(cards_ref[0], on_add=_on_add)
 
         # Заголовок
         with ui.row().classes("w-full items-start justify-between mb-6"):

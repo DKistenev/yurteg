@@ -15,6 +15,7 @@ root ::= "{" ws (
     "\"special_conditions\"" ws ":" ws str-array ws ","  ws
     "\"parties\""          ws ":" ws str-array ws ","    ws
     "\"is_template\""      ws ":" ws boolean ws ","      ws
+    "\"payment_terms\""    ws ":" ws str-or-null ws ","  ws
     "\"payment_amount\""   ws ":" ws number-or-null ws "," ws
     "\"payment_frequency\"" ws ":" ws payment-frequency ws "," ws
     "\"payment_direction\"" ws ":" ws payment-direction

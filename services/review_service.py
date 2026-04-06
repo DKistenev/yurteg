@@ -40,7 +40,7 @@ def add_template(
             (contract_type, name, original_path, content_text),
         )
         db.conn.commit()
-        template_id = cursor.lastrowid
+        template_id = cursor.lastrowid or 0
     logger.info("Шаблон '%s' (%s) добавлен, id=%d", name, contract_type, template_id)
     return template_id
 
@@ -198,11 +198,21 @@ def match_template(
             best_sim = sim
             best_template = tmpl
 
-    if best_sim >= TEMPLATE_MATCH_THRESHOLD:
+    if best_sim >= TEMPLATE_MATCH_THRESHOLD and best_template is not None:
         logger.info(
             "Подобран шаблон '%s' (sim=%.3f)", best_template.name, best_sim
         )
         return best_template
+
+    # Если similarity ниже порога, но есть шаблон того же типа — предложить его
+    if best_template and contract_type:
+        type_matched = list_templates(db, contract_type)
+        if type_matched:
+            logger.info(
+                "Шаблон '%s' подобран по типу '%s' (sim=%.3f < threshold, но тип совпадает)",
+                type_matched[0].name, contract_type, best_sim,
+            )
+            return type_matched[0]
 
     logger.info(
         "Шаблон не подобран автоматически (best_sim=%.3f < threshold=%.2f)",
@@ -227,6 +237,28 @@ _DIFF_COLORS = {
 }
 
 
+_REQUISITE_PATTERNS = re.compile(
+    r"(?:^|\|)\s*(?:"
+    r"ИНН\s*\d|КПП\s*\d|ОГРН(?:ИП)?\s*\d|БИК\s*\d|"
+    r"[РрPp]/[СсCc]\s*\d|[КкKk]/[СсCc]\s*\d|"
+    r"Банковские реквизиты|Расчетный счет|Корреспондентский счет|"
+    r"Адрес:\s|Юридический адрес|Фактический адрес|Почтовый адрес"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _strip_requisites(text: str) -> str:
+    """Убирает блоки реквизитов из текста перед сравнением с шаблоном.
+
+    Реквизиты (ИНН, КПП, адреса, банковские реквизиты) всегда
+    отличаются между шаблоном и документом — сравнивать их бессмысленно.
+    """
+    lines = text.split("\n")
+    filtered = [line for line in lines if not _REQUISITE_PATTERNS.search(line)]
+    return "\n".join(filtered)
+
+
 def review_against_template(
     template_text: str,
     document_text: str,
@@ -242,9 +274,11 @@ def review_against_template(
     "added" — есть в документе, нет в шаблоне
     "removed" — есть в шаблоне, нет в документе
     "changed" — заменено (одновременно delete+insert)
+
+    Реквизиты (ИНН, адреса, банковские) автоматически исключаются из сравнения.
     """
-    template_sents = _split_sentences(template_text)
-    document_sents = _split_sentences(document_text)
+    template_sents = _split_sentences(_strip_requisites(template_text))
+    document_sents = _split_sentences(_strip_requisites(document_text))
 
     matcher = difflib.SequenceMatcher(None, template_sents, document_sents)
     result = []

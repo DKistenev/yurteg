@@ -30,12 +30,24 @@ _model = None
 _model_lock = threading.Lock()
 
 
+def _ensure_model_downloaded() -> None:
+    """Скачивает embedding-модель если её нет в кэше."""
+    try:
+        from huggingface_hub import snapshot_download
+        snapshot_download(
+            f"sentence-transformers/{EMBEDDING_MODEL}",
+        )
+    except Exception:
+        logger.warning("Не удалось скачать embedding-модель из HF Hub, попробую загрузить из кэша")
+
+
 def get_embedding_model():
     """Загружает модель один раз (lazy singleton). Thread-safe."""
     global _model
     if _model is None:
         with _model_lock:
             if _model is None:
+                _ensure_model_downloaded()
                 from sentence_transformers import SentenceTransformer
                 logger.info("Загрузка embedding-модели %s...", EMBEDDING_MODEL)
                 _model = SentenceTransformer(EMBEDDING_MODEL)

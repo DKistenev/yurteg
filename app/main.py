@@ -75,6 +75,20 @@ def get_llama_manager() -> LlamaServerManager | None:
 # on_shutdown ненадёжен в native=True на macOS (NiceGUI bug #2107)
 app.on_startup(attach_remote_logging)
 app.on_startup(_start_llama)
+
+
+async def _preload_embedding_model() -> None:
+    """Предзагружает embedding-модель в фоне при старте."""
+    from nicegui import run
+    try:
+        from services.version_service import get_embedding_model
+        await run.io_bound(get_embedding_model)
+        logger.info("Embedding-модель предзагружена")
+    except Exception:
+        logger.warning("Не удалось предзагрузить embedding-модель", exc_info=True)
+
+
+app.on_startup(_preload_embedding_model)
 app.on_shutdown(_stop_llama)
 app.on_disconnect(_stop_llama)
 atexit.register(_stop_llama)
@@ -279,8 +293,9 @@ def root() -> None:
 
     async def _handle_upload(path):
         """Delegate upload to registry page's on_upload callback (stored on state)."""
-        if hasattr(state, "_on_upload") and state._on_upload:
-            await state._on_upload(path)
+        cb = getattr(state, "_on_upload", None)
+        if cb:
+            await cb(path)
 
     render_header(state, on_upload=_handle_upload)
     with ui.column().classes("flex-1 w-full"):
