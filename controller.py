@@ -225,7 +225,6 @@ class Controller:
                     if anonymized.replacements:
                         for field_name in (
                             "contract_type", "counterparty", "subject",
-                            "amount", "contract_number", "payment_terms",
                         ):
                             val = getattr(metadata, field_name, None)
                             if val:

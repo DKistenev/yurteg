@@ -24,7 +24,6 @@ FIELD_PROFILES: dict[str, str] = {
     "parties":              "cyrillic_latin",
     "subject":              "cyrillic_latin",
     "amount":               "cyrillic_latin",
-    "payment_terms":        "cyrillic_latin",
     # Строго из допустимого набора значений
     "payment_frequency":    "enum",
     "payment_direction":    "enum",

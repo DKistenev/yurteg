@@ -224,7 +224,6 @@ def _migrate_v7_payment_columns(conn: sqlite3.Connection) -> None:
     if _is_migration_applied(conn, 7):
         return
     columns = [
-        ("payment_terms", "TEXT"),
         ("payment_amount", "REAL"),
         ("payment_frequency", "TEXT"),
         ("payment_direction", "TEXT"),
@@ -396,7 +395,6 @@ class Database:
             v.score if v else None,
             str(result.organized_path) if result.organized_path else None,
             result.model_used,
-            m.payment_terms if m else None,
             m.payment_amount if m else None,
             m.payment_frequency if m else None,
             m.payment_direction if m else None,
@@ -414,9 +412,9 @@ class Database:
                  amount, special_conditions, parties, confidence,
                  validation_status, validation_warnings, validation_score,
                  organized_path, model_used,
-                 payment_terms, payment_amount, payment_frequency, payment_direction,
+                 payment_amount, payment_frequency, payment_direction,
                  full_text, contract_number, was_truncated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(file_hash) DO UPDATE SET
                   original_path = excluded.original_path,
                   filename = excluded.filename,
@@ -437,7 +435,6 @@ class Database:
                   validation_score = excluded.validation_score,
                   organized_path = excluded.organized_path,
                   model_used = excluded.model_used,
-                  payment_terms = excluded.payment_terms,
                   payment_amount = excluded.payment_amount,
                   payment_frequency = excluded.payment_frequency,
                   payment_direction = excluded.payment_direction,

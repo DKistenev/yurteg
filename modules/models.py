@@ -50,7 +50,6 @@ class ContractMetadata:
     is_template: bool = False
 
     # Платёжные поля (Phase 2, план 02-03/02-05)
-    payment_terms: Optional[str] = None      # текстовое описание условий оплаты
     payment_amount: Optional[float] = None   # сумма одного платежа
     payment_frequency: Optional[str] = None  # 'monthly' | 'quarterly' | 'yearly' | 'once'
     payment_direction: Optional[str] = None  # 'income' | 'expense'
