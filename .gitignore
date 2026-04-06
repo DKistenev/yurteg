@@ -8,9 +8,17 @@ yurteg.db
 .env
 .streamlit/secrets.toml
 .claude/
+.claudeignore
 .planning/
 .playwright-mcp/
+.superpowers/
+.agent/
 /*.png
 build/
 dist/
 llama-server
+*.dmg
+CLAUDE.md
+YURTEG_CONTEXT.md
+docs/superpowers/
+generate_demo_docs.py
