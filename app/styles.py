@@ -137,8 +137,14 @@ GROUP_CARD = "border border-slate-200 rounded-xl p-4 bg-white"
 GROUP_CARD_TITLE = "text-sm font-semibold text-slate-800 flex items-center gap-2"
 
 # ── Document card two-column layout ─────────────────────────────────────────
-DOC_LEFT_PANEL = "bg-white border-r border-slate-200 px-5 py-4 gap-0"
+DOC_LEFT_PANEL = "bg-slate-50 border-r border-slate-200 px-5 py-4 gap-0"
 DOC_PREVIEW_BG = "#1e293b"
 DOC_SECTION_TITLE = PANEL_SEC_TITLE  # reuse: 10px uppercase tracking
 DOC_FIELD_LABEL = PANEL_FIELD_LABEL  # reuse: 11px slate-400 no uppercase
 DOC_FIELD_VALUE = PANEL_FIELD_VALUE  # reuse: 13px slate-900
+# Hero block (document card redesign)
+DOC_HERO_BG = "background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);"
+DOC_HERO = "rounded-[14px] p-5 mb-3 text-white"
+DOC_HERO_TYPE_BADGE = "text-[10px] py-0.5 px-2 rounded font-medium"
+DOC_HERO_AMOUNT = "text-[28px] font-bold text-white"
+DOC_HERO_SUBTITLE = "text-[10px] text-white/40"

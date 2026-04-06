@@ -12,7 +12,7 @@ from pathlib import Path as _Path
 from nicegui import run, ui
 
 from app.state import get_state
-from config import load_runtime_config, load_settings, save_setting
+from config import load_runtime_config, load_settings
 from app.styles import (
     DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
     DOC_LEFT_PANEL, DOC_PREVIEW_BG,
@@ -20,20 +20,23 @@ from app.styles import (
     VERSION_DOT, VERSION_LINE,
     ACTION_BTN, ACTION_BTN_PRIMARY,
     APPLE_CARD_COMPACT,
-    PANEL_TYPE_TAG,
+    DOC_HERO, DOC_HERO_BG, DOC_HERO_TYPE_BADGE, DOC_HERO_AMOUNT, DOC_HERO_SUBTITLE,
 )
 from app.utils import format_date_ru
 from modules.models import ContractMetadata
 from services.client_manager import ClientManager
-from services.lifecycle_service import (
-    STATUS_LABELS,
-    get_computed_status_sql,
-)
 from services.review_service import match_template, review_against_template, list_templates
 from services.version_service import get_version_group, diff_versions
 
 logger = logging.getLogger(__name__)
 _client_manager = ClientManager()
+
+FREQUENCY_LABELS = {
+    "monthly": "Ежемесячно",
+    "quarterly": "Ежеквартально",
+    "yearly": "Ежегодно",
+    "once": "Разовый платёж",
+}
 
 
 def _dict_to_metadata(d: dict) -> ContractMetadata:
@@ -92,9 +95,14 @@ def _render_diff_table(container, diffs: list[dict]) -> None:
         table.add_slot('body-cell-new', '<q-td :props="props"><span class="text-green-700">{{ props.value }}</span></q-td>')
 
 
-def _section_title(text: str) -> None:
-    """Render a section title (10px, uppercase, tracking)."""
-    ui.label(text).classes(DOC_SECTION_TITLE)
+def _section_title(text: str, icon: str = "") -> None:
+    """Render a section title (10px, uppercase, tracking), optionally with icon."""
+    if icon:
+        with ui.row().classes("items-center gap-1.5 mb-2"):
+            ui.icon(icon).style("font-size:14px; color:#94a3b8;")
+            ui.label(text).classes(DOC_SECTION_TITLE).style("margin-bottom:0;")
+    else:
+        ui.label(text).classes(DOC_SECTION_TITLE)
 
 
 def _field_row(label: str, value: str) -> None:
@@ -122,28 +130,22 @@ async def build(doc_id: str = "") -> None:
             ui.button("\u2190 Назад к реестру", on_click=lambda: ui.navigate.to("/")).props("flat no-caps").classes("text-slate-600")
         return
 
-    # Load computed_status
-    status_row = await run.io_bound(
-        lambda: db.conn.execute(
-            f"SELECT {get_computed_status_sql(state.warning_days_threshold)} AS computed_status FROM contracts WHERE id = :contract_id",
-            {"warning_days": state.warning_days_threshold, "contract_id": int(doc_id)}
-        ).fetchone()
-    )
-    computed_status = dict(status_row)["computed_status"] if status_row else "unknown"
+    # Hide footer on document page — preview needs full height
+    ui.run_javascript("document.querySelector('footer')?.style.setProperty('display','none')")
 
-    # ── Two-column layout: metadata left (45%) + preview right (55%) ────────────
+    # ── Two-column layout: metadata left (55%) + preview right (45%) ────────────
     with ui.row(wrap=False).classes("w-full min-w-0").style(
         "height: calc(100vh - 56px);"
     ):
 
         # ══════════════════════════════════════════════════════════════════
-        # LEFT PANEL — metadata (45%, scrollable)
+        # LEFT PANEL — metadata (55%, scrollable)
         # ══════════════════════════════════════════════════════════════════
         with ui.column().classes(DOC_LEFT_PANEL + " min-w-0").style(
-            "width: 45%; overflow-y: auto;"
+            "width: 55%; overflow-y: auto;"
         ):
 
-            # ── Top bar: breadcrumbs + prev/next + action buttons ──────
+            # ── Top bar: breadcrumbs + prev/next ──────────────────────
             with ui.row(wrap=False).classes("items-center gap-0 mb-4 w-full"):
                 ui.link("Реестр", "/").classes(BREADCRUMB_LINK + " no-underline")
                 ui.icon("chevron_right").classes("text-slate-300").style("font-size:18px;")
@@ -169,115 +171,172 @@ async def build(doc_id: str = "") -> None:
                     ).props('flat dense round aria-label="Следующий документ"').classes("text-slate-400")
                     next_btn.set_enabled(next_id is not None)
 
-            # ── Action buttons row ─────────────────────────────────────
-            with ui.row(wrap=True).classes("gap-2 mb-4"):
-                async def _open_file() -> None:
-                    import platform
-                    import subprocess
-                    path_str = contract.get("original_path", "")
-                    if not path_str:
-                        ui.notify("Путь к файлу не найден", type="negative")
-                        return
-                    p = _Path(path_str)
-                    if not p.exists():
-                        ui.notify("Файл не найден на диске", type="negative")
-                        return
-                    system = platform.system()
+            # ══════════════════════════════════════════════════════════════
+            # Hero block: dark gradient with doc info + financial summary
+            # ══════════════════════════════════════════════════════════════
+            async def _open_file() -> None:
+                import platform
+                import subprocess
+                path_str = contract.get("original_path", "")
+                if not path_str:
+                    ui.notify("Путь к файлу не найден", type="negative")
+                    return
+                p = _Path(path_str)
+                if not p.exists():
+                    ui.notify("Файл не найден на диске", type="negative")
+                    return
+                system = platform.system()
+                try:
+                    if system == "Darwin":
+                        subprocess.Popen(["open", str(p)])
+                    elif system == "Windows":
+                        import os
+                        getattr(os, "startfile")(str(p))
+                    else:
+                        subprocess.Popen(["xdg-open", str(p)])
+                except Exception:
+                    logger.exception("Не удалось открыть файл")
+                    ui.notify("Не удалось открыть файл", type="negative")
+
+            async def _reprocess() -> None:
+                """Re-run pipeline for this single document."""
+                real_path = _Path(contract.get("original_path", ""))
+                if not real_path.exists():
+                    ui.notify("Файл не найден — переобработка невозможна", type="negative")
+                    return
+                import os
+                import tempfile
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tmp_path = _Path(tmpdir)
+                    link = tmp_path / real_path.name
                     try:
-                        if system == "Darwin":
-                            subprocess.Popen(["open", str(p)])
-                        elif system == "Windows":
-                            import os
-                            os.startfile(str(p))
-                        else:
-                            subprocess.Popen(["xdg-open", str(p)])
-                    except Exception:
-                        logger.exception("Не удалось открыть файл")
-                        ui.notify("Не удалось открыть файл", type="negative")
-
-                ui.button("Открыть файл", icon="open_in_new", on_click=_open_file).props(
-                    "flat dense no-caps"
-                ).classes(ACTION_BTN)
-
-                async def _reprocess():
-                    """Re-run pipeline for this single document."""
-                    original_path = _Path(contract.get("original_path", ""))
-                    if not original_path.exists():
-                        ui.notify("Файл не найден — переобработка невозможна", type="negative")
-                        return
-                    import os
-                    import tempfile
-                    with tempfile.TemporaryDirectory() as tmpdir:
-                        tmp_path = _Path(tmpdir)
-                        link = tmp_path / original_path.name
+                        os.symlink(real_path, link)
+                    except OSError:
+                        import shutil
+                        shutil.copy2(real_path, link)
+                    from controller import Controller
+                    db_path = _client_manager.get_db_path(state.current_client)
+                    ctrl = Controller(load_runtime_config())
+                    ui.notify("Переобработка запущена...", type="info")
+                    try:
+                        stats = await run.io_bound(
+                            ctrl.process_archive,
+                            tmp_path,
+                            "both",
+                            True,
+                            None,
+                            None,
+                            db_path.parent,
+                            db_path,
+                        )
+                    finally:
+                        ctrl.close()
+                    # Restore original path (pipeline may have saved temp symlink path)
+                    _db_fix = _client_manager.get_db(state.current_client)
+                    file_hash = contract.get("file_hash", "")
+                    if file_hash:
                         try:
-                            os.symlink(original_path, link)
-                        except OSError:
-                            import shutil
-                            shutil.copy2(original_path, link)
-                        from controller import Controller
-                        db_path = _client_manager.get_db_path(state.current_client)
-                        ctrl = Controller(load_runtime_config())
-                        ui.notify("Переобработка запущена...", type="info")
-                        try:
-                            stats = await run.io_bound(
-                                ctrl.process_archive,
-                                tmp_path,
-                                "both",
-                                True,
-                                None,
-                                None,
-                                db_path.parent,
-                                db_path,
+                            _db_fix.conn.execute(
+                                "UPDATE contracts SET original_path = ? WHERE file_hash = ?",
+                                (str(real_path), file_hash),
                             )
-                        finally:
-                            ctrl.close()
-                        errors = stats.get("errors", 0)
+                            _db_fix.conn.commit()
+                        except Exception:
+                            logger.exception("Не удалось восстановить original_path")
+                    errors = stats.get("errors", 0)
+                    try:
                         if errors:
                             ui.notify(f"Переобработка завершена с ошибками: {errors}", type="warning")
                         else:
                             ui.notify("Документ переобработан", type="positive")
                         ui.navigate.to(f"/document/{doc_id}")
+                    except RuntimeError:
+                        pass  # page already navigated away
 
+            async def _save_as_template() -> None:
+                from services.review_service import mark_contract_as_template as _mark_tmpl
+                save_tmpl_btn.disable()
+                try:
+                    _db = _client_manager.get_db(state.current_client)
+                    template_id = await run.io_bound(
+                        _mark_tmpl, _db, int(doc_id)
+                    )
+                    if template_id is None:
+                        ui.notify("Не удалось сохранить шаблон", type="negative")
+                    else:
+                        ui.notify("Документ сохранён как шаблон", type="positive")
+                except Exception:
+                    logger.exception("Ошибка сохранения шаблона")
+                    ui.notify("Ошибка при сохранении шаблона", type="negative")
+                finally:
+                    save_tmpl_btn.enable()
+
+            with ui.element("div").classes(DOC_HERO + " w-full").style(DOC_HERO_BG):
+                # Top row: type badge + direction badge
+                contract_type = contract.get("contract_type") or "\u2014"
+                direction = contract.get("direction")
+                with ui.row().classes("items-center justify-between w-full mb-3"):
+                    ui.html(
+                        f'<span class="{DOC_HERO_TYPE_BADGE}" '
+                        f'style="background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.9);">'
+                        f'{contract_type}</span>'
+                    )
+                    if direction == "income":
+                        ui.html(
+                            f'<span class="{DOC_HERO_TYPE_BADGE}" '
+                            f'style="background:rgba(74,222,128,0.2); color:#86efac;">'
+                            f'\u2191 Доход</span>'
+                        )
+                    elif direction == "expense":
+                        ui.html(
+                            f'<span class="{DOC_HERO_TYPE_BADGE}" '
+                            f'style="background:rgba(248,113,113,0.2); color:#fca5a5;">'
+                            f'\u2193 Расход</span>'
+                        )
+
+                # Counterparty + subject
+                counterparty = contract.get("counterparty") or "\u2014"
+                subject = contract.get("subject") or "\u2014"
+                ui.label(counterparty).style("font-size:15px; font-weight:600; color:#fff;")
+                ui.label(subject).style("font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px;")
+
+                # Divider
+                ui.element("div").style(
+                    "border-top:1px solid rgba(255,255,255,0.1); margin:12px 0;"
+                )
+
+                # Amount
+                amount = contract.get("amount") or "\u2014"
+                ui.label(amount).classes(DOC_HERO_AMOUNT)
+
+                # Payment subtitle (frequency + payment_amount)
+                frequency = contract.get("frequency")
+                payment_amount = contract.get("payment_amount")
+                if frequency and payment_amount:
+                    freq_label = FREQUENCY_LABELS.get(frequency, frequency)
+                    ui.label(f"{freq_label} \u2022 {payment_amount} \u20bd").classes(DOC_HERO_SUBTITLE)
+
+            # ── Action bar ────────────────────────────────────────────
+            with ui.row(wrap=False).classes("gap-2 mb-4"):
+                ui.button("Открыть файл", icon="open_in_new", on_click=_open_file).props(
+                    "flat dense no-caps"
+                ).classes(ACTION_BTN)
                 ui.button("Переобработать", icon="refresh", on_click=_reprocess).props(
                     "flat dense no-caps"
                 ).classes(ACTION_BTN)
+                save_tmpl_btn = ui.button(
+                    "Сохранить как шаблон", icon="bookmark_add", on_click=_save_as_template
+                ).props("flat dense no-caps").classes(ACTION_BTN)
 
             # ══════════════════════════════════════════════════════════════
-            # Section 1: ДОКУМЕНТ
-            # ══════════════════════════════════════════════════════════════
-            with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
-                _section_title("ДОКУМЕНТ")
-
-                # Type badge
-                contract_type = contract.get("contract_type") or "\u2014"
-                ui.html(
-                    f'<span class="{PANEL_TYPE_TAG}">{contract_type}</span>'
-                )
-
-                # Counterparty (bold, larger)
-                counterparty = contract.get("counterparty") or "\u2014"
-                ui.label(counterparty).style("font-size:16px;font-weight:600;color:#0f172a;margin-top:8px;")
-
-                # Subject
-                subject = contract.get("subject") or "\u2014"
-                ui.label(subject).classes("text-[13px] text-slate-600 mt-1")
-
-            # ══════════════════════════════════════════════════════════════
-            # Section 2: СРОКИ И ФИНАНСЫ
+            # Сроки card
             # ══════════════════════════════════════════════════════════════
             with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
-                _section_title("СРОКИ И ФИНАНСЫ")
-                with ui.grid(columns=2).classes("gap-x-6 gap-y-3 w-full mt-2"):
-                    _field_row("Дата начала", format_date_ru(contract.get("date_start")))
-                    _field_row("Дата окончания", format_date_ru(contract.get("date_end")))
-                    _field_row("Дата подписания", format_date_ru(contract.get("date_signed")))
-                    # Amount — larger
-                    with ui.column().classes("gap-0.5"):
-                        ui.label("Сумма").classes(DOC_FIELD_LABEL)
-                        ui.label(contract.get("amount") or "\u2014").style(
-                            "font-size:18px;font-weight:700;color:#0f172a;"
-                        )
+                _section_title("СРОКИ", "calendar_today")
+                with ui.grid(columns=3).classes("gap-x-6 gap-y-3 w-full mt-2"):
+                    _field_row("Подписан", format_date_ru(contract.get("date_signed")))
+                    _field_row("Начало", format_date_ru(contract.get("date_start")))
+                    _field_row("Окончание", format_date_ru(contract.get("date_end")))
 
             # Confidence warning
             settings = load_settings()
@@ -290,22 +349,10 @@ async def build(doc_id: str = "") -> None:
                     ).classes("text-xs text-amber-600 font-medium")
 
             # ══════════════════════════════════════════════════════════════
-            # Section 3: СТАТУС
+            # Проверка по шаблону card
             # ══════════════════════════════════════════════════════════════
             with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
-                _section_title("СТАТУС")
-
-                icon, label_text, _color, _css = STATUS_LABELS.get(
-                    computed_status, ("?", computed_status, "#9ca3af", "")
-                )
-                status_css_class = f"status-{computed_status}"
-                ui.html(f'<span class="{status_css_class}">{icon} {label_text}</span>')
-
-            # ══════════════════════════════════════════════════════════════
-            # Section 4: ПРОВЕРКА ПО ШАБЛОНУ
-            # ══════════════════════════════════════════════════════════════
-            with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
-                _section_title("ПРОВЕРКА ПО ШАБЛОНУ")
+                _section_title("ПРОВЕРКА ПО ШАБЛОНУ", "fact_check")
 
                 review_container = ui.column().classes("w-full gap-2 py-2")
 
@@ -393,160 +440,110 @@ async def build(doc_id: str = "") -> None:
                     ).props("flat no-caps").classes(ACTION_BTN)
 
             # ══════════════════════════════════════════════════════════════
-            # Section 5: ИСТОРИЯ ВЕРСИЙ
+            # История версий card
             # ══════════════════════════════════════════════════════════════
-            _section_title("ИСТОРИЯ ВЕРСИЙ")
+            with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
+                _section_title("ИСТОРИЯ ВЕРСИЙ", "history")
 
-            _db2 = _client_manager.get_db(state.current_client)
-            versions = await run.io_bound(get_version_group, _db2, int(doc_id))
+                _db2 = _client_manager.get_db(state.current_client)
+                versions = await run.io_bound(get_version_group, _db2, int(doc_id))
 
-            if not versions:
-                with ui.row().classes("items-center gap-2 py-2"):
-                    ui.icon("history").style("font-size:16px; color:#cbd5e1;")
-                    ui.label("Версии появятся после повторной обработки").classes("text-slate-400 text-xs")
-            else:
-                with ui.column().classes("w-full gap-0"):
-                    for i, v in enumerate(versions):
-                        is_last = (i == len(versions) - 1)
-                        with ui.row().classes("w-full gap-3 items-start"):
-                            with ui.column().classes("items-center gap-0 pt-1"):
-                                ui.element("div").classes(VERSION_DOT)
-                                if not is_last:
-                                    ui.element("div").classes(VERSION_LINE).style("height:36px")
-                            with ui.column().classes("flex-1 pb-4 gap-1 min-w-0"):
-                                with ui.row().classes("items-center gap-3 w-full"):
-                                    ui.label(f"v{v.version_number}").classes("text-sm font-semibold text-slate-900")
-                                    if v.link_method:
-                                        ui.label(v.link_method).classes("text-xs text-slate-400")
-                                    if v.created_at:
-                                        ui.label(v.created_at).classes("text-xs text-slate-400")
+                if not versions:
+                    with ui.row().classes("items-center gap-2 py-2"):
+                        ui.icon("history").style("font-size:16px; color:#cbd5e1;")
+                        ui.label("Версии появятся после повторной обработки").classes("text-slate-400 text-xs")
+                else:
+                    with ui.column().classes("w-full gap-0"):
+                        for i, v in enumerate(versions):
+                            is_last = (i == len(versions) - 1)
+                            with ui.row().classes("w-full gap-3 items-start"):
+                                with ui.column().classes("items-center gap-0 pt-1"):
+                                    ui.element("div").classes(VERSION_DOT)
+                                    if not is_last:
+                                        ui.element("div").classes(VERSION_LINE).style("height:36px")
+                                with ui.column().classes("flex-1 pb-4 gap-1 min-w-0"):
+                                    with ui.row().classes("items-center gap-3 w-full"):
+                                        ui.label(f"v{v.version_number}").classes("text-sm font-semibold text-slate-900")
+                                        if v.link_method:
+                                            ui.label(v.link_method).classes("text-xs text-slate-400")
+                                        if v.created_at:
+                                            ui.label(v.created_at).classes("text-xs text-slate-400")
 
-                                    if v.contract_id != int(doc_id):
-                                        with ui.row().classes("gap-2 ml-auto"):
-                                            async def _show_diff(other_id: int = v.contract_id) -> None:
-                                                try:
-                                                    other = await run.io_bound(_db2.get_contract_by_id, other_id)
-                                                except Exception:
-                                                    logger.exception("Ошибка загрузки версии")
-                                                    ui.notify("Не удалось загрузить версию.", type="negative")
-                                                    return
-                                                if other is None:
-                                                    return
-                                                meta_current = _dict_to_metadata(contract)
-                                                meta_other = _dict_to_metadata(other)
-                                                try:
-                                                    diffs = await run.io_bound(diff_versions, meta_current, meta_other)
-                                                except Exception:
-                                                    logger.exception("Ошибка сравнения версий")
-                                                    ui.notify("Не удалось сравнить версии.", type="negative")
-                                                    return
-                                                diff_container = ui.column().classes("w-full mt-2")
-                                                _render_diff_table(diff_container, diffs)
+                                        if v.contract_id != int(doc_id):
+                                            with ui.row().classes("gap-2 ml-auto"):
+                                                async def _show_diff(other_id: int = v.contract_id) -> None:
+                                                    try:
+                                                        other = await run.io_bound(_db2.get_contract_by_id, other_id)
+                                                    except Exception:
+                                                        logger.exception("Ошибка загрузки версии")
+                                                        ui.notify("Не удалось загрузить версию.", type="negative")
+                                                        return
+                                                    if other is None:
+                                                        return
+                                                    meta_current = _dict_to_metadata(contract)
+                                                    meta_other = _dict_to_metadata(other)
+                                                    try:
+                                                        diffs = await run.io_bound(diff_versions, meta_current, meta_other)
+                                                    except Exception:
+                                                        logger.exception("Ошибка сравнения версий")
+                                                        ui.notify("Не удалось сравнить версии.", type="negative")
+                                                        return
+                                                    diff_container = ui.column().classes("w-full mt-2")
+                                                    _render_diff_table(diff_container, diffs)
 
-                                            ui.button("Сравнить", on_click=_show_diff).props("flat dense no-caps").classes("text-xs text-indigo-600")
-                                            ui.link(
-                                                "Скачать с правками",
-                                                f"/download/redline/{doc_id}/{v.contract_id}?client={state.current_client}"
-                                            ).classes("text-xs text-indigo-600 underline")
+                                                ui.button("Сравнить", on_click=_show_diff).props("flat dense no-caps").classes("text-xs text-indigo-600")
+                                                ui.link(
+                                                    "Скачать с правками",
+                                                    f"/download/redline/{doc_id}/{v.contract_id}?client={state.current_client}"
+                                                ).classes("text-xs text-indigo-600 underline")
 
             # ══════════════════════════════════════════════════════════════
-            # Section 6: ПОМЕТКИ ЮРИСТА
+            # Особые условия (только если есть)
             # ══════════════════════════════════════════════════════════════
-            _section_title("ПОМЕТКИ ЮРИСТА")
-
-            # First-use tooltip
-            if not settings.get("tip_document_seen"):
-                tip_container = ui.row().classes(
-                    "w-full bg-slate-50 border border-slate-200 rounded-lg p-3 items-center gap-3 mb-2"
-                )
-                with tip_container:
-                    ui.icon("lightbulb").style("font-size:18px; color:#d97706;")
-                    ui.label("Добавьте пометку или проверьте договор по шаблону").classes(
-                        "text-sm text-slate-600 flex-1"
-                    )
-
-                    def _dismiss_document_tip():
-                        save_setting("tip_document_seen", True)
-                        tip_container.set_visibility(False)
-
-                    ui.button(icon="close", on_click=_dismiss_document_tip).props(
-                        "flat round dense size=sm"
-                    ).classes("text-slate-400")
-
-            async def _save_comment(e) -> None:
-                comment_text = e.sender.value or ""
-                file_hash = contract.get("file_hash", "")
-                if file_hash:
-                    try:
-                        await run.io_bound(
-                            db.update_review,
-                            file_hash,
-                            contract.get("review_status", "not_reviewed"),
-                            comment_text,
-                        )
-                        ui.notify("Сохранено", type="positive")
-                    except Exception:
-                        logger.exception("Ошибка сохранения заметки")
-                        ui.notify("Не удалось сохранить заметку.", type="negative")
-
-            comment_area = ui.textarea(
-                value=contract.get("lawyer_comment", "")
-            ).props('outlined rows=4 placeholder="Добавьте заметку..."').classes("w-full")
-            comment_area.on("blur", _save_comment)
-
-            # Special conditions (if any)
             conditions = contract.get("special_conditions") or []
             if conditions:
-                ui.element("div").classes("border-b border-slate-200 w-full my-3")
-                _section_title("ОСОБЫЕ УСЛОВИЯ")
-                with ui.column().classes("gap-0.5 pl-3"):
-                    for cond in conditions:
-                        ui.label(f"\u2022 {cond}").classes("text-sm text-slate-700")
-
-            # Save as template button at bottom
-            async def _save_as_template() -> None:
-                from services.review_service import mark_contract_as_template as _mark_tmpl
-                save_tmpl_btn.disable()
-                try:
-                    _db = _client_manager.get_db(state.current_client)
-                    template_id = await run.io_bound(
-                        _mark_tmpl, _db, int(doc_id)
-                    )
-                    if template_id is None:
-                        ui.notify("Не удалось сохранить шаблон", type="negative")
-                    else:
-                        ui.notify("Документ сохранён как шаблон", type="positive")
-                except Exception:
-                    logger.exception("Ошибка сохранения шаблона")
-                    ui.notify("Ошибка при сохранении шаблона", type="negative")
-                finally:
-                    save_tmpl_btn.enable()
-
-            ui.element("div").classes("mb-4")
-            save_tmpl_btn = ui.button(
-                "Сохранить как шаблон", icon="bookmark_add", on_click=_save_as_template
-            ).props("flat dense no-caps").classes(ACTION_BTN + " w-full justify-center")
+                with ui.element("div").classes(APPLE_CARD_COMPACT + " p-4 mb-4 w-full"):
+                    _section_title("ОСОБЫЕ УСЛОВИЯ", "warning_amber")
+                    with ui.column().classes("gap-0.5 pl-3 mt-1"):
+                        for cond in conditions:
+                            ui.label(f"\u2022 {cond}").classes("text-sm text-slate-700")
 
         # ══════════════════════════════════════════════════════════════════
-        # RIGHT PANEL — PDF/DOCX preview (55%, dark background)
+        # RIGHT PANEL — PDF/DOCX preview (45%, dark background)
         # Per D-01, D-02, D-03, D-04
         # ══════════════════════════════════════════════════════════════════
         original_path = contract.get("original_path", "")
         filename = _Path(original_path).name if original_path else "Документ"
         is_pdf = original_path.lower().endswith(".pdf") if original_path else False
+        file_exists = _Path(original_path).exists() if original_path else False
 
+        preview_bg = DOC_PREVIEW_BG if (is_pdf or not file_exists) else "#f1f5f9"
         with ui.column().classes("min-w-0").style(
-            f"width: 55%; background: {DOC_PREVIEW_BG}; height: 100%;"
+            f"width: 45%; background: {preview_bg}; height: 100%;"
+            " display: flex; flex-direction: column; overflow: hidden;"
         ):
             # Toolbar with filename
             with ui.element("div").classes("doc-preview-toolbar"):
                 ui.label(filename).classes("doc-preview-filename")
-                if original_path:
+                if original_path and file_exists:
                     ui.button(
                         icon="open_in_new", on_click=_open_file
                     ).props("flat dense round size=sm").style("color: #94a3b8;")
 
-            if is_pdf:
+            if not file_exists:
+                # File missing (demo data or deleted) — show placeholder
+                with ui.column().style(
+                    "flex: 1; display: flex; align-items: center;"
+                    " justify-content: center; gap: 12px; padding: 24px;"
+                ):
+                    ui.icon("visibility_off").style("font-size: 56px; color: #475569;")
+                    ui.label("Файл недоступен").style(
+                        "font-size: 15px; color: #94a3b8; font-weight: 600; text-align: center;"
+                    )
+                    ui.label("Загрузите документ для предпросмотра").style(
+                        "font-size: 13px; color: #64748b; text-align: center;"
+                    )
+            elif is_pdf:
                 # PDF iframe — /download/{doc_id} route serves the file
                 ui.html(
                     f'<iframe src="/download/{doc_id}?client={state.current_client}" '
@@ -554,14 +551,61 @@ async def build(doc_id: str = "") -> None:
                     f'title="PDF превью"></iframe>'
                 ).style("flex: 1; display: flex;")
             else:
-                # DOCX or unknown — placeholder
-                with ui.column().classes("flex-1 items-center justify-center gap-4"):
-                    ui.icon("description").style("font-size: 64px; color: #475569;")
-                    ui.label("Превью недоступно для DOCX").style(
-                        "font-size: 14px; color: #94a3b8; font-weight: 500;"
-                    )
-                    ui.button(
-                        "Открыть файл", icon="open_in_new", on_click=_open_file
-                    ).props("flat no-caps").style(
-                        "color: #94a3b8; border: 1px solid #334155;"
-                    )
+                # DOCX preview via docx-preview.js (local vendor files)
+                container_id = f"docx-preview-{doc_id}"
+                ui.html(
+                    f'<div id="{container_id}" style="width:100%;height:100%;overflow:auto;background:#f1f5f9;">'
+                    '<div style="padding:40px;text-align:center;color:#94a3b8;">Загрузка превью...</div>'
+                    '</div>'
+                ).style("flex: 1; min-height: 0;")
+                docx_url = f"/download/{doc_id}?client={state.current_client}"
+                # Load scripts dynamically to guarantee order
+                ui.run_javascript(f"""
+(function() {{
+    function loadScript(src, cb) {{
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = cb;
+        s.onerror = function() {{ console.error('Failed to load: ' + src); }};
+        document.head.appendChild(s);
+    }}
+    function addStyle() {{
+        var st = document.createElement('style');
+        st.textContent = '#{container_id} .docx-preview-wrapper {{ background:#f1f5f9; padding:8px; zoom:0.75; }}'
+            + ' #{container_id} .docx-preview-wrapper > section.docx-preview {{ margin:0 auto; box-shadow:0 2px 8px rgba(0,0,0,0.1); }}';
+        document.head.appendChild(st);
+    }}
+    function doRender() {{
+        var container = document.getElementById('{container_id}');
+        if (!container) return;
+        addStyle();
+        fetch('{docx_url}')
+            .then(function(r) {{ return r.blob(); }})
+            .then(function(blob) {{
+                return docx.renderAsync(blob, container, null, {{
+                    className: 'docx-preview',
+                    inWrapper: true,
+                    ignoreWidth: false,
+                    ignoreHeight: true,
+                    renderHeaders: true,
+                    renderFooters: true,
+                }});
+            }})
+            .catch(function(err) {{
+                container.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8;">'
+                    + '<span class="material-icons" style="font-size:48px;display:block;margin-bottom:12px;">description</span>'
+                    + 'Не удалось загрузить превью: ' + err.message + '</div>';
+            }});
+    }}
+    // Chain: jszip -> docx-preview -> render
+    if (typeof JSZip !== 'undefined' && typeof docx !== 'undefined') {{
+        doRender();
+    }} else {{
+        loadScript('/static/vendor/jszip.min.js', function() {{
+            loadScript('/static/vendor/docx-preview.min.js', function() {{
+                setTimeout(doRender, 100);
+            }});
+        }});
+    }}
+}})();
+""")
