@@ -263,10 +263,24 @@ def render_splash() -> None:
                     )
                     return
 
+                loop.call_soon_threadsafe(progress_bar.set_value, 0.85)
+                loop.call_soon_threadsafe(
+                    progress_label.set_text,
+                    'Загрузка модели поиска (~460 МБ)...',
+                )
+
+                # Embedding model для шаблонов и версий
+                try:
+                    from services.version_service import get_embedding_model
+                    await run.io_bound(get_embedding_model)
+                    logger.info('Embedding-модель загружена через splash screen')
+                except Exception as exc:
+                    logger.warning('Embedding-модель не загрузилась: %s', exc)
+
                 loop.call_soon_threadsafe(progress_bar.set_value, 1.0)
                 loop.call_soon_threadsafe(
                     progress_label.set_text,
-                    f'ИИ-помощник готов ({_MODEL_SIZE_MB}/{_MODEL_SIZE_MB} МБ)',
+                    'Всё готово',
                 )
 
             # Запускаем загрузку через таймер (once=True — один вызов)
