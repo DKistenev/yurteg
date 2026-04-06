@@ -21,31 +21,108 @@ from services.client_manager import ClientManager
 
 
 async def pick_folder() -> Optional[Path]:
-    """Открывает нативный OS folder picker.
+    """Открывает нативный диалог выбора папки или файлов.
 
-    Per D-03/D-04: app.native.main_window.create_file_dialog с FOLDER_DIALOG.
-    Pitfall 1: всегда проверять `if result` перед использованием.
-    RBST-01: в web mode (без pywebview) — graceful fallback с уведомлением.
+    Shows a choice menu first: folder or files.
+    - Folder: native FOLDER_DIALOG via pywebview
+    - Files: native OPEN_DIALOG for PDF/DOCX, copies to temp dir
 
     Returns:
-        Path к выбранной папке или None если юрист отменил диалог или web mode.
+        Path к папке с документами или None.
     """
-    try:
-        import webview  # noqa: PLC0415 — local import guard for web mode
-        result = await app.native.main_window.create_file_dialog(
-            dialog_type=webview.FOLDER_DIALOG,
-        )
-        if not result:
-            return None
-        return Path(result[0])
-    except (ImportError, AttributeError):
-        # Web mode: pywebview недоступен или app.native не инициализирован
-        ui.notify(
-            "Выбор папки недоступен в веб-режиме. Используйте кнопку «Загрузить тестовые данные».",
-            type="warning",
-            timeout=5000,
-        )
+    import logging as _log
+    import shutil
+    import tempfile
+    _logger = _log.getLogger("pick_folder")
+
+    # Show choice menu
+    mode_future: asyncio.Future = asyncio.get_event_loop().create_future()
+
+    with ui.dialog() as mode_dlg, \
+         ui.card().classes("p-0 overflow-hidden rounded-xl shadow-xl").style("width: 360px;"):
+        with ui.element("div").classes("px-6 pt-5 pb-2"):
+            ui.html('<span style="font-size:1.1rem;font-weight:600;color:#1e293b;">Загрузить документы</span>')
+            ui.html('<span style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">Выберите способ загрузки</span>')
+
+        with ui.column().classes("px-6 py-4 gap-2 w-full"):
+            ui.button(
+                "Выбрать папку", icon="folder_open",
+                on_click=lambda: _pick("folder"),
+            ).props("no-caps outline").classes(
+                "w-full text-left text-sm"
+            ).style("justify-content: flex-start;")
+            ui.button(
+                "Выбрать файлы (PDF, DOCX)", icon="description",
+                on_click=lambda: _pick("files"),
+            ).props("no-caps outline").classes(
+                "w-full text-left text-sm"
+            ).style("justify-content: flex-start;")
+
+        with ui.row().classes("px-6 pb-4"):
+            ui.button("Отмена", on_click=lambda: _pick(None)).props("flat no-caps").classes("text-slate-400 text-sm")
+
+    def _pick(mode):
+        if not mode_future.done():
+            mode_future.set_result(mode)
+        mode_dlg.close()
+
+    mode_dlg.open()
+    mode = await mode_future
+
+    if not mode:
         return None
+
+    try:
+        import webview  # noqa: PLC0415
+    except ImportError:
+        ui.notify("Нативные диалоги недоступны в веб-режиме.", type="warning")
+        return None
+
+    if mode == "folder":
+        dialog_type = webview.FileDialog.FOLDER if hasattr(webview, 'FileDialog') else webview.FOLDER_DIALOG
+    else:
+        dialog_type = webview.FileDialog.OPEN if hasattr(webview, 'FileDialog') else webview.OPEN_DIALOG
+
+    try:
+        _logger.info(">>> Opening native dialog (mode=%s, type=%s)...", mode, dialog_type)
+        kwargs = {
+            "dialog_type": dialog_type,
+            "directory": str(Path.home()),
+        }
+        if mode == "files":
+            kwargs["allow_multiple"] = True
+            kwargs["file_types"] = ("Документы (*.pdf;*.docx;*.doc)",)
+
+        result = await asyncio.wait_for(
+            app.native.main_window.create_file_dialog(**kwargs),
+            timeout=120,
+        )
+        _logger.info(">>> Dialog result: %s", result)
+    except asyncio.TimeoutError:
+        _logger.warning("Dialog timed out")
+        return None
+    except Exception as exc:
+        _logger.warning("Dialog error: %s", exc)
+        return None
+
+    if not result:
+        return None
+
+    if mode == "folder":
+        return Path(result[0])
+
+    # Files mode: copy selected files to a temp directory for the pipeline
+    tmp_dir = Path(tempfile.mkdtemp(prefix="yurteg_upload_"))
+    for file_path in result:
+        src = Path(file_path)
+        if src.suffix.lower() in (".pdf", ".docx", ".doc") and src.is_file():
+            shutil.copy2(src, tmp_dir / src.name)
+            _logger.info("Copied %s → %s", src.name, tmp_dir)
+    if not any(tmp_dir.iterdir()):
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        ui.notify("Не найдено PDF или DOCX файлов.", type="warning")
+        return None
+    return tmp_dir
 
 
 async def start_pipeline(
@@ -146,11 +223,16 @@ async def start_pipeline(
 
         val = current / total if total > 0 else 0
         loop.call_soon_threadsafe(ui_refs['bar'].set_value, val)
-        loop.call_soon_threadsafe(
-            ui_refs['count'].set_text, f"{current}/{total} файлов"
-        )
+        if total > 0:
+            loop.call_soon_threadsafe(
+                ui_refs['count'].set_text, f"{current}/{total} файлов"
+            )
 
         # Формируем label: "Стадия... — filename" или просто "Стадия..."
+        # Скрываем системные пути (temp dirs, output dirs)
+        if "/" in message and ("папка" in message.lower() or "/var/" in message or "/tmp/" in message):
+            return  # не показывать raw пути пользователю
+
         # Извлекаем имя файла из сообщений вида "Обработка: filename.pdf"
         filename = ""
         if "Обработка:" in message:

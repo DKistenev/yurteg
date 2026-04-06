@@ -342,6 +342,78 @@ def build() -> None:
                     control_fn=_telegram_bind_control,
                 )
 
+        # Разделитель
+        ui.element("div").classes("w-full border-t border-slate-200 my-6")
+
+        # ═══════════════════════════════════════════════════════════════
+        # Секция 4: Данные
+        # ═══════════════════════════════════════════════════════════════
+        _section_header("storage", "Данные", "Управление реестром и онбордингом", section_id="data")
+
+        with ui.column().classes("w-full gap-0 mt-2"):
+            # Onboarding reset
+            def _onboarding_control():
+                async def _reset_onboarding():
+                    save_setting("first_run_completed", False)
+                    save_setting("tour_completed", False)
+                    save_setting("first_processing_done", False)
+                    save_setting("trust_prompt_dismissed", False)
+                    ui.navigate.to("/")  # splash gate в root() покажет онбординг
+
+                ui.button("Показать", on_click=_reset_onboarding).props(
+                    "flat dense no-caps"
+                ).classes("text-indigo-600 text-sm")
+
+            _settings_row(
+                "Онбординг",
+                "Показать приветственный экран заново",
+                control_fn=_onboarding_control,
+            )
+
+            # Load demo data
+            def _demo_control():
+                async def _load_demo():
+                    from app.demo_data import insert_demo_contracts
+                    from services.client_manager import ClientManager
+                    from app.state import get_state
+                    state = get_state()
+                    db = ClientManager().get_db(state.current_client)
+                    count = await run.io_bound(insert_demo_contracts, db)
+                    if count > 0:
+                        ui.notify(f"Загружено {count} тестовых документов", type="positive")
+                    else:
+                        ui.notify("Тестовые данные уже загружены", type="info")
+
+                ui.button("Загрузить", on_click=_load_demo).props(
+                    "flat dense no-caps"
+                ).classes("text-indigo-600 text-sm")
+
+            _settings_row(
+                "Тестовые документы",
+                "Добавить 10 демо-договоров в реестр",
+                control_fn=_demo_control,
+            )
+
+            # Clear registry
+            def _clear_control():
+                async def _clear_registry():
+                    from services.client_manager import ClientManager
+                    from app.state import get_state
+                    state = get_state()
+                    db = ClientManager().get_db(state.current_client)
+                    await run.io_bound(db.clear_all)
+                    ui.notify("Реестр очищен", type="info")
+
+                ui.button("Очистить", on_click=_clear_registry).props(
+                    "flat dense no-caps"
+                ).classes("text-red-500 text-sm")
+
+            _settings_row(
+                "Очистить реестр",
+                "Удалить все документы из текущего пространства",
+                control_fn=_clear_control,
+            )
+
     # Section name -> DOM id mapping
     _SECTION_IDS = {
         "ИИ": "settings-section-ai",

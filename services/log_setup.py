@@ -50,7 +50,12 @@ class _ContentFilter(logging.Filter):
 
 
 def setup_logging() -> None:
-    """Configure root logger with local file handler and optional BetterStack handler."""
+    """Configure root logger with local file handler.
+
+    Only sets up the local RotatingFileHandler.  The remote BetterStack
+    handler is added later via ``attach_remote_logging()`` — after uvicorn
+    has finished its own logging setup, so the two don't conflict.
+    """
     root = logging.getLogger()
 
     # Prevent duplicate handlers on repeated calls
@@ -59,7 +64,7 @@ def setup_logging() -> None:
 
     root.setLevel(logging.DEBUG)
 
-    # ── 1. Local file handler ─────────────────────────────────────────────────
+    # ── Local file handler ────────────────────────────────────────────────────
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     file_handler = logging.handlers.RotatingFileHandler(
@@ -72,7 +77,14 @@ def setup_logging() -> None:
     file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
     root.addHandler(file_handler)
 
-    # ── 2. BetterStack Logtail handler (remote) ──────────────────────────────
+
+def attach_remote_logging() -> None:
+    """Attach BetterStack Logtail handler to root logger.
+
+    Must be called AFTER uvicorn starts (e.g. via ``app.on_startup``),
+    because LogtailHandler blocks the event loop when uvicorn reconfigures
+    logging during ``Config.__init__`` / ``Server.run()``.
+    """
     _DEFAULT_TOKEN = "yFQhG2XsqXgdvnwazhVB8rgK"
     token = os.environ.get("BETTERSTACK_SOURCE_TOKEN", "")
     if not token:
@@ -102,7 +114,8 @@ def setup_logging() -> None:
         logtail_handler.addFilter(_ContextInjector())
         logtail_handler.setLevel(logging.INFO)
         logtail_handler.addFilter(_ContentFilter())
-        root.addHandler(logtail_handler)
+        logging.getLogger().addHandler(logtail_handler)
+        logging.getLogger(__name__).info("BetterStack remote logging attached")
     except ImportError:
         logging.getLogger(__name__).warning(
             "logtail-python не установлен — удалённое логирование отключено"

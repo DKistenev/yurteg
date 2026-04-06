@@ -524,7 +524,7 @@ def build() -> None:
 
         with progress_section:
             with ui.row().classes("items-center gap-3 w-full"):
-                progress_bar = ui.linear_progress(value=0).classes("flex-1")
+                progress_bar = ui.linear_progress(value=0, show_value=False).classes("flex-1")
                 count_label = ui.label("0/0 файлов").classes("text-sm text-slate-500 shrink-0")
             file_label = ui.label("").classes("text-xs text-slate-400")
             error_col = ui.column().classes("gap-1")
@@ -607,7 +607,7 @@ def build() -> None:
 
                 def _toggle_deadline(
                     _exp: dict = _expanded,
-                    _col: object = items_col,
+                    _col: ui.column = items_col,
                     _icons: list = expand_icon_ref,
                 ) -> None:
                     _exp["v"] = not _exp["v"]
@@ -1014,7 +1014,7 @@ def build() -> None:
 
                         def _toggle_past(
                             _exp: dict = _past_expanded,
-                            _col: object = past_items,
+                            _col: ui.column = past_items,
                             _icons: list = _past_icon_ref,
                         ) -> None:
                             _exp["v"] = not _exp["v"]
@@ -1245,6 +1245,7 @@ def build() -> None:
 
     # Row click → show split panel (UI Overhaul — was navigate), with action/expand dispatch
     async def _on_cell_clicked(e) -> None:
+        logger.info(">>> CELL CLICK: colId=%s, doc_id=%s, is_child=%s", e.args.get("colId"), e.args.get("data", {}).get("id"), e.args.get("data", {}).get("is_child"))
         col_id = e.args.get("colId", "")
         data = e.args.get("data", {})
 
@@ -1268,14 +1269,20 @@ def build() -> None:
             state.split_panel_doc_id = doc_id
             # Fetch full doc from DB for panel display
             db = _client_manager.get_db(state.current_client)
+            logger.info(">>> PANEL: fetching doc %s from DB", doc_id)
             doc = await run.io_bound(db.get_contract_by_id, doc_id)
+            logger.info(">>> PANEL: doc=%s, panel_container visible=%s", doc is not None, panel_container.visible)
             if doc:
                 doc["computed_status"] = data.get("computed_status", "unknown")
-                render_split_panel(
-                    panel_container, doc,
-                    on_close=_close_panel,
-                    on_open_full=lambda did=doc_id: ui.navigate.to(f"/document/{did}"),
-                )
+                try:
+                    render_split_panel(
+                        panel_container, doc,
+                        on_close=_close_panel,
+                        on_open_full=lambda did=doc_id: ui.navigate.to(f"/document/{did}"),
+                    )
+                    logger.info(">>> PANEL: rendered OK, visible=%s", panel_container.visible)
+                except Exception:
+                    logger.exception(">>> PANEL: render_split_panel FAILED")
 
     async def _on_upload(source_dir: Path) -> None:
         """Callback triggered by header upload button (D-06, D-07, D-08, D-11)."""
@@ -1300,13 +1307,11 @@ def build() -> None:
         settings = load_settings()
         if not settings.get("first_processing_done"):
             save_setting("first_processing_done", True)
-        # After pipeline: refresh table (D-11)
-        if grid_ref["grid"]:
-            await load_table_data(grid_ref["grid"], state, active_segment["value"])
-        await _refresh_deadline_widget()
+        # After pipeline: full page reload to rebuild from empty state if needed (D-11)
+        ui.navigate.to("/")
 
     # Store callback on state so main.py can delegate to it
-    state._on_upload = _on_upload  # type: ignore[attr-defined]
+    setattr(state, "_on_upload", _on_upload)
 
     async def _init() -> None:
         await _refresh_deadline_widget()

@@ -53,9 +53,13 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
 
         # Upload CTA — filled indigo (NOT flat, NOT Quasar color prop — avoids !important)
         async def _on_upload_click() -> None:
+            import logging as _log
+            _log.getLogger("header").info(">>> UPLOAD CLICK: processing=%s, on_upload=%s", state.processing, on_upload is not None)
             if state.processing:
+                _log.getLogger("header").warning(">>> UPLOAD BLOCKED: state.processing=True")
                 return
             source_dir = await pick_folder()
+            _log.getLogger("header").info(">>> UPLOAD pick_folder result: %s", source_dir)
             if source_dir and on_upload:
                 await on_upload(source_dir)
 
@@ -72,9 +76,15 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
 
         # «? Гид» — subtle restart button (ONBR-02)
         def _restart_tour() -> None:
+            import logging as _log
+            _log.getLogger("header").info(">>> GUIDE CLICK: restarting tour")
             save_setting("tour_completed", False)
-            save_setting("trust_prompt_dismissed", True)  # skip trust prompt, go directly to tour
-            ui.navigate.to("/")  # перезагружает реестр, _init() проверит флаг и запустит тур
+            from app.components.onboarding.tour import start_tour_via_js
+
+            async def _on_tour_done():
+                save_setting("tour_completed", True)
+
+            start_tour_via_js(_on_tour_done)
 
         ui.button(
             icon="help_outline",

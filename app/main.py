@@ -8,9 +8,6 @@ Per D-03: ui.sub_pages для SPA-навигации — URL обновляет�
 Per D-16: ui.run с native=True, dark=False, reload=False, window_size=(1400, 900).
 """
 # ruff: noqa: E402
-# freeze_support() MUST be called before any heavy imports (PyInstaller requirement)
-from multiprocessing import freeze_support
-freeze_support()
 
 import atexit
 import logging
@@ -26,7 +23,7 @@ from services.app_boot import should_start_llama_on_startup
 from services.client_manager import ClientManager
 from services.llama_server import LlamaServerManager
 from services.instance_lock import acquire_instance_lock
-from services.log_setup import setup_logging
+from services.log_setup import attach_remote_logging, setup_logging
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -76,6 +73,7 @@ def get_llama_manager() -> LlamaServerManager | None:
 
 # Тройная защита shutdown (D-10, FUND-04):
 # on_shutdown ненадёжен в native=True на macOS (NiceGUI bug #2107)
+app.on_startup(attach_remote_logging)
 app.on_startup(_start_llama)
 app.on_shutdown(_stop_llama)
 app.on_disconnect(_stop_llama)
@@ -375,14 +373,24 @@ def _get_storage_secret() -> str:
     return secret
 
 
-acquire_instance_lock()
-
-ui.run(
-    native=True,
-    dark=False,
-    reload=False,
-    host="127.0.0.1",
-    title="ЮрТэг",
-    window_size=(1400, 900),
-    storage_secret=_get_storage_secret(),
-)
+# ── Entry guard ───────────────────────────────────────────────────────────────
+# NiceGUI native=True uses multiprocessing (spawn mode on macOS).
+# The child re-imports the module; without this guard it would call ui.run()
+# again, causing a deadlock.  NiceGUI docs: use "__mp_main__" too.
+if __name__ in {"__main__", "__mp_main__"}:
+    from multiprocessing import freeze_support
+    freeze_support()
+    # Instance lock only in parent process — child (__mp_main__) must NOT
+    # acquire it, otherwise it blocks on the lock the parent already holds
+    # and the whole app dies.
+    if __name__ == "__main__":
+        acquire_instance_lock()
+    ui.run(
+        native=True,
+        dark=False,
+        reload=False,
+        host="127.0.0.1",
+        title="ЮрТэг",
+        window_size=(1400, 900),
+        storage_secret=_get_storage_secret(),
+    )
