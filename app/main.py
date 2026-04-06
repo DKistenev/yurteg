@@ -37,6 +37,10 @@ _llama_manager: LlamaServerManager | None = None
 
 async def _start_llama() -> None:
     """Start llama-server if active_provider is 'ollama'. Called via app.on_startup."""
+    import os
+    if os.environ.get("WEB_MODE", "").lower() in ("1", "true"):
+        logger.info("WEB_MODE — llama-server не запускается")
+        return
     global _llama_manager
     if not should_start_llama_on_startup(load_settings()):
         logger.info("Первый запуск ещё не завершён — llama-server будет подготовлен через splash")
@@ -79,6 +83,9 @@ app.on_startup(_start_llama)
 
 async def _preload_embedding_model() -> None:
     """Предзагружает embedding-модель в фоне при старте."""
+    import os
+    if os.environ.get("WEB_MODE", "").lower() in ("1", "true"):
+        return
     from nicegui import run
     try:
         from services.version_service import get_embedding_model
@@ -398,13 +405,16 @@ if __name__ in {"__main__", "__mp_main__"}:
     # Instance lock only in parent process — child (__mp_main__) must NOT
     # acquire it, otherwise it blocks on the lock the parent already holds
     # and the whole app dies.
-    if __name__ == "__main__":
+    import os
+    _web_mode = os.environ.get("WEB_MODE", "").lower() in ("1", "true")
+    if __name__ == "__main__" and not _web_mode:
         acquire_instance_lock()
     ui.run(
-        native=True,
+        native=not _web_mode,
         dark=False,
         reload=False,
-        host="127.0.0.1",
+        host="0.0.0.0" if _web_mode else "127.0.0.1",
+        port=int(os.environ.get("PORT", 8000)),
         title="ЮрТэг",
         window_size=(1400, 900),
         storage_secret=_get_storage_secret(),
