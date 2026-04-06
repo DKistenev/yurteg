@@ -5,6 +5,16 @@
 """
 import hashlib
 from datetime import date, timedelta
+from pathlib import Path
+
+from runtime_paths import get_resource_path
+
+_DEMO_DIR = get_resource_path("app", "demo_docs")
+
+
+def _demo_path(filename: str) -> str:
+    """Возвращает абсолютный путь к демо-документу."""
+    return str(Path(_DEMO_DIR) / filename)
 
 # ── 10 demo контрактов — разные типы, суммы, статусы ──────────────────────────
 # date.today() вычисляется при импорте модуля (один раз при старте сервера),
@@ -14,7 +24,7 @@ _today = date.today()
 
 DEMO_CONTRACTS = [
     {
-        "filename": "Договор_поставки_ИнноТех.pdf",
+        "filename": "Договор_поставки_ИнноТех.docx",
         "contract_type": "Договор поставки",
         "counterparty": "ООО «ИнноТех»",
         "subject": "Поставка оборудования для офиса",
@@ -25,10 +35,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.95,
         "validation_score": 0.92,
         "processed_at": "2025-01-16 10:23:00",
-        "original_path": "/demo/Договор_поставки_ИнноТех.pdf",
+        "original_path": _demo_path("Договор_поставки_ИнноТех.docx"),
     },
     {
-        "filename": "Договор_аренды_Альфа.pdf",
+        "filename": "Договор_аренды_Альфа.docx",
         "contract_type": "Договор аренды",
         "counterparty": "ЗАО «Альфа»",
         "subject": "Аренда нежилого помещения 120 кв.м.",
@@ -39,10 +49,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.97,
         "validation_score": 0.95,
         "processed_at": "2024-06-02 09:15:00",
-        "original_path": "/demo/Договор_аренды_Альфа.pdf",
+        "original_path": _demo_path("Договор_аренды_Альфа.docx"),
     },
     {
-        "filename": "Договор_оказания_услуг_Смирнова.pdf",
+        "filename": "Договор_оказания_услуг_Смирнова.docx",
         "contract_type": "Договор оказания услуг",
         "counterparty": "ИП Смирнова А.В.",
         "subject": "Оказание юридических услуг",
@@ -53,10 +63,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.88,
         "validation_score": 0.85,
         "processed_at": "2025-03-02 14:40:00",
-        "original_path": "/demo/Договор_оказания_услуг_Смирнова.pdf",
+        "original_path": _demo_path("Договор_оказания_услуг_Смирнова.docx"),
     },
     {
-        "filename": "Трудовой_договор_Петров.pdf",
+        "filename": "Трудовой_договор_Петров.docx",
         "contract_type": "Трудовой договор",
         "counterparty": "Петров И.С.",
         "subject": "Выполнение обязанностей инженера-программиста",
@@ -67,10 +77,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.99,
         "validation_score": 0.98,
         "processed_at": "2024-09-03 11:00:00",
-        "original_path": "/demo/Трудовой_договор_Петров.pdf",
+        "original_path": _demo_path("Трудовой_договор_Петров.docx"),
     },
     {
-        "filename": "Договор_подряда_СтройГрупп.pdf",
+        "filename": "Договор_подряда_СтройГрупп.docx",
         "contract_type": "Договор подряда",
         "counterparty": "ООО «СтройГрупп»",
         "subject": "Капитальный ремонт офисного помещения",
@@ -81,10 +91,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.91,
         "validation_score": 0.88,
         "processed_at": "2024-11-05 16:30:00",
-        "original_path": "/demo/Договор_подряда_СтройГрупп.pdf",
+        "original_path": _demo_path("Договор_подряда_СтройГрупп.docx"),
     },
     {
-        "filename": "NDA_ТехПартнёр.pdf",
+        "filename": "NDA_ТехПартнёр.docx",
         "contract_type": "Лицензионное соглашение",
         "counterparty": "ООО «ТехПартнёр»",
         "subject": "Неразглашение конфиденциальной информации",
@@ -95,10 +105,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.82,
         "validation_score": 0.75,
         "processed_at": "2025-02-03 13:20:00",
-        "original_path": "/demo/NDA_ТехПартнёр.pdf",
+        "original_path": _demo_path("NDA_ТехПартнёр.docx"),
     },
     {
-        "filename": "Договор_займа_Новиков.pdf",
+        "filename": "Договор_займа_Новиков.docx",
         "contract_type": "Договор займа",
         "counterparty": "Новиков А.В.",
         "subject": "Кредитная линия на пополнение оборотных средств",
@@ -109,10 +119,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.78,
         "validation_score": 0.65,  # низкий score → попадёт в «требуют внимания»
         "processed_at": "2024-08-16 10:05:00",
-        "original_path": "/demo/Договор_займа_Новиков.pdf",
+        "original_path": _demo_path("Договор_займа_Новиков.docx"),
     },
     {
-        "filename": "Договор_поставки_ЛогистикПро.pdf",
+        "filename": "Договор_поставки_ЛогистикПро.docx",
         "contract_type": "Договор поставки",
         "counterparty": "ИП Логистик Про",
         "subject": "Поставка комплектующих для серверного оборудования",
@@ -123,10 +133,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.94,
         "validation_score": 0.90,
         "processed_at": "2025-09-02 09:00:00",
-        "original_path": "/demo/Договор_поставки_ЛогистикПро.pdf",
+        "original_path": _demo_path("Договор_поставки_ЛогистикПро.docx"),
     },
     {
-        "filename": "Договор_аренды_КвадратМ.pdf",
+        "filename": "Договор_аренды_КвадратМ.docx",
         "contract_type": "Договор аренды",
         "counterparty": "ООО «КвадратМ»",
         "subject": "Аренда складского помещения 250 кв.м.",
@@ -137,10 +147,10 @@ DEMO_CONTRACTS = [
         "confidence": 0.96,
         "validation_score": 0.93,
         "processed_at": "2024-04-03 15:10:00",
-        "original_path": "/demo/Договор_аренды_КвадратМ.pdf",
+        "original_path": _demo_path("Договор_аренды_КвадратМ.docx"),
     },
     {
-        "filename": "Договор_оказания_услуг_МедиаГруп.pdf",
+        "filename": "Договор_оказания_услуг_МедиаГруп.docx",
         "contract_type": "Договор оказания услуг",
         "counterparty": "ООО «МедиаГруп»",
         "subject": "Разработка программного обеспечения",
@@ -151,7 +161,7 @@ DEMO_CONTRACTS = [
         "confidence": 0.87,
         "validation_score": 0.84,
         "processed_at": "2025-01-02 11:45:00",
-        "original_path": "/demo/Договор_оказания_услуг_МедиаГруп.pdf",
+        "original_path": _demo_path("Договор_оказания_услуг_МедиаГруп.docx"),
     },
 ]
 
@@ -168,7 +178,7 @@ def insert_demo_contracts(db) -> int:
     conn = db.conn
     inserted = 0
     for c in DEMO_CONTRACTS:
-        file_hash = hashlib.md5(c["filename"].encode("utf-8")).hexdigest()
+        file_hash = hashlib.md5(str(c["filename"]).encode("utf-8")).hexdigest()
         # Не дублировать если demo данные уже есть
         existing = conn.execute(
             "SELECT id FROM contracts WHERE file_hash = ?", (file_hash,)
