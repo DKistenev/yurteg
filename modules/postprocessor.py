@@ -6,12 +6,18 @@
 """
 import re
 import logging
+from difflib import get_close_matches
 from pathlib import Path
 
+from config import Config as _Config
 from runtime_paths import get_resource_path
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Справочник типов для fuzzy-match ─────────────────────────────────────────
+_KNOWN_TYPES_LIST: list[str] = _Config().document_types_hints
+_KNOWN_TYPES_SET: set[str] = set(_KNOWN_TYPES_LIST)
 
 # ── Профили полей ─────────────────────────────────────────────────────────────
 
@@ -182,7 +188,7 @@ def _sanitize_value(value: Any, profile: str, field: str) -> Any:
     return value
 
 
-def sanitize_metadata(raw: dict) -> dict:
+def sanitize_metadata(raw: dict, source_text: str = "") -> dict:
     """Очищает сырой dict ответа локальной модели по профилям полей.
 
     - Нормализует строки "None", "null", "" → None
@@ -192,9 +198,11 @@ def sanitize_metadata(raw: dict) -> dict:
     - Невалидные даты → None
     - Числовые строки → float
     - Булевы строки → bool
+    - Anti-hallucination: amount обнуляется если не найден в тексте
 
     Args:
         raw: Сырой dict из JSON-ответа модели.
+        source_text: Исходный текст документа для верификации.
 
     Returns:
         Очищенный dict, готовый для передачи в ContractMetadata.
@@ -212,6 +220,42 @@ def sanitize_metadata(raw: dict) -> dict:
     for field, value in raw.items():
         if field not in FIELD_PROFILES:
             result[field] = _to_none_if_empty(value)
+
+    # Fuzzy-match contract_type к справочнику
+    ct = result.get("contract_type")
+    if ct and ct not in _KNOWN_TYPES_SET:
+        matches = get_close_matches(ct, _KNOWN_TYPES_LIST, n=1, cutoff=0.6)
+        if matches:
+            logger.info("Fuzzy-match contract_type: %r → %r", ct, matches[0])
+            result["contract_type"] = matches[0]
+
+    # Нормализация ИП в counterparty и parties
+    _IP_PREFIX = re.compile(
+        r"^[Ии]ндивидуальный\s+предприниматель\s+",
+    )
+    cp = result.get("counterparty")
+    if cp and _IP_PREFIX.match(cp):
+        result["counterparty"] = _IP_PREFIX.sub("ИП ", cp)
+    parties = result.get("parties")
+    if isinstance(parties, list):
+        result["parties"] = [
+            _IP_PREFIX.sub("ИП ", p) if isinstance(p, str) and _IP_PREFIX.match(p) else p
+            for p in parties
+        ]
+
+    # Anti-hallucination: проверяем amount против исходного текста
+    if source_text:
+        amt = result.get("amount")
+        if amt and isinstance(amt, str):
+            # Извлекаем цифры из amount (например "76 000 руб." → "76000")
+            digits = re.sub(r"[^\d]", "", amt)
+            if digits and digits not in re.sub(r"[^\d]", " ", source_text).replace(" ", ""):
+                # Попробуем найти с пробелами-разделителями (76 000 → "76 000" в тексте)
+                spaced = re.sub(r"\s+", "", amt.split("руб")[0].strip())
+                spaced_digits = re.sub(r"[^\d]", "", spaced)
+                if spaced_digits and spaced_digits not in source_text.replace(" ", ""):
+                    logger.info("Amount %r не найден в тексте — обнуляем (галлюцинация)", amt)
+                    result["amount"] = None
 
     # Гарантируем что list-поля — всегда list, не None
     for list_field in ("parties", "special_conditions"):

@@ -136,7 +136,7 @@ SYSTEM_PROMPT = """Ты — опытный юрист-аналитик. Извл
     - Корпоративные: "Решение единственного участника", "Протокол общего собрания", "Устав"
     - Кадровые/приказы: "Приказ о {чём}" — "Приказ о приёме на работу"
     - Акты: "Акт {чего}" — "Акт выполненных работ", "Акт сверки"
-    Предпочитай типы из предложенного списка. Если не подходит ни один — создай краткое название в том же стиле.
+    СТРОГО используй тип из предложенного списка. Новый тип — только если ни один не подходит.
 10. КОНТРАГЕНТ (counterparty) — это ДРУГАЯ сторона договора, а не наша. В parties перечисляй ВСЕ стороны.
 11. Формат ИП: ВСЕГДА пиши "ИП Фамилия Имя Отчество". НЕ "Индивидуальный предприниматель Фамилия...", НЕ "индивидуальный предприниматель", НЕ "И.П.". Примеры: "ИП Фокина Дарья Владимировна", "ИП Кучма Андрей Владимирович"."""
 
@@ -152,7 +152,7 @@ USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста 
 - date_signed (string|null): дата подписания, YYYY-MM-DD
 - date_start (string|null): дата начала действия, YYYY-MM-DD
 - date_end (string|null): дата окончания, YYYY-MM-DD
-- amount (string|null): сумма с валютой, пробелы-разделители (пример: "1 500 000 руб.")
+- amount (string|null): общая фиксированная сумма договора с валютой (пример: "1 500 000 руб."). Если сумма указана в процентах или не зафиксирована — null
 - special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии). Пустой массив [] если нет
 - parties (array of strings): все стороны документа. Пустой массив [] если не определены
 - contract_number (string|null): номер договора/документа (например "№ 123/2024" или "б/н") или null если нет
@@ -352,7 +352,7 @@ def extract_metadata(
     if isinstance(result, ContractMetadata):
         # Post-processing для локальной модели: очистить мусор и строки None
         if config.active_provider == "ollama":
-            sanitized = sanitize_metadata(asdict(result))
+            sanitized = sanitize_metadata(asdict(result), source_text=anonymized_text)
             result = _json_to_metadata(sanitized)
 
         # Anti-hallucination: обнулить subject если он не из текста документа
@@ -389,7 +389,7 @@ def extract_metadata(
                 fb = fb_e
             if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
                 if config.active_provider == "ollama":
-                    sanitized = sanitize_metadata(asdict(fb))
+                    sanitized = sanitize_metadata(asdict(fb), source_text=anonymized_text)
                     fb = _json_to_metadata(sanitized)
                 return _annotate(
                     fb,
