@@ -7,7 +7,7 @@
 
 ## Установка
 
-1. Скачайте файл **YurTag-X.X.X.dmg** со страницы [Releases](https://github.com/danilakistenev/yurteg/releases)
+1. Скачайте файл **YurTag-X.X.X.dmg** со страницы [Releases](https://github.com/DKistenev/yurteg/releases)
 2. Откройте скачанный DMG-файл двойным кликом
 3. Перетащите **YurTag.app** в папку **Applications**
 
