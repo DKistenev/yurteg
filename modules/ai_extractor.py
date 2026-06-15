@@ -1,0 +1,675 @@
+"""Модуль AI-извлечения метаданных из юридических документов.
+
+Отправляет анонимизированный текст в LLM, получает структурированные
+метаданные в JSON. Поддерживает два провайдера:
+- ZAI (GLM-4.7) — основной, платный
+- OpenRouter — запасной, бесплатные модели
+
+Двухзапросный flow для Ollama (Phase 29-02):
+- Первый запрос: с grammar= (GBNF) → гарантированный JSON по схеме
+- Второй запрос: без grammar, с logprobs=True → реальный confidence
+- Второй запрос делается только при подозрительных null-полях (экономия)
+"""
+import json
+import logging
+import re
+import time
+from dataclasses import asdict
+from typing import TYPE_CHECKING, Optional
+
+from dateutil import parser as dateutil_parser
+from dateutil.parser import ParserError
+
+from config import Config
+from modules.models import ContractMetadata
+from modules.postprocessor import sanitize_metadata
+from providers.openrouter import _merge_system_into_user
+from runtime_paths import get_resource_path
+
+if TYPE_CHECKING:
+    from providers.base import LLMProvider
+
+logger = logging.getLogger(__name__)
+
+
+# --- Logprobs / Confidence ---
+
+_KEY_FIELDS = ("contract_type", "counterparty", "amount")
+_LOGPROB_THRESHOLD = -2.0  # порог из CONTEXT.md: ниже этого → низкая уверенность
+
+
+def _load_grammar() -> str:
+    """Загружает GBNF грамматику из data/contract.gbnf. Raises FileNotFoundError."""
+    grammar_path = get_resource_path("data", "contract.gbnf")
+    if not grammar_path.exists():
+        raise FileNotFoundError(f"GBNF грамматика не найдена: {grammar_path}")
+    return grammar_path.read_text(encoding="utf-8")
+
+
+def _validate_subject(metadata: ContractMetadata, source_text: str) -> None:
+    """Anti-hallucination: обнулить subject если он не из текста документа.
+
+    Проверяет, что хотя бы 30% значимых слов subject встречаются в тексте.
+    Если нет — модель выдумала subject, ставим None.
+    """
+    subject = metadata.subject
+    if not subject or not source_text:
+        return
+    # Значимые слова (>3 символов) из subject
+    words = [w.lower().strip(".,;:!?«»\"'()") for w in subject.split() if len(w) > 3]
+    if not words:
+        return
+    source_lower = source_text.lower()
+    matches = sum(1 for w in words if w in source_lower)
+    ratio = matches / len(words)
+    if ratio < 0.3:
+        logger.info("Subject отклонён (%.0f%% совпадение): %s", ratio * 100, subject[:80])
+        metadata.subject = None
+
+
+def _has_suspicious_nulls(metadata: ContractMetadata) -> bool:
+    """True если хотя бы одно ключевое поле пустое — требуется logprobs-проверка."""
+    return any(
+        getattr(metadata, field) is None
+        for field in _KEY_FIELDS
+    )
+
+
+def _compute_confidence_from_logprobs(
+    provider: "LLMProvider",
+    messages: list[dict],
+) -> float:
+    """Вычисляет confidence через logprobs второго запроса.
+
+    Вызывается только для OllamaProvider при наличии метода get_logprobs().
+
+    Returns:
+        float 0.0..1.0 — нормализованный confidence из logprobs.
+        0.0 если get_logprobs недоступен у провайдера или запрос не удался.
+    """
+    if not hasattr(provider, "get_logprobs"):
+        return 0.0
+
+    try:
+        lp = provider.get_logprobs(messages, list(_KEY_FIELDS))  # type: ignore[union-attr]
+    except Exception as exc:
+        logger.warning("logprobs запрос не удался: %s", exc)
+        return 0.0
+
+    if not isinstance(lp, dict) or not lp:
+        return 0.0
+
+    mean_lp = lp.get("_mean", 0.0)
+    min_lp = lp.get("_min", 0.0)
+
+    # Защита от нечисловых значений (напр. при моках в тестах)
+    if not isinstance(mean_lp, (int, float)) or not isinstance(min_lp, (int, float)):
+        return 0.0
+
+    # Линейная нормализация: диапазон [-4, 0] → [0.0, 1.0]
+    # -2.0 (порог) → 0.5; 0.0 → 1.0; -4.0 и ниже → 0.0
+    normalized = max(0.0, min(1.0, (mean_lp + 4.0) / 4.0))
+
+    logger.debug(
+        "logprobs confidence: min=%.3f mean=%.3f → confidence=%.3f",
+        min_lp, mean_lp, normalized,
+    )
+    return normalized
+
+# --- Промпты ---
+
+SYSTEM_PROMPT = """Ты — опытный юрист-аналитик. Извлеки структурированные метаданные из юридического документа.
+
+ПРАВИЛА:
+1. Отвечай СТРОГО чистым JSON. Без текста до/после, без обёрток ```json```.
+2. Отсутствующую информацию ставь null (не пустую строку "").
+3. Списки всегда массивы: parties=[], special_conditions=[]. Никогда не null и не строка.
+4. confidence — число от 0.0 до 1.0 (не строка).
+5. Сумму пиши с пробелами-разделителями и валютой: "1 500 000 руб.", "25 000 EUR".
+6. Даты строго YYYY-MM-DD.
+7. ШАБЛОНЫ: если в тексте есть пустые поля (_____, __________, «_____»), пробелы вместо ФИО/названий, или пометки вроде «(наименование)», «(ФИО)» — это шаблон документа. В таком случае: is_template=true, counterparty=null, parties=[]. Уверенность (confidence) оценивай по качеству извлечения типа и предмета, НЕ снижай из-за того что это шаблон.
+8. ФИО пиши СТРОГО в именительном падеже: "Иванов Иван Иванович", НЕ "Иванова Ивана Ивановича". Если в тексте "в лице Петровой Марии Сергеевны" — пиши "Петрова Мария Сергеевна". Организации — как в тексте.
+9. document_type: одинаковые документы ВСЕГДА называй одинаково. Правила именования:
+    - Договоры: "Договор {чего}" — "Договор поставки", "Договор аренды", "Договор подряда", "Договор оказания услуг"
+    - Соглашения: "Соглашение о {чём}" — "Соглашение о конфиденциальности", "Соглашение о расторжении"
+    - ПД (различай!): "Политика обработки ПД", "Положение об обработке ПД", "Согласие на обработку ПД", "Приказ о назначении ответственного за ПД" — это РАЗНЫЕ документы
+    - Корпоративные: "Решение единственного участника", "Протокол общего собрания", "Устав"
+    - Кадровые/приказы: "Приказ о {чём}" — "Приказ о приёме на работу"
+    - Акты: "Акт {чего}" — "Акт выполненных работ", "Акт сверки"
+    СТРОГО используй тип из предложенного списка. Новый тип — только если ни один не подходит.
+10. КОНТРАГЕНТ (counterparty) — это ДРУГАЯ сторона договора, а не наша. В parties перечисляй ВСЕ стороны.
+11. Формат ИП: ВСЕГДА пиши "ИП Фамилия Имя Отчество". НЕ "Индивидуальный предприниматель Фамилия...", НЕ "индивидуальный предприниматель", НЕ "И.П.". Примеры: "ИП Фокина Дарья Владимировна", "ИП Кучма Андрей Владимирович"."""
+
+USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста юридического документа.
+
+Известные типы документов (используй подходящий из списка или определи свой):
+{document_types}
+
+Верни JSON с полями:
+- document_type (string): тип документа. Примеры: "Договор поставки", "Счёт на оплату", "Акт выполненных работ", "Коммерческое предложение"
+- counterparty (string): основной контрагент (организация или ФИО)
+- subject (string): предмет документа — ТОЛЬКО из текста, не выдумывай. Цитируй или кратко перефразируй
+- date_signed (string|null): дата подписания, YYYY-MM-DD
+- date_start (string|null): дата начала действия, YYYY-MM-DD
+- date_end (string|null): дата окончания, YYYY-MM-DD
+- amount (string|null): общая фиксированная сумма договора с валютой (пример: "1 500 000 руб."). Если сумма указана в процентах или не зафиксирована — null
+- special_conditions (array of strings): особые условия (штрафы, неустойки, гарантии). Пустой массив [] если нет
+- parties (array of strings): все стороны документа. Пустой массив [] если не определены
+- contract_number (string|null): номер договора/документа (например "№ 123/2024" или "б/н") или null если нет
+- confidence (float): уверенность 0.0–1.0
+- is_template (bool): true если документ — шаблон/бланк с пустыми полями
+- payment_terms (string|null): текстовое описание порядка оплаты («ежемесячно до 5-го числа») или null
+- payment_amount (number|null): сумма одного платежа — только числовое значение без валюты или null
+- payment_frequency (string|null): периодичность платежей — "monthly", "quarterly", "yearly", "once" или null
+- payment_direction (string|null): "income" если деньги поступают от контрагента, "expense" если платим мы, или null
+
+Пример ответа:
+{{"document_type": "Договор оказания услуг", "counterparty": "ООО \u00abАльфа\u00bb", "subject": "Оказание юридических консультационных услуг", "date_signed": "2024-03-15", "date_start": "2024-04-01", "date_end": "2025-03-31", "amount": "500 000 руб.", "special_conditions": ["Неустойка 0.1% за каждый день просрочки", "Гарантийный срок 12 месяцев"], "parties": ["ООО \u00abАльфа\u00bb", "ИП Иванов Иван Иванович"], "confidence": 0.92, "is_template": false, "payment_terms": "ежемесячно до 5-го числа", "payment_amount": 50000, "payment_frequency": "monthly", "payment_direction": "income"}}
+
+Текст документа:
+{text}"""
+
+FALLBACK_PROMPT_TEMPLATE = """Текст документа не удалось обработать полностью. Извлеки базовую информацию.
+
+Определи:
+- document_type (string): тип документа
+- counterparty (string): контрагент
+- subject (string): предмет (кратко)
+- confidence (float): уверенность 0.0-1.0
+
+Верни ТОЛЬКО JSON с этими 4 полями.
+
+Текст (первые 3000 символов):
+{text}"""
+
+VERIFY_PROMPT = """Проверь, соответствуют ли эти метаданные тексту документа.
+
+Начало текста документа:
+{text_preview}
+
+Извлечённые метаданные:
+{metadata_json}
+
+Верни JSON:
+- correct (bool): true если метаданные в целом верны
+- corrections (array): список исправлений, каждое — объект с полями "field", "current", "suggested"
+- reasoning (string): краткое пояснение
+
+Отвечай СТРОГО в формате JSON, без обёрток."""
+
+
+# Таблица замены русских названий месяцев на английские для dateutil
+_RU_MONTHS: dict[str, str] = {
+    "января": "January", "январь": "January",
+    "февраля": "February", "февраль": "February",
+    "марта": "March", "март": "March",
+    "апреля": "April", "апрель": "April",
+    "мая": "May", "май": "May",
+    "июня": "June", "июнь": "June",
+    "июля": "July", "июль": "July",
+    "августа": "August", "август": "August",
+    "сентября": "September", "сентябрь": "September",
+    "октября": "October", "октябрь": "October",
+    "ноября": "November", "ноябрь": "November",
+    "декабря": "December", "декабрь": "December",
+}
+
+
+def _translate_ru_months(text: str) -> str:
+    """Заменяет русские названия месяцев на английские для dateutil."""
+    for ru, en in _RU_MONTHS.items():
+        text = re.sub(ru, en, text, flags=re.IGNORECASE)
+    return text
+
+
+def _normalize_date(raw: str | None) -> str | None:
+    """Нормализует строку с датой в формат YYYY-MM-DD (ISO 8601).
+
+    Возвращает None если строка непарсируема, год-only, или None на входе.
+    Логирует оригинальное значение при неудаче.
+
+    Примеры:
+        "31 декабря 2025 г." → "2025-12-31"
+        "31.12.2025"         → "2025-12-31"
+        "31.12.25"           → "2025-12-31"
+        "January 1, 2025"    → "2025-01-01"
+        "2025-12-31"         → "2025-12-31"  (fast path)
+        "бессрочный"         → None
+        "2025"               → None  (year-only: dateutil даёт misleading результат)
+        None                 → None
+    """
+    if not raw:
+        return None
+    raw = raw.strip()
+    if not raw or raw.lower() in ("null", "none", ""):
+        return None
+
+    # Fast path: уже ISO 8601
+    if len(raw) == 10 and raw[4] == "-" and raw[7] == "-":
+        return raw
+
+    # Защита от year-only строк: dateutil.parse("2025") → datetime(2025, today.month, today.day)
+    # что создаёт ложную дату. Любая валидная дата содержит день и месяц.
+    if len(raw) <= 4 and raw.isdigit():
+        logger.warning("Отклонена year-only строка даты: %r", raw)
+        return None
+
+    # Перевод русских месяцев и очистка суффиксов для dateutil
+    translated = _translate_ru_months(raw)
+    translated = re.sub(r"\s*(г\.?|года)\s*$", "", translated).strip()
+
+    try:
+        dt = dateutil_parser.parse(translated, dayfirst=True)
+        normalized = dt.strftime("%Y-%m-%d")
+        # Санитарная проверка: договоры только в диапазоне 1990–2099
+        if not (1990 <= dt.year <= 2099):
+            logger.warning("Дата вне допустимого диапазона: %r → %s", raw, normalized)
+            return None
+        return normalized
+    except (ParserError, ValueError, OverflowError):
+        logger.warning("Не удалось нормализовать дату: %r", raw)
+        return None
+
+
+
+def extract_metadata(
+    anonymized_text: str,
+    config: Config,
+    provider: "LLMProvider | None" = None,
+    fallback_provider: "LLMProvider | None" = None,
+    fallback_anonymized_text: str | None = None,
+) -> ContractMetadata:
+    """
+    Отправляет анонимизированный текст в LLM, парсит JSON-ответ.
+
+    Стратегия:
+    1. Основная модель (ZAI GLM-5) — до ai_max_retries попыток
+    2. Fallback (OpenRouter, бесплатная) — если основная недоступна
+
+    Текст обрезается до 30K символов (~7.5K токенов).
+
+    Raises:
+        RuntimeError: если все попытки исчерпаны
+    """
+    # Убрать реквизиты (ИНН, адреса, банковские) — шумят и сбивают модель
+    import re as _re
+    _REQ_PAT = _re.compile(
+        r"(?:^|\|)\s*(?:ИНН\s*\d|КПП\s*\d|ОГРН(?:ИП)?\s*\d|БИК\s*\d|"
+        r"[РрPp]/[СсCc]\s*\d|[КкKk]/[СсCc]\s*\d|"
+        r"Банковские реквизиты|Расчетный счет|Корреспондентский счет|"
+        r"Адрес:\s|Юридический адрес|Фактический адрес|Почтовый адрес)",
+        _re.IGNORECASE,
+    )
+    anonymized_text = "\n".join(
+        line for line in anonymized_text.split("\n") if not _REQ_PAT.search(line)
+    )
+
+    # Обрезать текст если слишком длинный (30K достаточно для 95% документов)
+    original_len = len(anonymized_text)
+    text = anonymized_text[:30_000]
+    if original_len > 30_000:
+        logger.warning(
+            "Текст документа обрезан до 30 000 символов (оригинал: %d символов). "
+            "Часть документа не будет проанализирована.",
+            original_len,
+        )
+
+    # Формируем список типов для промпта
+    types_str = ", ".join(f'"{t}"' for t in config.document_types_hints)
+
+    user_prompt = USER_PROMPT_TEMPLATE.format(
+        document_types=types_str,
+        text=text,
+    )
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    def _annotate(
+        metadata: ContractMetadata,
+        provider_name: str,
+        model_name: str,
+    ) -> ContractMetadata:
+        setattr(metadata, "_provider_name", provider_name)
+        setattr(metadata, "_provider_model", model_name)
+        return metadata
+
+    # Этап 1: Основная модель
+    if provider is not None:
+        # Для Ollama — передать GBNF грамматику в первый запрос
+        grammar_content: str | None = None
+        if config.active_provider == "ollama":
+            try:
+                grammar_content = _load_grammar()
+            except FileNotFoundError as exc:
+                logger.warning("GBNF грамматика недоступна, продолжаю без неё: %s", exc)
+
+        # Маршрутизация через провайдер (OllamaProvider, ZAIProvider, etc.)
+        try:
+            raw_text = _try_provider(
+                provider, messages, config.ai_max_retries,
+                **({"grammar": grammar_content} if grammar_content else {}),
+            )
+            json_data = _parse_json_response(raw_text)
+            result: ContractMetadata | Exception = _annotate(
+                _json_to_metadata(json_data),
+                provider.name,
+                getattr(config, f"model_{provider.name}", config.active_model),
+            )
+        except Exception as e:
+            result = e
+    else:
+        raise ValueError("provider обязателен — legacy _try_model удалён в v0.9")
+
+    if isinstance(result, ContractMetadata):
+        # Post-processing для локальной модели: очистить мусор и строки None
+        if config.active_provider == "ollama":
+            sanitized = sanitize_metadata(asdict(result), source_text=anonymized_text)
+            result = _json_to_metadata(sanitized)
+
+        # Anti-hallucination: обнулить subject если он не из текста документа
+        if result.subject and anonymized_text:
+            _validate_subject(result, anonymized_text)
+
+        # Для Ollama — вычислить confidence через logprobs если есть подозрительные nulls
+        if (
+            isinstance(result, ContractMetadata)
+            and config.active_provider == "ollama"
+            and _has_suspicious_nulls(result)
+        ):
+            confidence = _compute_confidence_from_logprobs(provider, messages)
+            result.confidence = confidence
+            # Порог: нормализованный _LOGPROB_THRESHOLD=-2.0 → 0.5
+            if confidence < 0.5:
+                logger.info(
+                    "Документ помечен для проверки: logprobs confidence=%.3f",
+                    confidence,
+                )
+
+        # Проверка: если все ключевые поля пустые — пробуем упрощённый промпт
+        if not result.contract_type and not result.counterparty and not result.subject:
+            logger.info("Все ключевые поля пустые, пробую упрощённый промпт...")
+            fallback_msgs = [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": FALLBACK_PROMPT_TEMPLATE.format(text=text[:3000])},
+            ]
+            try:
+                fb_raw = _try_provider(provider, fallback_msgs, config.ai_max_retries)
+                fb_json = _parse_json_response(fb_raw)
+                fb: ContractMetadata | Exception = _json_to_metadata(fb_json)
+            except Exception as fb_e:
+                fb = fb_e
+            if isinstance(fb, ContractMetadata) and (fb.contract_type or fb.counterparty):
+                if config.active_provider == "ollama":
+                    sanitized = sanitize_metadata(asdict(fb), source_text=anonymized_text)
+                    fb = _json_to_metadata(sanitized)
+                return _annotate(
+                    fb,
+                    provider.name,
+                    getattr(config, f"model_{provider.name}", config.active_model),
+                )
+        return result
+
+    last_error = result
+
+    # Этап 2: Fallback провайдер
+    if fallback_provider is not None:
+        logger.info("Основной провайдер недоступен, пробую fallback_provider: %s", fallback_provider.name)
+        try:
+            fallback_text = fallback_anonymized_text or anonymized_text
+            fallback_messages = _merge_system_into_user([
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": USER_PROMPT_TEMPLATE.format(
+                        document_types=types_str,
+                        text=fallback_text[:30_000],
+                    ),
+                },
+            ])
+            fb_raw = _try_provider(fallback_provider, fallback_messages, config.ai_max_retries)
+            fb_json = _parse_json_response(fb_raw)
+            fallback_result: ContractMetadata | Exception = _annotate(
+                _json_to_metadata(fb_json),
+                fallback_provider.name,
+                getattr(config, f"model_{fallback_provider.name}", config.model_fallback),
+            )
+        except Exception as e:
+            fallback_result = e
+        if isinstance(fallback_result, ContractMetadata):
+            return fallback_result
+        last_error = fallback_result
+
+    raise RuntimeError(
+        f"Не удалось извлечь метаданные после всех попыток. "
+        f"Последняя ошибка: {last_error}"
+    )
+
+
+def _try_provider(
+    provider: "LLMProvider",
+    messages: list[dict],
+    max_retries: int,
+    **kwargs: object,
+) -> str:
+    """Вызывает provider.complete() с retry-логикой. Возвращает сырой текст.
+
+    Args:
+        provider: реализация LLMProvider (OllamaProvider, ZAIProvider, etc.)
+        messages: список сообщений в формате OpenAI
+        max_retries: максимальное число попыток
+        **kwargs: дополнительные параметры для provider.complete() (например grammar=)
+
+    Returns:
+        Сырой текстовый ответ от провайдера.
+
+    Raises:
+        RuntimeError: если все попытки исчерпаны.
+    """
+    last_error: Exception = RuntimeError("Нет попыток")
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(
+                "AI-запрос через провайдер %s: попытка %d/%d",
+                provider.name, attempt + 1, max_retries,
+            )
+            raw_text = provider.complete(messages, **kwargs)
+            if not raw_text:
+                raise ValueError("Пустой ответ от провайдера")
+            logger.debug("Ответ провайдера %s (первые 500 символов): %s", provider.name, raw_text[:500])
+            return raw_text
+
+        except (json.JSONDecodeError, ValueError) as e:
+            last_error = e
+            logger.warning(
+                "Попытка %d/%d (провайдер %s): невалидный ответ — %s",
+                attempt + 1, max_retries, provider.name, e,
+            )
+            if attempt < max_retries - 1:
+                time.sleep(1)
+
+        except Exception as e:
+            last_error = e
+            logger.warning(
+                "Попытка %d/%d (провайдер %s): ошибка — %s",
+                attempt + 1, max_retries, provider.name, e,
+            )
+            if attempt < max_retries - 1:
+                time.sleep(1)
+
+    logger.warning("Все попытки исчерпаны для провайдера %s", provider.name)
+    raise RuntimeError(
+        f"Провайдер {provider.name} не ответил после {max_retries} попыток. "
+        f"Последняя ошибка: {last_error}"
+    )
+
+
+
+def verify_metadata(
+    anonymized_text_preview: str,
+    metadata: ContractMetadata,
+    config: Config,
+    provider: "LLMProvider | None" = None,
+) -> dict:
+    """
+    AI-валидация L5 (опциональная).
+
+    Отправляет первые 500 символов текста + метаданные на верификацию.
+    Использует provider.complete() — если provider не передан, создаётся через get_provider(config).
+
+    Возвращает: {"correct": bool, "corrections": [...], "reasoning": str}
+    При ошибке: {"correct": True, "corrections": [], "reasoning": "verification_failed"}
+    """
+    try:
+        if provider is None:
+            from providers import get_provider
+            provider = get_provider(config)
+
+        metadata_dict = {
+            "contract_type": metadata.contract_type,
+            "counterparty": metadata.counterparty,
+            "subject": metadata.subject,
+            "date_signed": metadata.date_signed,
+            "amount": metadata.amount,
+            "parties": metadata.parties,
+        }
+
+        user_prompt = VERIFY_PROMPT.format(
+            text_preview=anonymized_text_preview[:500],
+            metadata_json=json.dumps(metadata_dict, ensure_ascii=False, indent=2),
+        )
+
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        raw_text = provider.complete(messages, temperature=0, max_tokens=1000)
+        if not raw_text:
+            raise ValueError("Пустой ответ")
+
+        result = _parse_json_response(raw_text)
+
+        return {
+            "correct": result.get("correct", True),
+            "corrections": result.get("corrections", []),
+            "reasoning": result.get("reasoning", ""),
+        }
+
+    except Exception as e:
+        logger.warning("AI-верификация не удалась: %s", e)
+        return {
+            "correct": True,
+            "corrections": [],
+            "reasoning": "verification_failed",
+        }
+
+
+def verify_api_key(config: Config, provider: "LLMProvider | None" = None) -> bool:
+    """
+    Проверяет валидность API-ключа через provider.verify_key().
+    Возвращает True если ключ рабочий, False если нет.
+
+    Если provider не передан, создаётся через get_provider(config).
+    """
+    try:
+        if provider is None:
+            from providers import get_provider
+            provider = get_provider(config)
+        return provider.verify_key()
+    except RuntimeError:
+        # Ключ не найден
+        return False
+    except Exception as e:
+        logger.warning("Проверка API-ключа не удалась: %s", e)
+        return False
+
+
+def _safe_float(val) -> Optional[float]:
+    """Безопасное приведение к float: None/пустое → None, невалидное → None."""
+    try:
+        return float(val) if val is not None else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_json_response(raw: str) -> dict:
+    """Извлекает JSON из ответа модели (может быть обёрнут по-разному)."""
+    # Шаг 0: Убрать блоки <think>...</think> (thinking-модели)
+    cleaned = re.sub(r'<think>.*?</think>', '', raw, flags=re.DOTALL).strip()
+
+    # Попытка 1: прямой парсинг
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+
+    # Попытка 2: извлечь из ```json ... ```
+    match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', cleaned, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Попытка 3: найти первый { ... } блок
+    match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    raise json.JSONDecodeError("Не найден JSON в ответе модели", raw, 0)
+
+
+def _json_to_metadata(data: dict) -> ContractMetadata:
+    """Конвертирует dict в ContractMetadata с безопасным доступом."""
+    # Безопасное извлечение списковых полей: null → [], строка → [строка]
+    raw_conditions = data.get("special_conditions")
+    if raw_conditions is None:
+        special_conditions = []
+    elif isinstance(raw_conditions, str):
+        special_conditions = [raw_conditions]
+    elif isinstance(raw_conditions, list):
+        special_conditions = raw_conditions
+    else:
+        special_conditions = []
+
+    raw_parties = data.get("parties")
+    if raw_parties is None:
+        parties = []
+    elif isinstance(raw_parties, list):
+        parties = [str(p) for p in raw_parties if p is not None]
+    else:
+        parties = []
+
+    # Безопасное извлечение confidence: null, строка, невалидное → 0.0
+    raw_conf = data.get("confidence")
+    try:
+        confidence = float(raw_conf) if raw_conf is not None else 0.0
+        if not (0.0 <= confidence <= 1.0):
+            confidence = max(0.0, min(1.0, confidence))
+    except (ValueError, TypeError):
+        confidence = 0.0
+
+    return ContractMetadata(
+        contract_type=data.get("document_type") or data.get("contract_type"),
+        counterparty=data.get("counterparty"),
+        subject=data.get("subject"),
+        date_signed=_normalize_date(data.get("date_signed")),
+        date_start=_normalize_date(data.get("date_start")),
+        date_end=_normalize_date(data.get("date_end")),
+        amount=data.get("amount"),
+        special_conditions=special_conditions,
+        parties=parties,
+        confidence=confidence,
+        is_template=bool(data.get("is_template", False)),
+        payment_amount=_safe_float(data.get("payment_amount")),
+        payment_frequency=data.get("payment_frequency"),
+        payment_direction=data.get("payment_direction"),
+        contract_number=data.get("contract_number"),
+    )

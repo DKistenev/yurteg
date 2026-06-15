@@ -1,0 +1,150 @@
+"""Design tokens — единое место для цветов, стилей и повторяющихся class-строк.
+
+Используй эти константы вместо хардкода Tailwind-классов в компонентах.
+Hex-значения нужны для inline HTML/JS (tour, deviations, calendar).
+"""
+
+# ── Hex palette (для inline HTML/JS) ─────────────────────────────────────────
+
+HEX = {
+    "slate_300": "#cbd5e1",
+    "slate_400": "#94a3b8",
+    "slate_500": "#64748b",
+    "slate_600": "#475569",
+    "slate_900": "#0f172a",
+    "indigo_600": "#4f46e5",
+    "indigo_700": "#4338ca",
+    "indigo_50": "#eef2ff",
+}
+
+# ── Card styles ───────────────────────────────────────────────────────────────
+
+CARD_SECTION = "w-full shadow-none border rounded-lg p-5"
+CARD_DIALOG = "p-6 min-w-[400px]"
+CARD_DIALOG_SM = "p-6 min-w-[360px]"
+
+# ── Segment toggle ────────────────────────────────────────────────────────────
+
+SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
+SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors duration-150"
+
+# ── View toggle (list/calendar) ───────────────────────────────────────────────
+
+TOGGLE_ACTIVE = "p-2 rounded-md bg-slate-100 text-slate-700"
+TOGGLE_INACTIVE = "p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors duration-150"
+
+# ── Typography ────────────────────────────────────────────────────────────────
+
+TEXT_HEADING = "text-lg font-semibold text-slate-900"
+TEXT_HEADING_2XL = "text-2xl font-semibold text-slate-900"
+TEXT_SECONDARY = "text-sm text-slate-500"
+TEXT_MUTED = "text-sm text-slate-400"
+TEXT_LABEL_UPPER = "text-xs font-normal text-slate-400 uppercase tracking-wide"
+TEXT_LABEL_SECTION = "text-xs font-semibold text-slate-400 uppercase tracking-wide"
+
+# ── v0.7 Design System constants ─────────────────────────────────────────────
+
+# Hero / dark surface typography
+TEXT_HERO = "font-bold text-white tracking-tight leading-tight"
+TEXT_HERO_SUB = "text-lg font-light text-slate-300"
+TEXT_EYEBROW = "text-xs font-semibold text-slate-400 uppercase tracking-widest"
+
+# Stats bar (Phase 16)
+STAT_NUMBER = "text-2xl font-bold tabular-nums"
+STAT_LABEL = "text-xs uppercase tracking-wide"
+
+# Accent CTA (filled, per D-decision — не Quasar color prop, а Tailwind класс)
+BTN_ACCENT_FILLED = "px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors duration-150"
+
+# Stats bar item (Phase 16, REGI-01) — card with shadow for visual weight
+STATS_BAR = "flex items-center gap-6 px-6 py-4 bg-white rounded-lg shadow-sm border border-slate-100"
+STATS_ITEM = "flex flex-col items-center gap-0"
+
+# Document card — Phase 16 (CARD-01, CARD-02, CARD-03)
+BREADCRUMB_LINK = "text-sm text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium"
+BREADCRUMB_SEP  = "text-sm text-slate-400 mx-1"
+BREADCRUMB_CURRENT = "text-sm text-slate-900 font-semibold"
+
+# Section divider header (text-xs uppercase + 1px border-bottom)
+SECTION_DIVIDER_HEADER = "text-xs font-semibold text-slate-400 uppercase tracking-wider pb-2 border-b border-slate-200 w-full mb-4"
+
+# AI review block — amber/orange left border accent (CARD-03)
+AI_REVIEW_BLOCK = "w-full pl-4 py-1"
+AI_REVIEW_BORDER_STYLE = "border-left: 4px solid #f59e0b; background: #fffbeb;"
+
+# Metadata row — compact key-value (CARD-03: no card wrapper)
+META_KEY = "text-xs text-slate-400 font-medium uppercase tracking-wide"
+META_VAL = "text-sm text-slate-900"
+
+# Version timeline dot
+VERSION_DOT = "w-2.5 h-2.5 rounded-full bg-indigo-400 shrink-0 mt-1"
+VERSION_LINE = "w-0.5 bg-slate-200 flex-1 min-h-[20px] mx-auto"
+
+# ── Template type color palette (Phase 17, TMPL-01, TMPL-02) ─────────────────
+# 4px left border color + badge bg/text per document type
+# Keys are Russian strings from Config().document_types_hints
+TMPL_TYPE_COLORS: dict[str, dict[str, str]] = {
+    "Договор поставки":        {"border": "#4f46e5", "badge_bg": "#eef2ff", "badge_text": "#4338ca", "icon": "📦"},
+    "Договор аренды":          {"border": "#059669", "badge_bg": "#d1fae5", "badge_text": "#065f46", "icon": "🏠"},
+    "Трудовой договор":        {"border": "#0284c7", "badge_bg": "#e0f2fe", "badge_text": "#0369a1", "icon": "👤"},
+    "Договор подряда":         {"border": "#d97706", "badge_bg": "#fef3c7", "badge_text": "#92400e", "icon": "🔧"},
+    "Договор оказания услуг":  {"border": "#7c3aed", "badge_bg": "#ede9fe", "badge_text": "#5b21b6", "icon": "✨"},
+    "Лицензионное соглашение": {"border": "#db2777", "badge_bg": "#fce7f3", "badge_text": "#9d174d", "icon": "📄"},
+    "Договор займа":           {"border": "#dc2626", "badge_bg": "#fee2e2", "badge_text": "#991b1b", "icon": "💰"},
+    "Прочее":                  {"border": "#94a3b8", "badge_bg": "#f1f5f9", "badge_text": "#475569", "icon": "📋"},
+}
+
+# Fallback for unknown document types
+TMPL_TYPE_DEFAULT = TMPL_TYPE_COLORS["Прочее"]
+
+# Template empty state style constants (TMPL-03)
+TMPL_EMPTY_ICON = "description"  # Material icon name for ui.icon()
+TMPL_EMPTY_TITLE = "text-xl font-semibold text-slate-700 mt-4"
+TMPL_EMPTY_BODY = "text-sm text-slate-400 text-center max-w-xs mt-2"
+
+# ── Apple-like card styles (Phase 18) ────────────────────────────────────────
+APPLE_CARD = "bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+APPLE_CARD_ICON = "w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+APPLE_CARD_COMPACT = "bg-white border border-slate-200 rounded-xl shadow-sm"
+APPLE_CARD_COMPACT_ICON = "w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
+
+# ── Split panel (UI Overhaul → REG-04 Linear-style) ─────────────────────────
+PANEL_CONTAINER = "border-l border-slate-200 bg-white flex flex-col shrink-0 overflow-y-auto"
+PANEL_HEADER = "flex items-center justify-between px-4 py-3 border-b border-slate-200"
+PANEL_FIELD = "px-4 py-2"
+PANEL_FIELD_LABEL = "text-[11px] text-slate-400"  # NO uppercase — per REG-04 mockup
+PANEL_FIELD_VALUE = "text-[13px] text-slate-900"
+# Linear-style tokens (REG-04)
+PANEL_TYPE_TAG = "inline-block text-[10px] py-0.5 px-1.5 rounded bg-indigo-50 text-indigo-600 font-medium mt-1"
+PANEL_SEC_TITLE = "text-[10px] text-slate-400 font-semibold uppercase tracking-[0.06em] mb-2"
+
+# ── Bulk actions (UI Overhaul) ───────────────────────────────────────────────
+BULK_TOOLBAR = "flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg"
+BULK_BTN = "text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+BULK_BTN_DANGER = "text-xs font-medium rounded-md bg-white border border-red-200 text-red-600 hover:bg-red-50"
+BULK_COUNT = "text-sm font-medium text-slate-600"
+
+# ── Action bar — document page (UI Overhaul) ─────────────────────────────────
+ACTION_BAR = "flex items-center gap-2 px-5 py-2.5 bg-slate-50 border-b border-slate-200"
+ACTION_BTN = "px-3 py-1.5 text-xs font-medium rounded-md bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors duration-150"
+ACTION_BTN_PRIMARY = "px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 transition-colors duration-150"
+
+# ── Confidence bar (UI Overhaul) ─────────────────────────────────────────────
+CONFIDENCE_TRACK = "h-1.5 w-full rounded-full bg-slate-200 overflow-hidden"
+
+# ── Grouped card (UI Overhaul) ───────────────────────────────────────────────
+GROUP_CARD = "border border-slate-200 rounded-xl p-4 bg-white"
+GROUP_CARD_TITLE = "text-sm font-semibold text-slate-800 flex items-center gap-2"
+
+# ── Document card two-column layout ─────────────────────────────────────────
+DOC_LEFT_PANEL = "bg-slate-50 border-r border-slate-200 px-5 py-4 gap-0"
+DOC_PREVIEW_BG = "#1e293b"
+DOC_SECTION_TITLE = PANEL_SEC_TITLE  # reuse: 10px uppercase tracking
+DOC_FIELD_LABEL = PANEL_FIELD_LABEL  # reuse: 11px slate-400 no uppercase
+DOC_FIELD_VALUE = PANEL_FIELD_VALUE  # reuse: 13px slate-900
+# Hero block (document card redesign)
+DOC_HERO_BG = "background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);"
+DOC_HERO = "rounded-[14px] p-5 mb-3 text-white"
+DOC_HERO_TYPE_BADGE = "text-[10px] py-0.5 px-2 rounded font-medium"
+DOC_HERO_AMOUNT = "text-[28px] font-bold text-white"
+DOC_HERO_SUBTITLE = "text-[10px] text-white/40"

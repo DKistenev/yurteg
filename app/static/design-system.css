@@ -1,0 +1,555 @@
+/* ЮрТэг Design System — IBM Plex Sans, slate/indigo palette */
+
+/* Typography baseline (global reset — вне layer) */
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; }
+p, li, label { line-height: 1.5; }
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* AG Grid row hover — no custom animation (AG Grid 34 manages row opacity via
+   .ag-opacity-zero{opacity:0!important} + transition internally; external CSS
+   animations with animation-fill-mode:both conflict and leave rows invisible) */
+.ag-row {
+  transition: background-color 150ms ease-out;
+}
+
+/* Page fade-in (global — вне layer) */
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.nicegui-content {
+  animation: page-fade-in 200ms ease-out both;
+}
+
+/* Hover-actions (appear on row hover) — AG Grid API contract, не переименовывать */
+.actions-cell { opacity: 0; transition: opacity 150ms ease; display: flex; align-items: center; justify-content: center; }
+.ag-row:hover .actions-cell { opacity: 1; }
+.action-icon { cursor: pointer; font-size: 1.125rem; color: #64748b; line-height: 1; }
+.action-icon:hover { color: #4f46e5; }
+.expand-icon { color: #94a3b8; font-size: 0.75rem; user-select: none; }
+.expand-icon:hover { color: #475569; }
+
+/* ── Button micro-interactions ──────────────────────────────────────────────── */
+
+@layer overrides {
+  /* Primary buttons: subtle scale on hover, press feedback on active */
+  .q-btn:not(.q-btn--flat) {
+    transition: transform 150ms cubic-bezier(0.25, 1, 0.5, 1), box-shadow 150ms ease;
+  }
+  .q-btn:not(.q-btn--flat):hover {
+    transform: scale(1.02);
+  }
+  .q-btn:not(.q-btn--flat):active {
+    transform: scale(0.97);
+    transition-duration: 80ms;
+  }
+
+  /* Flat buttons: color shift only (no scale — too much for text buttons) */
+  .q-btn--flat {
+    transition: color 150ms ease, background-color 150ms ease;
+  }
+}
+
+/* ── Dialog transitions ────────────────────────────────────────────────────── */
+
+@layer overrides {
+  /* Quasar dialog backdrop */
+  .q-dialog__backdrop {
+    transition: opacity 200ms ease !important;
+  }
+
+  /* Dialog card entrance: fade + subtle scale from 0.96 */
+  .q-dialog .q-card {
+    animation: dialog-in 250ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Card hover lift ───────────────────────────────────────────────────────── */
+
+@layer components {
+  /* Quasar cards with hover class get a lift effect */
+  .q-card {
+    transition: box-shadow 200ms ease, transform 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  /* Template cards — explicit hover lift via Tailwind hover:shadow-md */
+  .q-card.cursor-default:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* ── Status badge pulse (on fresh render) ──────────────────────────────────── */
+/* Вне layer — работает через attribute selector, безопасно */
+
+@keyframes badge-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+[class^="status-"] {
+  animation: badge-in 200ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+/* ── Progress bar smoothing ────────────────────────────────────────────────── */
+
+@layer overrides {
+  .q-linear-progress__track,
+  .q-linear-progress__model {
+    transition: width 500ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+  }
+
+  /* ── Expansion panel smooth ──────────────────────────────────────────────── */
+
+  .q-expansion-item__content {
+    transition: max-height 300ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .q-expansion-item .q-item__section--avatar .q-icon {
+    transition: transform 200ms ease;
+  }
+
+  /* ── Toast notification slide-in ─────────────────────────────────────────── */
+
+  .q-notification {
+    animation: toast-in 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Link underline grow ───────────────────────────────────────────────────── */
+
+@layer components {
+  /* Nav links: underline slides in from left on hover */
+  a.nicegui-link {
+    position: relative;
+  }
+  a.nicegui-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #0f172a;
+    transition: width 200ms cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  a.nicegui-link:hover::after {
+    width: 100%;
+  }
+}
+
+/* ── Accessibility: reduced motion ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* FullCalendar theme overrides — вне layer (специфичность через .fc prefix) */
+.fc { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8125rem; }
+.fc-toolbar-title { font-size: 1rem; font-weight: 600; color: #0f172a; }
+.fc-button { font-family: 'IBM Plex Sans', sans-serif; font-size: 0.8125rem; }
+.fc-button-primary { background-color: #4f46e5 !important; border-color: #4f46e5 !important; }
+.fc-button-primary:not(.fc-button-active):hover { background-color: #4338ca !important; }
+.fc-daygrid-day-number { color: #475569; font-size: 0.75rem; }
+.fc-day-today { background: #eef2ff !important; }
+.fc-day-today .fc-daygrid-day-number {
+  background: #4f46e5;
+  color: white;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+.fc-event { border-radius: 3px; font-size: 0.6875rem; padding: 1px 4px; }
+
+/* ── Hero entrance animation (v0.7) ────────────────────────────────────────── */
+@keyframes hero-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@layer components {
+  .hero-enter {
+    animation: hero-slide-up var(--yt-duration-slow) var(--yt-ease-out) both;
+  }
+  .hero-enter:nth-child(1) { animation-delay: 0ms; }
+  .hero-enter:nth-child(2) { animation-delay: 100ms; }
+  .hero-enter:nth-child(3) { animation-delay: 200ms; }
+  .hero-enter:nth-child(4) { animation-delay: 300ms; }
+  .hero-enter:nth-child(5) { animation-delay: 400ms; }
+}
+
+/* ── AG Grid theming — вне @layer, AG Grid не уважает @layer ── */
+/* AG Grid 34 uses JS theme API (themeQuartz), NOT the .ag-theme-quartz CSS class.
+   Variables must be on :root to be picked up by the JS-driven theme engine. */
+
+:root {
+  --ag-background-color:        var(--yt-color-surface);
+  --ag-odd-row-background-color: var(--yt-p-slate-50);
+  --ag-header-background-color: var(--yt-p-slate-100);
+  --ag-header-foreground-color: var(--yt-p-slate-600);
+  --ag-row-hover-color:         var(--yt-p-indigo-50);
+  --ag-selected-row-background-color: var(--yt-p-indigo-50);
+  --ag-border-color:            var(--yt-color-border);
+  --ag-cell-horizontal-border:  solid var(--yt-color-border);
+  --ag-font-family:             var(--yt-font-family);
+  --ag-font-size:               var(--yt-text-body);
+  --ag-row-height:              44px;
+  --ag-header-height:           40px;
+}
+
+/* ── Status badge pills (filled semantic colors) — REGI-02 ── */
+/* ВАЖНО: имена классов status-* — API contract, НЕ переименовывать (Per Phase 16 decision) */
+/* Pitfall 7 guard: animation-fill-mode: backwards предотвращает replay при фильтрации */
+
+.status-active,
+.status-expiring,
+.status-expired,
+.status-unknown,
+.status-negotiation {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.status-active      { background:#dcfce7; color:#15803d; }
+.status-expiring    { background:#fef9c3; color:#a16207; }
+.status-expired     { background:#fee2e2; color:#b91c1c; }
+.status-unknown     { background:#f1f5f9; color:#64748b; }
+.status-negotiation { background:#ede9fe; color:#6d28d9; }
+
+/* ── Skeleton loader (ANIM-04) ─────────────────────────────────────────────── */
+/* deprecated: use .yt-skeleton-pulse for new code */
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@layer components {
+  .skeleton-row {
+    height: 44px;
+    background: var(--yt-p-slate-200);
+    border-radius: var(--yt-radius-sm);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    margin-bottom: 2px;
+  }
+  .skeleton-row:nth-child(2) { animation-delay: 150ms; opacity: 0.85; }
+  .skeleton-row:nth-child(3) { animation-delay: 300ms; opacity: 0.7;  }
+  .skeleton-row:nth-child(4) { animation-delay: 450ms; opacity: 0.6;  }
+  .skeleton-row:nth-child(5) { animation-delay: 600ms; opacity: 0.5;  }
+}
+
+/* ── NEW: Shimmer skeleton (UI Overhaul) ───────────────────────────────────── */
+.yt-skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    var(--yt-p-slate-100) 0%,
+    var(--yt-p-slate-50) 40%,
+    var(--yt-p-slate-100) 80%
+  );
+  background-size: 200% 100%;
+  animation: yt-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes yt-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Slide-in transitions (UI Overhaul) ────────────────────────────────────── */
+.yt-slide-in-right {
+  animation: yt-slide-right var(--yt-anim-slide, 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes yt-slide-right {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.yt-slide-in-up {
+  animation: yt-slide-up var(--yt-anim-slide, 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+@keyframes yt-slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Fade-in with stagger support ──────────────────────────────────────────── */
+.yt-fade-stagger {
+  animation: yt-fade-in 0.3s ease both;
+}
+
+@keyframes yt-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Panel slide (UI Overhaul) ─────────────────────────────────────────────── */
+.yt-panel-enter {
+  animation: yt-panel-slide 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes yt-panel-slide {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Bulk toolbar slide-down ───────────────────────────────────────────────── */
+.yt-toolbar-enter {
+  animation: yt-toolbar-slide 0.2s ease;
+}
+
+@keyframes yt-toolbar-slide {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ── Hover-reveal for card children ────────────────────────────────────────── */
+.yt-hover-card .hover-parent-show { opacity: 0; transition: opacity 0.15s; }
+.yt-hover-card:hover .hover-parent-show { opacity: 1; }
+
+/* ── Stagger delay utilities ───────────────────────────────────────────────── */
+.yt-delay-1 { animation-delay: 60ms; }
+.yt-delay-2 { animation-delay: 120ms; }
+.yt-delay-3 { animation-delay: 180ms; }
+.yt-delay-4 { animation-delay: 240ms; }
+.yt-delay-5 { animation-delay: 300ms; }
+
+/* ── Template card stagger (ANIM-02) ──────────────────────────────────────── */
+/* .card-enter применяется на каждую карточку в grid (аналогично .hero-enter) */
+
+@layer components {
+  .card-enter {
+    animation: hero-slide-up var(--yt-duration-slow) var(--yt-ease-out) both;
+  }
+  .card-enter:nth-child(1) { animation-delay: 0ms;   }
+  .card-enter:nth-child(2) { animation-delay: 60ms;  }
+  .card-enter:nth-child(3) { animation-delay: 120ms; }
+  .card-enter:nth-child(4) { animation-delay: 180ms; }
+  .card-enter:nth-child(5) { animation-delay: 240ms; }
+  .card-enter:nth-child(6) { animation-delay: 300ms; }
+  .card-enter:nth-child(n+7) { animation-delay: 360ms; }
+}
+
+/* ── Breadcrumb hover ────────────────────────────────────────────────────── */
+@layer components {
+  .breadcrumb-link:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ── Timeline Calendar (REG-05) ─────────────────────────────────────────── */
+
+.timeline-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.timeline-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+/* Remove old border-left approach — use pill badges instead */
+.timeline-card-end { }
+.timeline-card-pay { }
+.timeline-card-expiring { }
+
+.timeline-type {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 99px;
+  display: inline-block;
+}
+.timeline-type-end { background: #fee2e2; color: #dc2626; }
+.timeline-type-pay { background: #dbeafe; color: #2563eb; }
+.timeline-type-expiring { background: #fef3c7; color: #d97706; }
+
+.timeline-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  margin-top: 1px;
+}
+.timeline-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+.timeline-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.timeline-date {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.timeline-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+.timeline-group-today { color: #4f46e5; }
+.timeline-group-week { color: #64748b; }
+.timeline-group-month { color: #64748b; }
+.timeline-future { opacity: 0.7; }
+
+/* Mini calendar */
+.mini-cal {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.mini-cal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.mini-cal-month {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.mini-cal-nav {
+  display: flex;
+  gap: 2px;
+}
+.mini-cal-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+  font-size: 12px;
+}
+.mini-cal-day-header {
+  color: #94a3b8;
+  padding: 4px 2px;
+  font-size: 11px;
+}
+.mini-cal-day {
+  padding: 6px 4px;
+  position: relative;
+  color: #1e293b;
+}
+.mini-cal-day-other { color: #cbd5e1; }
+.mini-cal-day-today {
+  background: #eef2ff;
+  border-radius: 4px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+.mini-cal-dot {
+  position: absolute;
+  bottom: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+.mini-cal-dot-end { background: #dc2626; }
+.mini-cal-dot-pay { background: #2563eb; }
+.mini-cal-dot-expiring { background: #d97706; }
+
+/* Summary panel */
+.cal-summary {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.cal-sum-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+.cal-sum-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.cal-sum-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal-sum-label {
+  color: #64748b;
+  flex: 1;
+}
+.cal-sum-count {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ── Document preview toolbar ─────────────────────────────────────────────── */
+.doc-preview-toolbar {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.doc-preview-filename {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Hide AG Grid page size selector (REG-03) */
+.ag-paging-page-size { display: none !important; }
