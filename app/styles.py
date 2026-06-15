@@ -25,8 +25,11 @@ CARD_DIALOG_SM = "p-6 min-w-[360px]"
 
 # ── Segment toggle ────────────────────────────────────────────────────────────
 
-SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150"
-SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors duration-150"
+# whitespace-nowrap + min-w-max + shrink-0: q-btn имеет overflow:hidden (ripple),
+# а во flex-ряду кнопка сжимается и обрезает текст (напр. «Внимания · 1»).
+_SEG_FIT = " whitespace-nowrap min-w-max shrink-0"
+SEG_ACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md bg-indigo-600 text-white transition-colors duration-150" + _SEG_FIT
+SEG_INACTIVE = "px-4 py-1.5 text-sm font-semibold rounded-md text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors duration-150" + _SEG_FIT
 
 # ── View toggle (list/calendar) ───────────────────────────────────────────────
 
