@@ -705,7 +705,7 @@ def build() -> None:
         labels = {
             "all": f"Все · {counts['total']}" if counts["total"] else "Все",
             "expiring": f"Истекают · {counts['expiring']}" if counts["expiring"] else "Истекают",
-            "attention": f"Внимания · {counts['attention']}" if counts["attention"] else "Требуют внимания",
+            "attention": f"Требуют внимания · {counts['attention']}" if counts["attention"] else "Требуют внимания",
         }
         for k, b in seg_buttons.items():
             b.text = labels.get(k, b.text)
