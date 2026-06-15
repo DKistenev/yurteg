@@ -1,3 +1,14 @@
+---
+title: ЮрТэг
+emoji: 📄
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 8080
+pinned: false
+short_description: AI-помощник для работы с архивами договоров (демо)
+---
+
 <div align="center">
 
 # ЮрТэг

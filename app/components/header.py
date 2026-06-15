@@ -15,7 +15,7 @@ from nicegui import run, ui
 
 from app.components.process import pick_folder
 from app.state import AppState
-from config import save_setting
+from config import is_demo_mode, save_setting
 from services.client_manager import ClientManager
 
 # Module-level singletons
@@ -70,6 +70,11 @@ def render_header(state: AppState, on_upload: Optional[Callable] = None) -> None
             "px-4 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg"
             " hover:bg-indigo-700 transition-colors duration-150 shrink-0"
         ).props("no-caps").props("data-tour=upload")
+
+        # Демо-режим: загрузка отключена — данные предзагружены, модели нет.
+        if is_demo_mode():
+            upload_btn.set_enabled(False)
+            upload_btn.tooltip("Демонстрационный режим — документы предзагружены")
 
         # Сохраняем ссылку на кнопку для start_pipeline (ui_refs['upload_btn'])
         _header_refs["upload_btn"] = upload_btn

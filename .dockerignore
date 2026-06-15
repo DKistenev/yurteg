@@ -1,0 +1,38 @@
+# Слим-образ для HF Spaces — выкидываем всё, что не нужно публичному демо.
+
+# Тяжёлое и ненужное в вебе
+dataset/
+llama-server
+*.gguf
+*.bin
+packaging/
+assets/
+bot_server/
+docs/
+tests/
+
+# Скриншоты разработки (десятки PNG в корне)
+*.png
+
+# Версионирование и кэши
+.git/
+.github/
+.planning/
+.playwright-mcp/
+.superpowers/
+.agent/
+.claude/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+
+# Локальные документы (не относятся к коду демо)
+*.dmg
+draft_*.docx
+draft_*.pdf
+
+# Локальный конфиг секретов — на HF задаём через переменные окружения
+.env
