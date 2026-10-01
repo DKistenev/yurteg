@@ -12,7 +12,7 @@ from pathlib import Path as _Path
 from nicegui import run, ui
 
 from app.state import get_state
-from config import load_runtime_config, load_settings
+from config import is_demo_mode, load_runtime_config, load_settings
 from app.styles import (
     DOC_SECTION_TITLE, DOC_FIELD_LABEL, DOC_FIELD_VALUE,
     DOC_LEFT_PANEL, DOC_PREVIEW_BG,
@@ -357,6 +357,12 @@ async def build(doc_id: str = "") -> None:
                 review_container = ui.column().classes("w-full gap-2 py-2")
 
                 async def _run_review() -> None:
+                    if is_demo_mode():
+                        ui.notify(
+                            "Демонстрационный режим — проверка по шаблону отключена",
+                            type="info",
+                        )
+                        return
                     review_btn.disable()
                     try:
                         review_container.clear()

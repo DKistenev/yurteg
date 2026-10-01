@@ -28,7 +28,7 @@ from app.styles import (
     TMPL_EMPTY_BODY,
     APPLE_CARD,
 )
-from config import Config, load_settings, save_setting
+from config import Config, is_demo_mode, load_settings, save_setting
 from modules.models import FileInfo
 from services.client_manager import ClientManager
 
@@ -409,6 +409,12 @@ def build() -> None:
 
         # on_add: общий callback для кнопки в заголовке и CTA в empty state
         async def _on_add() -> None:
+            if is_demo_mode():
+                ui.notify(
+                    "Демонстрационный режим — добавление шаблонов отключено",
+                    type="info",
+                )
+                return
             await _add_template_flow(cards_ref[0], on_add=_on_add)
 
         # Заголовок

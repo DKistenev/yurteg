@@ -286,10 +286,11 @@ def root() -> None:
     """Single root page — header is persistent, content area switches via sub_pages."""
     ui.dark_mode(value=False)
 
-    # Splash gate: при первом запуске показываем onboarding, header не рендерится
-    from config import load_settings
+    # Splash gate: при первом запуске показываем onboarding, header не рендерится.
+    # В демо-режиме splash пропускаем всегда — модели нет, качать нечего.
+    from config import is_demo_mode, load_settings
     app_settings = load_settings()
-    if not app_settings.get("first_run_completed"):
+    if not is_demo_mode() and not app_settings.get("first_run_completed"):
         from app.components.onboarding.splash import render_splash
         render_splash()
         return  # early return — no header, no sub_pages
@@ -324,6 +325,33 @@ def root() -> None:
 from fastapi.responses import FileResponse, Response as FastAPIResponse
 
 _client_manager = ClientManager()
+
+
+async def _seed_demo_data() -> None:
+    """В демо-режиме засеять основной реестр преднасчитанными договорами.
+
+    Идемпотентно: insert_demo_contracts пропускает уже существующие записи.
+    Вызывается на старте, чтобы публичная ссылка открывалась с полным реестром
+    без единого клика. Также проставляет first_run_completed, чтобы не всплывал
+    splash/онбординг.
+    """
+    from config import is_demo_mode
+
+    if not is_demo_mode():
+        return
+    try:
+        from app.demo_data import insert_demo_contracts
+        from config import save_setting
+
+        db = _client_manager.get_db(ClientManager.DEFAULT_CLIENT)
+        count = await run.io_bound(insert_demo_contracts, db)
+        save_setting("first_run_completed", True)
+        logger.info("DEMO_MODE — засеяно демо-договоров: %d", count)
+    except Exception:
+        logger.warning("Не удалось засеять демо-данные", exc_info=True)
+
+
+app.on_startup(_seed_demo_data)
 
 
 @app.get('/download/redline/{contract_id}/{other_id}')
@@ -409,13 +437,17 @@ if __name__ in {"__main__", "__mp_main__"}:
     _web_mode = os.environ.get("WEB_MODE", "").lower() in ("1", "true")
     if __name__ == "__main__" and not _web_mode:
         acquire_instance_lock()
-    ui.run(
+    # window_size сам по себе активирует native-режим в NiceGUI (см. доку ui.run).
+    # В web-режиме его передавать нельзя, иначе стартует пустое нативное окно.
+    _run_kwargs = dict(
         native=not _web_mode,
         dark=False,
         reload=False,
         host="0.0.0.0" if _web_mode else "127.0.0.1",
         port=int(os.environ.get("PORT", 8000)),
         title="ЮрТэг",
-        window_size=(1400, 900),
         storage_secret=_get_storage_secret(),
     )
+    if not _web_mode:
+        _run_kwargs["window_size"] = (1400, 900)
+    ui.run(**_run_kwargs)
