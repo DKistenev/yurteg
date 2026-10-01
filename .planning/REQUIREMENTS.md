@@ -22,16 +22,16 @@
 
 ### Безопасность и runtime (RUN)
 
-- [ ] **RUN-01**: storage_secret генерируется через secrets.token_hex(32) при первом запуске и хранится в settings.json
-- [ ] **RUN-02**: После скачивания llama-server на macOS снимается quarantine флаг (xattr -dr com.apple.quarantine)
-- [ ] **RUN-03**: freeze_support() вызывается в main.py до ui.run() для корректной работы в PyInstaller-бандле
-- [ ] **RUN-04**: PyInstaller .spec содержит все hidden imports (natasha, pymorphy2, sentence-transformers, pdfplumber) и data files (app/static, data/)
+- [x] **RUN-01**: storage_secret генерируется через secrets.token_hex(32) при первом запуске и хранится в settings.json
+- [x] **RUN-02**: После скачивания llama-server на macOS снимается quarantine флаг (xattr -dr com.apple.quarantine)
+- [x] **RUN-03**: freeze_support() вызывается в main.py до ui.run() для корректной работы в PyInstaller-бандле
+- [x] **RUN-04**: PyInstaller .spec содержит все hidden imports (natasha, pymorphy2, sentence-transformers, pdfplumber) и data files (app/static, data/)
 
 ### Верификация существующих функций (VER)
 
-- [ ] **VER-01**: Redline (word-level DOCX track changes) работает end-to-end — загрузка шаблона → сравнение → скачивание .docx с изменениями
-- [ ] **VER-02**: Предпросмотр документа (PDF/DOCX) отображается в карточке документа
-- [ ] **VER-03**: Кнопка «Гид» запускает onboarding guided tour без ошибок
+- [x] **VER-01**: Redline (word-level DOCX track changes) работает end-to-end — загрузка шаблона → сравнение → скачивание .docx с изменениями
+- [x] **VER-02**: Предпросмотр документа (PDF/DOCX) отображается в карточке документа
+- [x] **VER-03**: Кнопка «Гид» запускает onboarding guided tour без ошибок
 
 ## v2 Requirements
 
@@ -69,13 +69,13 @@
 | DUX-02 | Phase 45 | Complete |
 | DUX-03 | Phase 46 | Complete |
 | DUX-04 | Phase 46 | Complete |
-| RUN-01 | Phase 47 | Pending |
-| RUN-02 | Phase 47 | Pending |
-| RUN-03 | Phase 47 | Pending |
-| RUN-04 | Phase 47 | Pending |
-| VER-01 | Phase 48 | Pending |
-| VER-02 | Phase 48 | Pending |
-| VER-03 | Phase 48 | Pending |
+| RUN-01 | Phase 47 | Complete |
+| RUN-02 | Phase 47 | Complete |
+| RUN-03 | Phase 47 | Complete |
+| RUN-04 | Phase 47 | Complete |
+| VER-01 | Phase 48 | Complete |
+| VER-02 | Phase 48 | Complete |
+| VER-03 | Phase 48 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 16 total

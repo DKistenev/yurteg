@@ -38,8 +38,8 @@ Phases 28–31: v0.9 Backend Hardening
 - [x] **Phase 44: Logging & Single Instance** — Файловые логи, BetterStack Logtail, file lock (completed 2026-03-29)
 - [x] **Phase 45: Icon & Splash** — Иконка «Ю» .icns/.ico, splash screen (completed 2026-03-29)
 - [x] **Phase 46: Offline & Disk Safety** — Offline first run, проверка места на диске (completed 2026-03-29)
-- [ ] **Phase 47: Runtime Safety** — storage_secret, quarantine, freeze_support, hidden imports
-- [ ] **Phase 48: Feature Verification** — Redline, document preview, Guide button
+- [x] **Phase 47: Runtime Safety** — storage_secret, quarantine, freeze_support, hidden imports (completed 2026-03-30)
+- [x] **Phase 48: Feature Verification** — Redline, document preview, Guide button (completed 2026-03-30)
 
 ## Phase Details
 
@@ -260,6 +260,6 @@ Plans:
 | 43. Test Coverage | v1.0-BE | 1/1 | Complete | 2026-03-29 |
 | 44. Logging & Single Instance | v1.2 | 2/2 | Complete    | 2026-03-29 |
 | 45. Icon & Splash | v1.2 | 1/1 | Complete    | 2026-03-29 |
-| 46. Offline & Disk Safety | v1.2 | 1/1 | Complete   | 2026-03-29 |
-| 47. Runtime Safety | v1.2 | 0/? | Not started | - |
-| 48. Feature Verification | v1.2 | 0/? | Not started | - |
+| 46. Offline & Disk Safety | v1.2 | 1/1 | Complete    | 2026-03-29 |
+| 47. Runtime Safety | v1.2 | 0/? | Complete    | 2026-03-30 |
+| 48. Feature Verification | v1.2 | 0/? | Complete    | 2026-03-30 |
