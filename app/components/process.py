@@ -37,8 +37,8 @@ async def pick_folder() -> Optional[Path]:
         if not result:
             return None
         return Path(result[0])
-    except (ImportError, AttributeError):
-        # Web mode: pywebview недоступен или app.native не инициализирован
+    except (ImportError, AttributeError, Exception):
+        # Web mode: pywebview недоступен, app.native не инициализирован, или PicklingError
         ui.notify(
             "Выбор папки недоступен в веб-режиме. Используйте кнопку «Загрузить тестовые данные».",
             type="warning",

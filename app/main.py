@@ -209,10 +209,11 @@ async def download_redline(contract_id: int, other_id: int):
 # native=True subprocess bypasses main guard (Research Pitfall 5).
 
 ui.run(
-    native=True,
+    native=False,
     dark=False,
     reload=False,
     host="127.0.0.1",
+    port=8000,
     title="ЮрТэг",
     window_size=(1400, 900),
     storage_secret='yurteg-desktop-secret',

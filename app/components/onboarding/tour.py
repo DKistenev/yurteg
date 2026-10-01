@@ -238,8 +238,20 @@ def render_tour(on_complete: Callable) -> None:
         showStep(currentStep);
     }}
 
-    // Pitfall 2 guard: give AG Grid time to render
-    setTimeout(startTour, 500);
+    // Pitfall 2 guard: poll until data-tour elements are in the DOM
+    // (AG Grid and other NiceGUI components render asynchronously)
+    var tourRetries = 0;
+    function waitAndStart() {{
+        // Check that at least the first step target exists in DOM
+        var firstTarget = document.querySelector(STEPS[0].target);
+        if (firstTarget) {{
+            startTour();
+        }} else if (tourRetries < 30) {{
+            tourRetries++;
+            setTimeout(waitAndStart, 300);
+        }}
+    }}
+    setTimeout(waitAndStart, 500);
 }})();
 </script>
 """

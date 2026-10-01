@@ -2,7 +2,6 @@
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -14,19 +13,14 @@ class Config:
     max_file_size_mb: int = 50
 
     # AI — провайдеры и модели
-    # Основной: ZAI Coding Plan Pro (GLM-4.7)
+    # Облако: ZAI (GLM-4.7)
     ai_base_url: str = "https://api.z.ai/api/coding/paas/v4"
-    model_dev: str = "glm-4.7"
-    model_prod: str = "glm-4.7"
-    # Запасной: OpenRouter (бесплатные модели)
-    ai_fallback_base_url: str = "https://openrouter.ai/api/v1"
-    model_fallback: str = "arcee-ai/trinity-large-preview:free"
-    use_prod_model: bool = False
+    active_model: str = "glm-4.7"
     ai_max_retries: int = 2
     ai_temperature: float = 0
     ai_max_tokens: int = 2000
     ai_disable_thinking: bool = True  # отключить thinking mode у GLM (5-7x ускорение)
-    active_provider: str = "ollama"        # "zai" | "openrouter" | "ollama"
+    active_provider: str = "ollama"        # "zai" | "ollama"
     fallback_provider: str = "zai"         # автофallback при недоступности active_provider
 
     # Локальная LLM (llama-server)
@@ -135,19 +129,12 @@ class Config:
         "Положение",
     ])
 
-    # Анонимизация: какие типы ПД маскировать (None = все)
-    anonymize_types: Optional[set[str]] = None
-
     # Telegram-интеграция
     telegram_server_url: str = ""  # URL сервера бота (e.g., "https://yurteg-bot.railway.app")
     telegram_chat_id: int = 0      # привязанный Telegram chat_id (0 = не привязан)
 
     # Имя выходной папки
     output_folder_name: str = "ЮрТэг_Результат"
-
-    @property
-    def active_model(self) -> str:
-        return self.model_prod if self.use_prod_model else self.model_dev
 
 
 # ---------------------------------------------------------------------------

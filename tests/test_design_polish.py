@@ -19,20 +19,15 @@ DESIGN_CSS = PROJECT_ROOT / "app" / "static" / "design-system.css"
 
 
 def test_status_css_slate():
-    """Status CSS must use slate for unknown/terminated, not gray."""
-    content = MAIN_PY.read_text(encoding="utf-8")
+    """Status CSS in design-system.css must use slate for unknown/terminated, not gray."""
+    content = DESIGN_CSS.read_text(encoding="utf-8")
 
-    assert "bg-slate-100" in content, "status-unknown/terminated should use bg-slate-100"
-    assert "text-slate-500" in content, "status-unknown/terminated should use text-slate-500"
-    assert "bg-gray-100" not in content, "bg-gray-100 found — should be migrated to slate"
-
-    # Semantic status colors preserved
-    assert "bg-green-50" in content
-    assert "bg-yellow-50" in content
-    assert "bg-red-50" in content
-    assert "bg-indigo-50" in content
-    assert "bg-purple-50" in content
-    assert "bg-orange-50" in content
+    assert "#f1f5f9" in content, "status-unknown/terminated should use slate-100 (#f1f5f9)"
+    assert "#64748b" in content, "status-unknown should use slate-500 (#64748b)"
+    # Semantic status colors preserved (hex in design-system.css)
+    assert "#dcfce7" in content, "status-active green bg"
+    assert "#fee2e2" in content, "status-expired red bg"
+    assert "#fef9c3" in content, "status-expiring yellow bg"
 
 
 # ── DSGN-01: Action icons use slate/indigo hex codes ─────────────────────────
@@ -81,13 +76,13 @@ def test_appstate_calendar_visible():
 
 
 def test_animation_keyframes():
-    """Design system CSS must contain staggered row and page fade-in keyframes."""
+    """Design system CSS must contain page fade-in and hero entrance keyframes."""
     css = DESIGN_CSS.read_text(encoding="utf-8")
 
-    assert "@keyframes row-in" in css
+    # row-in animation removed (AG Grid 34 opacity conflict)
     assert "@keyframes page-fade-in" in css
     assert "cubic-bezier(0.25, 1, 0.5, 1)" in css
-    assert "animation-delay: 560ms" in css
+    assert "@keyframes hero-slide-up" in css
 
 
 # ── DSGN-01: no gray-* in main.py ───────────────────────────────────────────

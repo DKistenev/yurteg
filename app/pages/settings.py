@@ -4,6 +4,7 @@ Phase 11, Plan 02.
 Три секции: AI-провайдер · Обработка · Telegram.
 Всё сохраняется в ~/.yurteg/settings.json через load_settings / save_setting.
 """
+import sys
 from pathlib import Path
 
 from nicegui import run, ui
@@ -17,17 +18,16 @@ from modules.anonymizer import ENTITY_TYPES
 from services.telegram_sync import TelegramSync
 
 # Текстовые метки навигации
-_NAV_ITEMS = ["ИИ", "Обработка", "Уведомления"]
+_NAV_ITEMS = ["ИИ", "Обработка", "Уведомления", "О системе"]
 
 # Провайдеры
 _PROVIDERS = {
     "ollama": "Локальный (Qwen)",
     "zai": "ZAI GLM-4.7",
-    "openrouter": "OpenRouter",
 }
 
 # Провайдеры, требующие API-ключ
-_CLOUD_PROVIDERS = {"zai", "openrouter"}
+_CLOUD_PROVIDERS = {"zai"}
 
 
 # ── Вспомогательная функция для строки настроек ───────────────────────────────
@@ -79,6 +79,10 @@ def _render_summary_cards(settings: dict, switch_fn) -> None:
         {
             "icon": "\U0001f514", "icon_bg": "#fef3c7", "title": "Уведомления",
             "detail": tg_text, "detail_color": tg_detail_color, "section": "Уведомления",
+        },
+        {
+            "icon": "\u2139\ufe0f", "icon_bg": "#f1f5f9", "title": "О системе",
+            "detail": "v0.7.1", "detail_color": "text-slate-500", "section": "О системе",
         },
     ]
 
@@ -157,6 +161,8 @@ def build() -> None:
             _render_processing(content, settings)
         elif section == "Уведомления":
             _render_notifications(content, settings)
+        elif section == "О системе":
+            _render_about(content)
 
     # Привязываем клики
     for section in _NAV_ITEMS:
@@ -195,14 +201,7 @@ def build() -> None:
 
             _settings_row("Статус модели", "", control_fn=_model_status)
 
-            # Row 3: Thinking mode toggle
-            def _thinking_control():
-                sw = ui.switch(value=s.get("ai_disable_thinking", True)).props("dense")
-                sw.on_value_change(lambda e: save_setting("ai_disable_thinking", e.value))
-
-            _settings_row("Thinking mode", "Отключить для 5-7x ускорения", control_fn=_thinking_control)
-
-            # Row 4: Check connection
+            # Row 3: Check connection
             def _check_control():
                 result_label = ui.label("").classes("text-xs")
 
@@ -225,7 +224,33 @@ def build() -> None:
                     ui.button("Проверить", on_click=_check).props("flat dense no-caps").classes("text-indigo-600 text-sm")
                     result_label  # noqa: B018 — side-effect: attaches to current context
 
-            _settings_row("Соединение", "", control_fn=_check_control)
+            _settings_row("Статус сервера", "Подключение к локальной модели", control_fn=_check_control)
+
+            # ── Storage info block ───────────────────────────────────────────
+            with ui.element("div").classes("bg-slate-50 rounded-xl p-4 mt-6 border border-slate-100"):
+                ui.label("Хранилище").classes("text-sm font-semibold text-slate-700 mb-3")
+                with ui.grid(columns=3).classes("gap-4"):
+                    # Model size
+                    cfg_storage = Config()
+                    model_path_storage = Path.home() / ".yurteg" / cfg_storage.llama_model_filename
+                    if model_path_storage.exists():
+                        size_gb = model_path_storage.stat().st_size / 1024 / 1024 / 1024
+                        model_size_text = f"{size_gb:.1f} GB" if size_gb >= 1 else f"{size_gb * 1024:.0f} MB"
+                    else:
+                        model_size_text = "Не скачана"
+                    with ui.column().classes("gap-0.5"):
+                        ui.label("Модель").classes("text-xs text-slate-400")
+                        ui.label(model_size_text).classes("text-sm font-medium text-slate-700")
+                    # DB path
+                    with ui.column().classes("gap-0.5"):
+                        ui.label("База данных").classes("text-xs text-slate-400")
+                        ui.label("~/.yurteg/").classes("text-sm font-medium text-slate-700")
+                    # Model filename
+                    with ui.column().classes("gap-0.5"):
+                        ui.label("Файл модели").classes("text-xs text-slate-400")
+                        ui.label(cfg_storage.llama_model_filename).classes(
+                            "text-sm font-medium text-slate-700 truncate"
+                        ).style("max-width:180px")
 
     # --- Секция Обработка ---
 
@@ -283,28 +308,61 @@ def build() -> None:
             ui.label("Уведомления").classes(TEXT_HEADING)
             ui.label("Telegram-бот для напоминаний о сроках").classes(TEXT_SECONDARY + " mb-4")
 
-            # Row 1: Telegram binding
-            def _telegram_control():
+            # Telegram binding — full-width card instead of cramped _settings_row
+            with ui.element("div").classes(
+                "w-full bg-white border border-slate-100 rounded-xl p-5 mb-4"
+            ):
                 srv_url = s.get("telegram_server_url", "")
                 chat_id = s.get("telegram_chat_id", 0)
                 is_bound = bool(chat_id)
 
+                with ui.row().classes("items-center gap-3 mb-3"):
+                    ui.html(
+                        '<div style="width:32px;height:32px;border-radius:8px;background:#eef2ff;'
+                        'display:flex;align-items:center;justify-content:center;font-size:1rem;">💬</div>'
+                    )
+                    with ui.column().classes("gap-0 flex-1"):
+                        ui.label("Telegram-бот").classes("text-sm font-semibold text-slate-900")
+                        ui.label("Напоминания об истечении договоров").classes("text-xs text-slate-400")
+                    if is_bound:
+                        ui.label("Привязан").classes(
+                            "text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700 font-medium"
+                        )
+                    else:
+                        ui.label("Не привязан").classes(
+                            "text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium"
+                        )
+
                 if is_bound:
                     with ui.row().classes("items-center gap-2"):
-                        ui.label("Привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"
+                        ui.label("Бот отправляет уведомления в ваш Telegram").classes(
+                            "text-sm text-slate-500 flex-1"
                         )
                         ui.button("Отвязать", on_click=lambda: (
                             save_setting("telegram_chat_id", ""),
                             ui.navigate.to("/settings"),
                         )).props("flat dense no-caps").classes("text-red-500 text-xs")
                 else:
-                    with ui.column().classes("gap-2"):
-                        ui.label("Не привязан").classes(
-                            "text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
-                        )
-                        with ui.row().classes("items-center gap-2"):
-                            code_input = ui.input(placeholder="Код из Telegram").props("dense outlined").classes("w-32")
+                    with ui.element("div").classes(
+                        "bg-slate-50 rounded-lg p-4 border border-slate-100"
+                    ):
+                        with ui.column().classes("gap-3"):
+                            with ui.row().classes("items-center gap-2"):
+                                ui.label("1.").classes("text-xs font-bold text-indigo-600")
+                                ui.label("Отправьте /start боту @YurTagBot в Telegram").classes(
+                                    "text-sm text-slate-600"
+                                )
+                            with ui.row().classes("items-center gap-2"):
+                                ui.label("2.").classes("text-xs font-bold text-indigo-600")
+                                ui.label("Бот пришлёт 6-значный код").classes("text-sm text-slate-600")
+                            with ui.row().classes("items-center gap-2"):
+                                ui.label("3.").classes("text-xs font-bold text-indigo-600")
+                                ui.label("Введите код ниже").classes("text-sm text-slate-600")
+
+                        with ui.row().classes("items-center gap-3 mt-3"):
+                            code_input = ui.input(
+                                placeholder="Код из Telegram"
+                            ).props("dense outlined").classes("w-40")
 
                             async def _bind():
                                 code = code_input.value
@@ -321,14 +379,9 @@ def build() -> None:
                                     except Exception:
                                         ui.notify("Неверный код или бот недоступен", type="negative")
 
-                            ui.button("Привязать", on_click=_bind).props("dense no-caps").classes(
-                                "bg-indigo-600 text-white text-xs"
+                            ui.button("Привязать", on_click=_bind).props("no-caps unelevated").classes(
+                                "bg-indigo-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg"
                             )
-                        ui.label("Отправьте /start боту @YurTagBot \u2014 он пришлёт код").classes(
-                            "text-xs text-slate-400"
-                        )
-
-            _settings_row("Telegram", "", control_fn=_telegram_control)
 
             # Row 2: Warning threshold
             def _threshold_control():
@@ -343,6 +396,34 @@ def build() -> None:
                 "За сколько дней до истечения предупреждать",
                 control_fn=_threshold_control,
             )
+
+    # --- Секция О системе ---
+
+    def _render_about(content_el) -> None:
+        content_el.clear()
+        with content_el:
+            ui.label("О системе").classes(TEXT_HEADING)
+            ui.label("Информация о приложении и окружении").classes(TEXT_SECONDARY + " mb-4")
+
+            py_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+            with ui.element("div").classes("bg-slate-50 rounded-xl p-6 border border-slate-100"):
+                with ui.column().classes("gap-4"):
+                    # App name + version
+                    ui.label("ЮрТэг").classes("text-xl font-bold text-slate-900")
+                    ui.label("v0.7.1").classes("text-sm text-slate-500 -mt-3")
+
+                    ui.separator().classes("my-1")
+
+                    with ui.grid(columns=2).classes("gap-x-8 gap-y-3"):
+                        ui.label("Python").classes("text-sm text-slate-400")
+                        ui.label(py_version).classes("text-sm font-medium text-slate-700")
+
+                        ui.label("Режим").classes("text-sm text-slate-400")
+                        ui.label("NiceGUI desktop").classes("text-sm font-medium text-slate-700")
+
+                        ui.label("Каталог данных").classes("text-sm text-slate-400")
+                        ui.label("~/.yurteg/").classes("text-sm font-medium text-slate-700")
 
     # Рендерим summary cards (теперь _switch определён)
     with summary_container:

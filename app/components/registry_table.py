@@ -65,7 +65,7 @@ def _actions_html(is_child: bool = False) -> str:
     return '<div class="actions-cell"><span class="action-icon" title="Действия">⋯</span></div>'
 
 # ── Column definitions ─────────────────────────────────────────────────────────
-# HTML rendering via html_columns=[0, 4, 7] — NO cellRenderer JS functions.
+# HTML rendering via html_columns=[0, 4] — NO cellRenderer JS functions.
 # NiceGUI aggrid html_columns renders HTML from rowData values directly.
 
 COLUMN_DEFS = [
@@ -123,15 +123,6 @@ COLUMN_DEFS = [
         "sortable": True,
         "filter": "agTextColumnFilter",
         "cellStyle": {"fontVariantNumeric": "tabular-nums"},
-    },
-    # Actions column (D-12) — HTML via _actions_html()
-    {
-        "headerName": "",
-        "field": "actions_html",
-        "width": 80,
-        "sortable": False,
-        "filter": False,
-        "resizable": False,
     },
     # Скрытые колонки (D-02)
     {"field": "date_start", "hide": True},
@@ -248,11 +239,10 @@ def build_version_rows(base_rows: list[dict], db) -> list[dict]:
         row["is_child"] = False
         row["is_expanded"] = False
         row["indent"] = 0
-        # HTML columns — rendered via html_columns=[0, 4, 7]
+        # HTML columns — rendered via html_columns=[0, 4]
         row["expand_html"] = _expand_html(has_ch)
         row["status_html"] = _status_html(row.get("computed_status", "unknown"))
         row["confidence_display"] = f"{int(row.get('confidence', 0) * 100)}%" if row.get('confidence') else "\u2014"
-        row["actions_html"] = _actions_html()
         result.append(row)
     return result
 
@@ -304,7 +294,6 @@ async def load_version_children(grid, db, parent_id: int) -> None:
             "indent": 1,
             "expand_html": "",
             "status_html": _status_html(r[4] or "unknown"),
-            "actions_html": _actions_html(is_child=True),
         }
         for r in rows_raw
     ]
@@ -413,33 +402,115 @@ async def render_registry_table(state: "AppState"):
             "paginationPageSize": 50,
             "paginationAutoPageSize": False,
             "localeText": {
-                "filterOoo": "Фильтр...",
-                "equals": "Равно",
-                "notEqual": "Не равно",
-                "contains": "Содержит",
-                "notContains": "Не содержит",
+                # Фильтры — понятные юристу формулировки
+                "filterOoo": "Найти...",
+                "equals": "Точное совпадение",
+                "notEqual": "Всё кроме",
+                "contains": "Упоминается",
+                "notContains": "Не упоминается",
                 "startsWith": "Начинается с",
                 "endsWith": "Заканчивается на",
-                "blank": "Пусто",
-                "notBlank": "Не пусто",
-                "noRowsToShow": "Нет данных",
+                "blank": "Не заполнено",
+                "notBlank": "Заполнено",
+                "noRowsToShow": "Документы не найдены",
+                # Пагинация
                 "page": "Стр.",
                 "of": "из",
-                "to": "до",
-                "next": "Далее",
-                "last": "Последняя",
-                "first": "Первая",
-                "previous": "Назад",
-                "pageSize": "Размер",
+                "to": "—",
+                "next": "→",
+                "last": "⇥",
+                "first": "⇤",
+                "previous": "←",
+                "pageSize": "На странице",
             },
         },
-        html_columns=[0, 4, 7],  # expand, status, actions — render HTML from rowData
+        html_columns=[0, 4],  # expand, status — render HTML from rowData
         theme="quartz",
         auto_size_columns=False,  # Prevent AG Grid from shrinking to content width
     ).classes("w-full max-w-none").style("height: 520px;")
 
     # Fit columns to container width after grid renders (replaces auto_size_columns)
     ui.timer(0.3, lambda: grid.run_grid_method("sizeColumnsToFit"), once=True)
+
+    # AG Grid styling — clean rows, visible pagination, better spacing
+    ui.add_head_html("""
+    <style>
+    /* ── Row styling — visible separation ── */
+    .ag-theme-quartz .ag-row {
+        border-bottom: 1px solid #f1f5f9 !important;
+        font-size: 13px !important;
+    }
+    .ag-theme-quartz .ag-row:hover {
+        background: #f8fafc !important;
+    }
+    .ag-theme-quartz .ag-row-odd {
+        background: #fafbfc !important;
+    }
+    .ag-theme-quartz .ag-header-cell {
+        font-size: 11px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.03em !important;
+        color: #64748b !important;
+        font-weight: 600 !important;
+    }
+    .ag-theme-quartz .ag-cell {
+        padding: 0 16px !important;
+        line-height: 44px !important;
+    }
+    /* ── Pagination — Apple-like minimal ── */
+    .ag-paging-page-size { display: none !important; }
+    .ag-paging-panel {
+        font-size: 12px !important;
+        color: #94a3b8 !important;
+        padding: 8px 16px !important;
+        border-top: 1px solid #f1f5f9 !important;
+        background: white !important;
+        min-height: 40px !important;
+        gap: 4px !important;
+    }
+    .ag-paging-row-summary-panel {
+        order: -1 !important;
+        font-weight: 500 !important;
+        color: #94a3b8 !important;
+        font-size: 11px !important;
+    }
+    .ag-paging-page-summary-panel {
+        gap: 2px !important;
+    }
+    .ag-paging-button {
+        width: 26px !important;
+        height: 26px !important;
+        border-radius: 6px !important;
+        border: 1px solid #e2e8f0 !important;
+        background: #fafbfc !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 1px !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        color: #64748b !important;
+    }
+    .ag-paging-button:hover:not(.ag-disabled) {
+        background: #eef2ff !important;
+        border-color: #4f46e5 !important;
+        color: #4f46e5 !important;
+    }
+    .ag-paging-button.ag-disabled {
+        opacity: 0.25 !important;
+        cursor: default !important;
+    }
+    .ag-paging-number {
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        color: #64748b !important;
+    }
+    .ag-paging-description {
+        font-size: 11px !important;
+        color: #94a3b8 !important;
+    }
+    </style>
+    """)
 
     return grid
 

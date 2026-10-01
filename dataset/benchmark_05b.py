@@ -23,10 +23,10 @@ import requests
 # --- Конфиг ---
 
 YURTEG_DIR = Path.home() / ".yurteg"
-MODEL_05B = YURTEG_DIR / "qwen2.5-0.5b-q4_k_m.gguf"
+MODEL_05B = YURTEG_DIR / "yurteg-0.5b-v1-Q4_K_M.gguf"
 MODEL_15B = YURTEG_DIR / "yurteg-v3-Q4_K_M.gguf"
 LLAMA_SERVER = YURTEG_DIR / "llama-server"
-GRAMMAR_FILE = Path(__file__).parent.parent / "data" / "contract.gbnf"
+GRAMMAR_FILE = Path(__file__).parent.parent / "data" / "contract_05b.gbnf"
 STRESS_DIR = Path(__file__).parent.parent / "tests" / "test_data" / "stress"
 REPORT_DIR = Path(__file__).parent
 
@@ -34,42 +34,155 @@ PORT = 8090  # отдельный порт, чтобы не мешать осн�
 BASE_URL = f"http://localhost:{PORT}"
 
 # Тот же системный промпт что и в ai_extractor.py
-SYSTEM_PROMPT = """Ты — опытный юрист-аналитик. Извлеки структурированные метаданные из юридического документа.
+SYSTEM_PROMPT = """Ты — юрист-аналитик. Извлеки метаданные из юридического документа.
 
-ПРАВИЛА:
-1. Текст может содержать маски анонимизации ([ФИО_1], [ТЕЛЕФОН_1] и т.д.) — используй их как есть.
-2. Отвечай СТРОГО чистым JSON. Без текста до/после, без обёрток ```json```.
-3. Отсутствующую информацию ставь null (не пустую строку "").
-4. Списки всегда массивы: parties=[], special_conditions=[]. Никогда не null и не строка.
-5. confidence — число от 0.0 до 1.0 (не строка).
-6. Сумму пиши с пробелами-разделителями и валютой: "1 500 000 руб.", "25 000 EUR".
-7. Даты строго YYYY-MM-DD.
-8. ШАБЛОНЫ: если в тексте есть пустые поля — is_template=true, counterparty=null, parties=[].
-9. ФИО пиши СТРОГО в именительном падеже.
-10. document_type: "Договор поставки", "Договор аренды" и т.д.
-11. Формат ИП: ВСЕГДА "ИП Фамилия Имя Отчество"."""
+ЯЗЫК: Все значения ТОЛЬКО на русском. Запрещены английские и китайские слова.
+
+Правила:
+1. Отсутствующую информацию ставь null
+2. Даты строго YYYY-MM-DD
+3. ФИО в именительном падеже: "Иванов Иван Иванович"
+4. Формат ИП: "ИП Фамилия Имя Отчество"
+5. Контрагент в краткой форме: "ООО", "АО", "ПАО", "ИП"
+6. Сумму с валютой: "1 500 000 руб."
+7. Шаблоны (пустые поля _____) → is_template=true, counterparty=null
+8. document_type на русском: "Договор аренды", "Акт выполненных работ" и т.д."""
 
 USER_PROMPT_TEMPLATE = """Извлеки метаданные из текста юридического документа.
 
-Верни JSON с полями:
-- document_type (string): тип документа
-- counterparty (string|null): контрагент
-- subject (string): предмет документа
-- date_signed (string|null): дата подписания, YYYY-MM-DD
-- date_start (string|null): дата начала, YYYY-MM-DD
-- date_end (string|null): дата окончания, YYYY-MM-DD
-- amount (string|null): сумма с валютой
-- special_conditions (array): особые условия
-- parties (array): все стороны
-- confidence (float): уверенность 0.0–1.0
-- is_template (bool): шаблон или нет
-- payment_terms (string|null): порядок оплаты
-- payment_amount (number|null): сумма платежа
-- payment_frequency (string|null): "monthly"/"quarterly"/"yearly"/"once"/null
-- payment_direction (string|null): "income"/"expense"/null
-
 Текст документа:
 {text}"""
+
+
+# ── Улучшение 7: Очистка OCR-мусора ──────────────────────────────────────────
+
+def clean_text(text: str) -> str:
+    """Очистка текста от OCR-артефактов перед отправкой в модель."""
+    text = re.sub(r'\n{3,}', '\n\n', text)          # множественные переносы
+    text = re.sub(r'[ \t]{2,}', ' ', text)            # множественные пробелы
+    text = re.sub(r'^\d+\s*$', '', text, flags=re.M)  # номера страниц
+    text = re.sub(r'[-—]{3,}', '', text)              # разделители ---
+    return text.strip()
+
+
+# ── Улучшение 1: Извлечение заголовка документа ──────────────────────────────
+
+TITLE_KEYWORDS = [
+    "ДОГОВОР", "СОГЛАШЕНИЕ", "АКТ", "ПРИКАЗ", "ДОВЕРЕННОСТЬ",
+    "ПРЕТЕНЗИЯ", "РАСПИСКА", "ПРОТОКОЛ", "СЧЁТ", "СЧЕТ",
+    "УВЕДОМЛЕНИЕ", "ОФЕРТА", "УСТАВ", "ПОЛОЖЕНИЕ", "РЕШЕНИЕ",
+    "ПОЛИТИКА", "ПРАВИЛА", "ГАРАНТИЙНОЕ", "ИСКОВОЕ", "ОТЗЫВ",
+    "СПРАВКА", "СОГЛАСИЕ", "КАРТОЧКА", "КОММЕРЧЕСКОЕ",
+]
+
+
+def extract_title(text: str) -> str | None:
+    """Извлечь заголовок документа из первых 500 символов."""
+    for line in text[:500].split('\n'):
+        line = line.strip()
+        if not line or len(line) < 3:
+            continue
+        upper = line.upper()
+        for kw in TITLE_KEYWORDS:
+            if kw in upper and len(line) < 120:
+                return line
+    return None
+
+
+# ── Улучшение 2+6: Fuzzy matching + нормализация document_type ───────────────
+
+TITLE_TO_TYPE = {
+    "ДОГОВОР АРЕНДЫ": "Договор аренды",
+    "ДОГОВОР СУБАРЕНДЫ": "Договор субаренды",
+    "ДОГОВОР ПОДРЯДА": "Договор подряда",
+    "ДОГОВОР КУПЛИ-ПРОДАЖИ": "Договор купли-продажи",
+    "ДОГОВОР ОКАЗАНИЯ УСЛУГ": "Договор оказания услуг",
+    "ДОГОВОР ПОСТАВКИ": "Договор поставки",
+    "ДОГОВОР ЗАЙМА": "Договор займа",
+    "ДОГОВОР ДАРЕНИЯ": "Договор дарения",
+    "ДОГОВОР КОМИССИИ": "Договор комиссии",
+    "ДОГОВОР ХРАНЕНИЯ": "Договор хранения",
+    "ДОГОВОР СТРАХОВАНИЯ": "Договор страхования",
+    "ДОГОВОР ЛИЗИНГА": "Договор лизинга",
+    "ДОГОВОР ПОРУЧИТЕЛЬСТВА": "Договор поручительства",
+    "ДОГОВОР ЦЕССИИ": "Договор цессии",
+    "КРЕДИТНЫЙ ДОГОВОР": "Кредитный договор",
+    "ТРУДОВОЙ ДОГОВОР": "Трудовой договор",
+    "ЛИЦЕНЗИОННЫЙ ДОГОВОР": "Лицензионный договор",
+    "АГЕНТСКИЙ ДОГОВОР": "Агентский договор",
+    "МИРОВОЕ СОГЛАШЕНИЕ": "Мировое соглашение",
+    "ДОПОЛНИТЕЛЬНОЕ СОГЛАШЕНИЕ": "Дополнительное соглашение",
+    "СОГЛАШЕНИЕ О КОНФИДЕНЦИАЛЬНОСТИ": "Соглашение о конфиденциальности",
+    "СОГЛАШЕНИЕ О РАСТОРЖЕНИИ": "Соглашение о расторжении",
+    "СОГЛАШЕНИЕ О ЗАЧЁТЕ": "Соглашение о зачёте встречных требований",
+    "АКТ ВЫПОЛНЕННЫХ РАБОТ": "Акт выполненных работ",
+    "АКТ ПРИЁМА-ПЕРЕДАЧИ": "Акт приема-передачи",
+    "АКТ ПРИЕМА-ПЕРЕДАЧИ": "Акт приема-передачи",
+    "АКТ СВЕРКИ": "Акт сверки",
+    "СЧЁТ НА ОПЛАТУ": "Счёт на оплату",
+    "СЧЕТ НА ОПЛАТУ": "Счёт на оплату",
+    "СЧЁТ-ФАКТУРА": "Счёт на оплату",
+    "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ": "Коммерческое предложение",
+    "ДОВЕРЕННОСТЬ": "Доверенность",
+    "РАСПИСКА": "Расписка",
+    "ПРЕТЕНЗИЯ": "Претензия",
+    "ПРИКАЗ": "Приказ",
+    "ПРОТОКОЛ РАЗНОГЛАСИЙ": "Протокол разногласий",
+    "ПРОТОКОЛ ОБЩЕГО СОБРАНИЯ": "Протокол общего собрания",
+    "ГАРАНТИЙНОЕ ПИСЬМО": "Гарантийное письмо",
+    "ИСКОВОЕ ЗАЯВЛЕНИЕ": "Исковое заявление",
+    "УВЕДОМЛЕНИЕ О РАСТОРЖЕНИИ": "Уведомление о расторжении",
+    "УСТАВ": "Устав",
+    "ОФЕРТА": "Оферта на оказание услуг",
+    "СОГЛАСИЕ НА ОБРАБОТКУ": "Согласие на обработку ПД",
+    "ПОЛИТИКА ОБРАБОТКИ": "Политика обработки ПД",
+    "ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ": "Политика конфиденциальности",
+    "ПОЛЬЗОВАТЕЛЬСКОЕ СОГЛАШЕНИЕ": "Пользовательское соглашение",
+    "РЕШЕНИЕ ЕДИНСТВЕННОГО УЧАСТНИКА": "Решение единственного участника",
+    "РАМОЧНЫЙ ДОГОВОР": "Рамочный договор",
+    "ДОГОВОР СУБПОДРЯДА": "Договор субподряда",
+    "ДОГОВОР ТРАНСПОРТНОЙ ЭКСПЕДИЦИИ": "Договор транспортной экспедиции",
+    "БАНКОВСКАЯ ГАРАНТИЯ": "Банковская гарантия",
+}
+
+# Нормализация нестандартных типов
+TYPE_NORMALIZE = {
+    "Субарендная плата": "Договор субаренды",
+    "Акт о согласовании сальдо": "Акт сверки",
+    "Спецификация": "Дополнительное соглашение",
+    "Справка о должности": "Приказ",
+    "Договор уборки офисного помещения": "Договор оказания услуг",
+    "Договор оказания юридических услуг": "Договор оказания услуг",
+}
+
+
+def fix_document_type(parsed: dict, title: str | None) -> dict:
+    """Исправить document_type через заголовок и нормализацию."""
+    dt = parsed.get("document_type", "")
+
+    # 1. Нормализация нестандартных типов
+    if dt in TYPE_NORMALIZE:
+        parsed["document_type"] = TYPE_NORMALIZE[dt]
+        return parsed
+
+    # 2. Если модель дефолтнула на "Договор поставки", а заголовок говорит иное
+    if title and dt == "Договор поставки":
+        title_upper = title.upper()
+        for pattern, correct_type in TITLE_TO_TYPE.items():
+            if pattern in title_upper and correct_type != "Договор поставки":
+                parsed["document_type"] = correct_type
+                return parsed
+
+    # 3. Если document_type пустой — попробовать из заголовка
+    if not dt or len(dt) < 3:
+        if title:
+            title_upper = title.upper()
+            for pattern, correct_type in TITLE_TO_TYPE.items():
+                if pattern in title_upper:
+                    parsed["document_type"] = correct_type
+                    return parsed
+
+    return parsed
 
 
 def start_server(model_path: Path) -> subprocess.Popen:
@@ -140,7 +253,7 @@ def query_model(text: str) -> tuple[dict | None, float]:
     """Один запрос к модели. Возвращает (parsed_json, время_сек)."""
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": USER_PROMPT_TEMPLATE.format(text=text[:30000])},
+        {"role": "user", "content": USER_PROMPT_TEMPLATE.format(text=text[:10000])},
     ]
 
     start = time.time()
@@ -220,10 +333,17 @@ def run_benchmark(model_path: Path, label: str) -> list[dict]:
         print(f"Документов: {len(files)}\n")
 
         for i, f in enumerate(files, 1):
-            text = f.read_text(encoding="utf-8")
+            raw_text = f.read_text(encoding="utf-8")
+            text = clean_text(raw_text)  # Улучшение 7: очистка OCR
+            title = extract_title(text)  # Улучшение 1: заголовок
             print(f"  [{i:2d}/{len(files)}] {f.name[:40]:<40s}", end=" ", flush=True)
 
             parsed, elapsed = query_model(text)
+
+            # Улучшение 5: retry при краше с урезанным текстом
+            if parsed is None and len(text) > 5000:
+                parsed, elapsed2 = query_model(text[:5000])
+                elapsed += elapsed2
 
             if parsed is None:
                 print(f"  {elapsed:5.1f}с  ❌ CRASH")
@@ -234,6 +354,9 @@ def run_benchmark(model_path: Path, label: str) -> list[dict]:
                     "response": None,
                 })
                 continue
+
+            # Улучшения 2+6: fuzzy matching + нормализация
+            parsed = fix_document_type(parsed, title)
 
             issues = check_issues(parsed)
             status = "✅" if not issues else f"⚠️  {len(issues)}"

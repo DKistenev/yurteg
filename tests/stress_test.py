@@ -1427,11 +1427,8 @@ class TestIntegrationStress:
         with patch(
             "modules.ai_extractor.extract_metadata",
             side_effect=self._mock_extract_metadata,
-        ) as m_extract, patch(
-            "modules.ai_extractor.verify_api_key",
-            return_value=True,
-        ) as m_verify:
-            yield m_extract, m_verify
+        ) as m_extract:
+            yield m_extract
 
     def test_e2e_empty_directory(self, tmp_path, config, mock_ai):
         """Пустая директория → total=0, без краша."""

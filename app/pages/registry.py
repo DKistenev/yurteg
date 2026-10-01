@@ -55,17 +55,17 @@ def _render_empty_state(container, state) -> None:
 
     CAPABILITIES = [
         {
-            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
+            "icon": "📋",
             "title": "Извлечём метаданные",
             "body": "Тип, контрагент, суммы, сроки — автоматически из PDF и DOCX",
         },
         {
-            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>',
+            "icon": "📁",
             "title": "Разложим по папкам",
             "body": "Структура по типам документов и контрагентам создаётся автоматически",
         },
         {
-            "icon": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+            "icon": "⏰",
             "title": "Проверим сроки",
             "body": "Уведомления об истечении договоров — никаких пропущенных дедлайнов",
         },
@@ -98,13 +98,6 @@ def _render_empty_state(container, state) -> None:
                     ui.notify("Тестовые данные уже загружены", type="info")
                 ui.navigate.to("/")
 
-            ui.button(
-                "Загрузить тестовые данные",
-                on_click=_on_load_demo,
-            ).props('flat no-caps aria-label="Загрузить демо-документы для тестирования"').classes(
-                "text-sm text-slate-500 hover:text-indigo-600 transition-colors duration-150"
-            )
-
             async def _on_clear_demo():
                 db = _client_manager.get_db(state.current_client)
                 await run.io_bound(lambda: db.conn.execute("DELETE FROM contracts"))
@@ -116,12 +109,19 @@ def _render_empty_state(container, state) -> None:
                 ui.notify("Данные очищены", type="info")
                 ui.navigate.to("/")
 
-            ui.button(
-                "Очистить тестовые данные",
-                on_click=_on_clear_demo,
-            ).props('flat no-caps aria-label="Очистить все данные и сбросить онбординг"').classes(
-                "text-xs text-slate-400 hover:text-red-500 transition-colors duration-150"
-            )
+            with ui.row().classes("gap-2 justify-center mt-2"):
+                ui.button(
+                    "Загрузить тестовые данные",
+                    on_click=_on_load_demo,
+                ).props('flat no-caps aria-label="Загрузить демо-документы для тестирования"').classes(
+                    "text-sm text-slate-500 border border-slate-200 rounded-lg px-4 py-2"
+                )
+                ui.button(
+                    "\U0001f5d1 Очистить данные",
+                    on_click=_on_clear_demo,
+                ).props('flat no-caps aria-label="Очистить все данные и сбросить онбординг"').classes(
+                    "text-sm text-red-500 border border-red-200 bg-red-50 rounded-lg px-4 py-2"
+                )
 
             # ── Три карточки возможностей ─────────────────────────────────────
             with ui.row().classes("gap-4 w-full max-w-2xl justify-center flex-wrap"):
@@ -130,7 +130,11 @@ def _render_empty_state(container, state) -> None:
                         "bg-white border border-slate-200 rounded-xl p-5 gap-3 items-start"
                         " flex-1 min-w-[180px] max-w-[220px]"
                     ):
-                        ui.html(cap["icon"])
+                        ui.html(
+                            f'<div style="width:40px;height:40px;border-radius:10px;background:#eef2ff;'
+                            f'display:flex;align-items:center;justify-content:center;font-size:1.2rem;">'
+                            f'{cap["icon"]}</div>'
+                        )
                         with ui.column().classes("gap-1"):
                             with ui.element("p").style("font-size:0.875rem;font-weight:600;color:#0f172a;margin:0"):
                                 ui.html(cap["title"])
@@ -382,24 +386,26 @@ def _inject_hover_preview(grid) -> None:
             scheduleHide();
         }});
 
-        // Wire AG Grid row hover via DOM event delegation on the grid element
-        var gridEl = document.querySelector('[id="{grid_id}"] .ag-body-viewport')
-                  || document.getElementById('c' + '{grid_id}')
-                  || null;
-
-        // Fallback: find the grid wrapper by NiceGUI component id pattern
-        if (!gridEl) {{
-            // NiceGUI renders ag-grid inside a div with id="cXXX" where XXX is grid.id
-            var wrapper = document.querySelector('[id^="c"][id$="{grid_id}"]');
-            if (wrapper) gridEl = wrapper.querySelector('.ag-body-viewport') || wrapper;
+        // Wire AG Grid row hover via DOM event delegation on the grid element.
+        // NiceGUI ag-grid renders inside div id="c{grid_id}".
+        // AG Grid viewport may use .ag-body-viewport or .ag-body.
+        function findGridViewport() {{
+            var wrapper = document.getElementById('c{grid_id}');
+            if (wrapper) {{
+                var vp = wrapper.querySelector('.ag-body-viewport')
+                      || wrapper.querySelector('.ag-body')
+                      || wrapper.querySelector('.ag-center-cols-viewport');
+                if (vp) return vp;
+                return wrapper;
+            }}
+            // Broad fallback — single grid on page
+            return document.querySelector('.ag-body-viewport')
+                || document.querySelector('.ag-center-cols-viewport')
+                || null;
         }}
-        // Another fallback — just find the ag-body-viewport in the page
-        if (!gridEl) {{
-            gridEl = document.querySelector('.ag-body-viewport');
-        }}
-        if (!gridEl) return;
 
-        gridEl.addEventListener('mouseover', function(e) {{
+        function attachHoverListeners(gridEl) {{
+            gridEl.addEventListener('mouseover', function(e) {{
             var rowEl = e.target.closest('.ag-row');
             if (!rowEl) return;
             var rowId = rowEl.getAttribute('row-id');
@@ -413,8 +419,19 @@ def _inject_hover_preview(grid) -> None:
             hoverTimer = setTimeout(function() {{
                 // Get row data from AG Grid API
                 try {{
-                    var gridApi = getElement({grid_id}).gridOptions.api
-                               || getElement({grid_id}).gridOptions;
+                    // NiceGUI exposes grid via getElement(id); AG Grid >= 31 puts api on gridOptions
+                    var ngEl = typeof getElement === 'function' ? getElement({grid_id}) : null;
+                    var gridApi = null;
+                    if (ngEl) {{
+                        gridApi = ngEl.gridOptions && ngEl.gridOptions.api
+                               ? ngEl.gridOptions.api
+                               : (ngEl.gridOptions || null);
+                    }}
+                    // Fallback: try AG Grid's newer API surface on the wrapper element
+                    if (!gridApi) {{
+                        var wrapper = document.getElementById('c{grid_id}');
+                        if (wrapper && wrapper.__ag_grid_api) gridApi = wrapper.__ag_grid_api;
+                    }}
                     var rowNode = null;
                     if (gridApi && gridApi.getRowNode) {{
                         rowNode = gridApi.getRowNode(rowId);
@@ -436,27 +453,42 @@ def _inject_hover_preview(grid) -> None:
             }}, 500);
         }});
 
-        gridEl.addEventListener('mouseout', function(e) {{
-            var rowEl = e.target.closest('.ag-row');
-            var relTarget = e.relatedTarget;
-            // Check if we moved to another element inside the same row
-            if (rowEl && relTarget && rowEl.contains(relTarget)) return;
-            isOverRow = false;
-            if (hoverTimer) {{
-                clearTimeout(hoverTimer);
-                hoverTimer = null;
-            }}
-            scheduleHide();
-        }});
+            gridEl.addEventListener('mouseout', function(e) {{
+                var rowEl = e.target.closest('.ag-row');
+                var relTarget = e.relatedTarget;
+                // Check if we moved to another element inside the same row
+                if (rowEl && relTarget && rowEl.contains(relTarget)) return;
+                isOverRow = false;
+                if (hoverTimer) {{
+                    clearTimeout(hoverTimer);
+                    hoverTimer = null;
+                }}
+                scheduleHide();
+            }});
 
-        // Hide on scroll inside grid
-        gridEl.addEventListener('scroll', function() {{
-            if (hoverTimer) {{ clearTimeout(hoverTimer); hoverTimer = null; }}
-            isOverRow = false;
-            isOverCard = false;
-            hidePreview();
-            currentRowId = null;
-        }});
+            // Hide on scroll inside grid
+            gridEl.addEventListener('scroll', function() {{
+                if (hoverTimer) {{ clearTimeout(hoverTimer); hoverTimer = null; }}
+                isOverRow = false;
+                isOverCard = false;
+                hidePreview();
+                currentRowId = null;
+            }});
+        }}  // end attachHoverListeners
+
+        // Retry until AG Grid viewport element is in the DOM (grid renders async)
+        var retries = 0;
+        function tryAttach() {{
+            var el = findGridViewport();
+            if (el) {{
+                attachHoverListeners(el);
+            }} else if (retries < 20) {{
+                retries++;
+                setTimeout(tryAttach, 300);
+            }}
+        }}
+        // Start after initial delay to let NiceGUI render the grid
+        setTimeout(tryAttach, 500);
     }})();
     </script>
     """)
@@ -495,7 +527,53 @@ def build() -> None:
         # ── Page heading + controls row ──────────────────────────────────────────
         with ui.row().classes("w-full px-6 pt-5 pb-2 items-center gap-4"):
             # REGI-05: Заголовок с визуальным весом
-            ui.label("Реестр").classes("text-2xl font-semibold text-slate-900 mr-auto")
+            ui.label("Реестр").classes("text-2xl font-semibold text-slate-900")
+
+            # Demo data + reset buttons — always visible
+            async def _load_demo_inline():
+                try:
+                    db = _client_manager.get_db(state.current_client)
+                    count = await run.io_bound(insert_demo_contracts, db)
+                    if count > 0:
+                        ui.notify(f"Загружено {count} тестовых документов", type="positive")
+                    else:
+                        ui.notify("Тестовые данные уже загружены", type="info")
+                    ui.navigate.to("/")
+                except Exception as e:
+                    ui.notify(f"Ошибка: {e}", type="negative")
+
+            async def _clear_demo_inline():
+                try:
+                    db = _client_manager.get_db(state.current_client)
+
+                    def _do_clear():
+                        db.conn.execute("DELETE FROM contracts")
+                        db.conn.commit()
+
+                    await run.io_bound(_do_clear)
+                    save_setting("first_run_completed", False)
+                    save_setting("tour_completed", False)
+                    save_setting("first_processing_done", False)
+                    save_setting("trust_prompt_dismissed", False)
+                    ui.notify("Данные очищены", type="info")
+                    ui.navigate.to("/")
+                except Exception as e:
+                    ui.notify(f"Ошибка: {e}", type="negative")
+
+            ui.button(
+                "Загрузить тестовые",
+                on_click=_load_demo_inline,
+            ).props("flat no-caps dense").classes(
+                "text-xs text-slate-400 hover:text-indigo-600"
+            )
+            ui.button(
+                "Очистить",
+                on_click=_clear_demo_inline,
+            ).props("flat no-caps dense").classes(
+                "text-xs text-red-400 hover:text-red-600"
+            )
+
+            ui.element("div").classes("flex-1")  # spacer
 
             # Calendar toggle — right-aligned (DSGN-04, D-15)
             with ui.row().classes("items-center gap-1 bg-slate-100 p-1 rounded-lg").props("id=calendar-toggle data-tour=calendar"):

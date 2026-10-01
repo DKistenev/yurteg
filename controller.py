@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from config import Config
-from modules.ai_extractor import extract_metadata, verify_api_key, verify_metadata
+from modules.ai_extractor import extract_metadata, verify_metadata
 from modules.anonymizer import anonymize
 from modules.database import Database
 from modules.extractor import extract_text
@@ -165,7 +165,7 @@ class Controller:
                         stats={},
                     )
                 else:
-                    anonymized = anonymize(text.text, self.config.anonymize_types)
+                    anonymized = anonymize(text.text)
                 result.anonymized = anonymized
                 prepared.append((result, anonymized))
             except Exception as e:
@@ -227,6 +227,7 @@ class Controller:
                         logger.info("L5 верификация: %s", result.file_info.filename)
                         v5 = verify_metadata(
                             anonymized.text, metadata, self.config,
+                            provider=self._provider,
                         )
                         if v5.get("correct", True):
                             validation.warnings.append(

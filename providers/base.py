@@ -12,7 +12,7 @@ class LLMProvider(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Идентификатор провайдера для логирования: 'zai', 'openrouter', 'ollama'."""
+        """Идентификатор провайдера для логирования: 'zai', 'ollama'."""
         ...
 
     @abstractmethod

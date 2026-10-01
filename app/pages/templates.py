@@ -48,8 +48,8 @@ async def _pick_file() -> Optional[Path]:
         if not result:
             return None
         return Path(result[0])
-    except (ImportError, AttributeError):
-        # Web mode: pywebview недоступен или app.native не инициализирован
+    except (ImportError, AttributeError, Exception):
+        # Web mode: pywebview недоступен, app.native не инициализирован, или PicklingError
         ui.notify(
             "Выбор файла недоступен в веб-режиме.",
             type="warning",
@@ -77,6 +77,137 @@ def _render_cards(container: ui.column, on_add: callable = None) -> None:
                     ui.button(
                         "Добавить первый шаблон", on_click=on_add
                     ).classes(BTN_ACCENT_FILLED).props('no-caps aria-label="Добавить первый шаблон договора"')
+
+            # ── "Как работают шаблоны" — 3-step workflow card ────────────────
+            with ui.card().classes(
+                "w-full border border-slate-200 rounded-xl shadow-sm mt-8"
+            ).style("padding:0"):
+                with ui.column().classes("p-6 gap-4 w-full"):
+                    ui.label("Как работают шаблоны").classes(
+                        "text-base font-semibold text-slate-800"
+                    )
+                    with ui.grid(columns=3).classes("w-full gap-6"):
+                        # Step 1
+                        with ui.column().classes("gap-2 items-center text-center"):
+                            ui.html(
+                                '<div style="width:48px;height:48px;border-radius:14px;'
+                                'background:#eef2ff;display:flex;align-items:center;'
+                                'justify-content:center;font-size:1.4rem">1</div>'
+                            )
+                            ui.label("Загрузите эталон").classes(
+                                "text-sm font-semibold text-slate-800"
+                            )
+                            ui.label(
+                                "Идеальный договор в формате PDF или DOCX"
+                            ).classes("text-xs text-slate-400")
+                        # Step 2
+                        with ui.column().classes("gap-2 items-center text-center"):
+                            ui.html(
+                                '<div style="width:48px;height:48px;border-radius:14px;'
+                                'background:#eef2ff;display:flex;align-items:center;'
+                                'justify-content:center;font-size:1.4rem">2</div>'
+                            )
+                            ui.label("Обработайте документ").classes(
+                                "text-sm font-semibold text-slate-800"
+                            )
+                            ui.label(
+                                "Система автоматически подберёт шаблон"
+                            ).classes("text-xs text-slate-400")
+                        # Step 3
+                        with ui.column().classes("gap-2 items-center text-center"):
+                            ui.html(
+                                '<div style="width:48px;height:48px;border-radius:14px;'
+                                'background:#eef2ff;display:flex;align-items:center;'
+                                'justify-content:center;font-size:1.4rem">3</div>'
+                            )
+                            ui.label("Увидьте отклонения").classes(
+                                "text-sm font-semibold text-slate-800"
+                            )
+                            ui.label(
+                                "Пропущенные, изменённые и добавленные пункты"
+                            ).classes("text-xs text-slate-400")
+
+            # ── "Результат проверки" — demo deviation card ───────────────────
+            with ui.card().classes(
+                "w-full border border-slate-200 rounded-xl shadow-sm mt-4"
+            ).style("padding:0"):
+                with ui.column().classes("p-6 gap-4 w-full"):
+                    ui.label("Результат проверки").classes(
+                        "text-base font-semibold text-slate-800"
+                    )
+                    ui.label(
+                        "Так выглядит отчёт после сравнения документа с шаблоном"
+                    ).classes("text-xs text-slate-400 -mt-2")
+
+                    # Summary bar: 1 Changed | 1 Removed | 1 Added
+                    with ui.grid(columns=3).classes("w-full gap-3"):
+                        with ui.element("div").classes(
+                            "bg-amber-50 rounded-lg p-3 text-center border border-amber-200"
+                        ):
+                            ui.label("1").classes("text-xl font-bold text-amber-700")
+                            ui.label("Изменено").classes("text-xs text-amber-600")
+                        with ui.element("div").classes(
+                            "bg-red-50 rounded-lg p-3 text-center border border-red-200"
+                        ):
+                            ui.label("1").classes("text-xl font-bold text-red-700")
+                            ui.label("Удалено").classes("text-xs text-red-600")
+                        with ui.element("div").classes(
+                            "bg-green-50 rounded-lg p-3 text-center border border-green-200"
+                        ):
+                            ui.label("1").classes("text-xl font-bold text-green-700")
+                            ui.label("Добавлено").classes("text-xs text-green-600")
+
+                    # Deviation examples
+                    with ui.column().classes("w-full gap-2"):
+                        # Changed (amber)
+                        with ui.element("div").classes(
+                            "bg-amber-50 border border-amber-200 rounded-lg p-3"
+                        ):
+                            with ui.row().classes("items-center gap-2 mb-1"):
+                                ui.label("Изменено").classes(
+                                    "text-xs font-semibold px-2 py-0.5 rounded-full "
+                                    "bg-amber-200 text-amber-800"
+                                )
+                            ui.label(
+                                "Срок аренды: 12 месяцев \u2192 6 месяцев"
+                            ).classes("text-sm text-slate-700")
+                        # Removed (red)
+                        with ui.element("div").classes(
+                            "bg-red-50 border border-red-200 rounded-lg p-3"
+                        ):
+                            with ui.row().classes("items-center gap-2 mb-1"):
+                                ui.label("Удалено").classes(
+                                    "text-xs font-semibold px-2 py-0.5 rounded-full "
+                                    "bg-red-200 text-red-800"
+                                )
+                            ui.label(
+                                "Пункт 4.3: страхование имущества арендатором на весь срок договора"
+                            ).classes("text-sm text-slate-700")
+                        # Added (green)
+                        with ui.element("div").classes(
+                            "bg-green-50 border border-green-200 rounded-lg p-3"
+                        ):
+                            with ui.row().classes("items-center gap-2 mb-1"):
+                                ui.label("Добавлено").classes(
+                                    "text-xs font-semibold px-2 py-0.5 rounded-full "
+                                    "bg-green-200 text-green-800"
+                                )
+                            ui.label(
+                                "Пункт 7.1: предоставление 2 парковочных мест на территории объекта"
+                            ).classes("text-sm text-slate-700")
+
+                    # Footer button
+                    with ui.row().classes("w-full justify-end"):
+                        ui.button(
+                            "Скачать с отслеживанием изменений",
+                            icon="download",
+                            on_click=lambda: ui.notify(
+                                "Демо-режим: загрузите реальный шаблон, чтобы скачать отчёт",
+                                type="info",
+                            ),
+                        ).props("flat no-caps dense disable").classes(
+                            "text-slate-400 text-sm"
+                        )
 
             # ── Demo карточка — показывает как выглядит шаблон (PLSH-05) ─────
             with ui.column().classes("w-full mt-8 gap-3 items-center"):

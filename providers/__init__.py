@@ -8,7 +8,6 @@
 from config import Config
 from providers.base import LLMProvider
 from providers.zai import ZAIProvider
-from providers.openrouter import OpenRouterProvider
 from providers.ollama import OllamaProvider
 
 
@@ -27,14 +26,12 @@ def get_provider(config: Config) -> LLMProvider:
     match config.active_provider:
         case "zai":
             return ZAIProvider(config)
-        case "openrouter":
-            return OpenRouterProvider(config)
         case "ollama":
             return OllamaProvider(config)
         case _:
             raise ValueError(
                 f"Неизвестный active_provider: {config.active_provider!r}. "
-                f"Допустимые значения: 'zai', 'openrouter', 'ollama'."
+                f"Допустимые значения: 'zai', 'ollama'."
             )
 
 
@@ -47,8 +44,6 @@ def get_fallback_provider(config: Config) -> LLMProvider | None:
     if not config.fallback_provider:
         return None
     match config.fallback_provider:
-        case "openrouter":
-            return OpenRouterProvider(config)
         case "ollama":
             return OllamaProvider(config)
         case "zai":

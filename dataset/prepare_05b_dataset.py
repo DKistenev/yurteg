@@ -135,7 +135,7 @@ def extract_doc_type(content: str) -> str | None:
 
 
 def strip_tool_call(content: str) -> str:
-    """Убрать <tool_call>...</tool_call> обёртку, оставить чистый JSON."""
+    """Убрать <tool_call>...</tool_call> обёртку, оставить чистый JSON. Удаляет confidence."""
     # Убираем XML теги
     cleaned = re.sub(r'</?tool_call>\s*', '', content).strip()
 
@@ -143,7 +143,9 @@ def strip_tool_call(content: str) -> str:
     try:
         obj = json.loads(cleaned)
         if isinstance(obj, dict) and "arguments" in obj:
-            return json.dumps(obj["arguments"], ensure_ascii=False)
+            obj = obj["arguments"]
+        if isinstance(obj, dict):
+            obj.pop("confidence", None)
         return json.dumps(obj, ensure_ascii=False)
     except json.JSONDecodeError:
         pass
